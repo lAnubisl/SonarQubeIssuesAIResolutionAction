@@ -1,0 +1,41 @@
+name: Fix SonarQube Issues With Copilot
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_issues:
+        description: Maximum number of SonarQube issues to attempt
+        required: false
+        default: "10"
+      dry_run:
+        description: Run without making changes
+        required: false
+        default: "true"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sonar-copilot-fix:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fix SonarQube issues
+        uses: your-org/sonar-copilot-fix-action@v1
+        with:
+          sonar_host_url: ${{ vars.SONAR_HOST_URL }}
+          sonar_project_key: ${{ vars.SONAR_PROJECT_KEY }}
+          sonar_branch: ${{ github.ref_name }}
+          max_issues: ${{ inputs.max_issues }}
+          validation_command: dotnet test
+          dry_run: ${{ inputs.dry_run }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          COPILOT_CLI_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}
+          GH_CLI_TOKEN: ${{ secrets.GH_CLI_TOKEN }}

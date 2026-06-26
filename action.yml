@@ -1,0 +1,112 @@
+name: SonarQube Copilot Fix
+description: Fetch selected SonarQube issues, ask GitHub Copilot CLI to fix them, and open a draft pull request.
+author: sonar-copilot-fix
+
+inputs:
+  sonar_host_url:
+    description: SonarQube Server or SonarQube Cloud base URL.
+    required: true
+  sonar_project_key:
+    description: SonarQube project key.
+    required: true
+  sonar_branch:
+    description: Optional SonarQube branch.
+    required: false
+  sonar_organization:
+    description: Optional SonarQube Cloud organization.
+    required: false
+  max_issues:
+    description: Maximum number of issues to select.
+    required: false
+    default: "10"
+  issue_statuses:
+    description: Comma-separated SonarQube issue statuses.
+    required: false
+  severities:
+    description: Comma-separated SonarQube severities.
+    required: false
+  clean_code_attribute_categories:
+    description: Comma-separated clean code attribute categories or equivalent supported filter values.
+    required: false
+  include_rule_details:
+    description: Include SonarQube rule details in the prompt.
+    required: false
+    default: "true"
+  include_code_snippets:
+    description: Include local code snippets in the prompt.
+    required: false
+    default: "true"
+  code_snippet_context_lines:
+    description: Number of local context lines around each issue.
+    required: false
+    default: "20"
+  copilot_model:
+    description: Optional model name to pass to a supported Copilot CLI command.
+    required: false
+  copilot_extra_instructions:
+    description: Extra reviewer-approved instructions to include in the Copilot prompt.
+    required: false
+  validation_command:
+    description: Optional validation command, for example dotnet test.
+    required: false
+  branch_prefix:
+    description: Prefix for generated fix branches.
+    required: false
+    default: copilot/sonar-fixes
+  base_branch:
+    description: Base branch for the pull request. Defaults to detected repository default branch.
+    required: false
+  pull_request_draft:
+    description: Create a draft pull request.
+    required: false
+    default: "true"
+  dry_run:
+    description: Fetch issues and generate the prompt without changing the repository.
+    required: false
+    default: "false"
+  fail_if_no_issues:
+    description: Fail when no matching SonarQube issues are found.
+    required: false
+    default: "false"
+  allow_github_token_fallback:
+    description: Allow GITHUB_TOKEN fallback when GH_CLI_TOKEN is absent.
+    required: false
+    default: "false"
+  copilot_allow_all_tools:
+    description: Allow unrestricted Copilot CLI tool execution when supported by the selected CLI command.
+    required: false
+    default: "false"
+
+outputs:
+  prompt_file:
+    description: Path to the generated Copilot prompt file.
+  pull_request_url:
+    description: URL of the created pull request, when one is created.
+  selected_issue_count:
+    description: Number of selected SonarQube issues.
+
+runs:
+  using: docker
+  image: Dockerfile
+  env:
+    INPUT_SONAR_HOST_URL: ${{ inputs.sonar_host_url }}
+    INPUT_SONAR_PROJECT_KEY: ${{ inputs.sonar_project_key }}
+    INPUT_SONAR_BRANCH: ${{ inputs.sonar_branch }}
+    INPUT_SONAR_ORGANIZATION: ${{ inputs.sonar_organization }}
+    INPUT_MAX_ISSUES: ${{ inputs.max_issues }}
+    INPUT_ISSUE_STATUSES: ${{ inputs.issue_statuses }}
+    INPUT_SEVERITIES: ${{ inputs.severities }}
+    INPUT_CLEAN_CODE_ATTRIBUTE_CATEGORIES: ${{ inputs.clean_code_attribute_categories }}
+    INPUT_INCLUDE_RULE_DETAILS: ${{ inputs.include_rule_details }}
+    INPUT_INCLUDE_CODE_SNIPPETS: ${{ inputs.include_code_snippets }}
+    INPUT_CODE_SNIPPET_CONTEXT_LINES: ${{ inputs.code_snippet_context_lines }}
+    INPUT_COPILOT_MODEL: ${{ inputs.copilot_model }}
+    INPUT_COPILOT_EXTRA_INSTRUCTIONS: ${{ inputs.copilot_extra_instructions }}
+    INPUT_VALIDATION_COMMAND: ${{ inputs.validation_command }}
+    INPUT_BRANCH_PREFIX: ${{ inputs.branch_prefix }}
+    INPUT_BASE_BRANCH: ${{ inputs.base_branch }}
+    INPUT_PULL_REQUEST_DRAFT: ${{ inputs.pull_request_draft }}
+    INPUT_DRY_RUN: ${{ inputs.dry_run }}
+    INPUT_FAIL_IF_NO_ISSUES: ${{ inputs.fail_if_no_issues }}
+    INPUT_ALLOW_GITHUB_TOKEN_FALLBACK: ${{ inputs.allow_github_token_fallback }}
+    INPUT_COPILOT_ALLOW_ALL_TOOLS: ${{ inputs.copilot_allow_all_tools }}
