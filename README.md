@@ -100,7 +100,7 @@ Dry run requires only `SONAR_TOKEN`. It fetches issues, writes `.sonar-copilot/i
 
 Normal mode requires `SONAR_TOKEN`, `COPILOT_CLI_TOKEN`, and `GH_CLI_TOKEN` unless explicit `GITHUB_TOKEN` fallback is enabled. The action:
 
-1. Fetches and paginates SonarQube issues from `/api/issues/search`, ignoring issues whose status is `ACCEPTED`.
+1. Fetches and paginates SonarQube issues from `/api/issues/search`, ignoring non-actionable issues whose status is `ACCEPTED` or `RESOLVED`.
 2. Optionally fetches rule details from `/api/rules/show`.
 3. Reads local snippets around affected lines.
 4. Generates `.sonar-copilot/issues-prompt.md`.
@@ -132,7 +132,7 @@ The draft PR includes the SonarQube project, branch, base branch, generated bran
 
 ## SonarQube Compatibility
 
-The implementation uses bearer authentication and `/api/issues/search`, with project, branch, organization, status, severity, and clean-code category filters. Issues returned with the `ACCEPTED` status are always ignored because they no longer affect the quality gate. SonarQube Server and SonarQube Cloud can vary by version; unsupported filter combinations produce a clear API error. The client is intentionally small so endpoint parameters can be updated as SonarQube evolves.
+The implementation uses bearer authentication and `/api/issues/search`, with project, branch, organization, status, severity, and clean-code category filters. Non-actionable issues returned with the `ACCEPTED` or legacy `RESOLVED` status are always ignored because they no longer affect the quality gate. SonarQube Server and SonarQube Cloud can vary by version; unsupported filter combinations produce a clear API error. The client is intentionally small so endpoint parameters can be updated as SonarQube evolves.
 
 ## Security
 

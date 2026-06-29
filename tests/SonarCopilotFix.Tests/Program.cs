@@ -13,7 +13,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("SonarQube authentication errors are mapped clearly", Tests.AuthenticationError),
     ("Malformed SonarQube responses fail", Tests.MalformedResponse),
     ("Issue filtering parameters are sent", Tests.Filtering),
-    ("Accepted SonarQube issues are ignored without consuming max_issues", Tests.AcceptedIssuesAreIgnored),
+    ("Accepted and resolved SonarQube issues are ignored without consuming max_issues", Tests.NonActionableIssuesAreIgnored),
     ("Code snippets are extracted around the issue line", Tests.SnippetExtraction),
     ("Prompt generation includes safety rules and issue details", Tests.PromptGeneration),
     ("PR body contains issue links and delegates validation to PR checks", Tests.PrBody),
@@ -91,14 +91,14 @@ internal static class Tests
         Assert.Equal("INTENTIONAL", Query(uri, "cleanCodeAttributeCategories"));
     }
 
-    public static async Task AcceptedIssuesAreIgnored()
+    public static async Task NonActionableIssuesAreIgnored()
     {
         var handler = new FakeHandler(request =>
         {
             var page = Query(request.RequestUri!, "p");
             var json = page == "1"
-                ? """{"total":3,"issues":[{"key":"A","status":"Accepted","rule":"csharpsquid:S1","component":"proj:src/A.cs","line":1,"message":"accepted"},{"key":"B","status":"OPEN","rule":"csharpsquid:S2","component":"proj:src/B.cs","line":2,"message":"open"}]}"""
-                : """{"total":3,"issues":[{"key":"C","status":"OPEN","rule":"csharpsquid:S3","component":"proj:src/C.cs","line":3,"message":"open"}]}""";
+                ? """{"total":4,"issues":[{"key":"A","status":"RESOLVED","rule":"csharpsquid:S1","component":"proj:src/A.cs","line":1,"message":"resolved"},{"key":"B","status":"Accepted","rule":"csharpsquid:S2","component":"proj:src/B.cs","line":2,"message":"accepted"}]}"""
+                : """{"total":4,"issues":[{"key":"C","status":"OPEN","rule":"csharpsquid:S3","component":"proj:src/C.cs","line":3,"message":"open"},{"key":"D","status":"OPEN","rule":"csharpsquid:S4","component":"proj:src/D.cs","line":4,"message":"open"}]}""";
             return Json(json);
         });
         var client = NewClient(handler, maxIssues: 2);
@@ -117,10 +117,10 @@ internal static class Tests
         }
 
         Assert.Equal(2, result.Issues.Count);
-        Assert.SequenceEqual(["B", "C"], result.Issues.Select(issue => issue.Key));
+        Assert.SequenceEqual(["C", "D"], result.Issues.Select(issue => issue.Key));
         Assert.Equal(2, handler.Requests.Count(request => request.RequestUri!.AbsolutePath == "/api/issues/search"));
-        Assert.Contains("SonarQube returned issue: key=A, status=Accepted", output.ToString());
-        Assert.Contains("SonarQube returned issue: key=B, status=OPEN", output.ToString());
+        Assert.Contains("SonarQube returned issue: key=A, status=RESOLVED", output.ToString());
+        Assert.Contains("SonarQube returned issue: key=B, status=Accepted", output.ToString());
     }
 
     public static Task SnippetExtraction()

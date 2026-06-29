@@ -60,7 +60,7 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
             {
                 issuesSeen++;
 
-                if (string.Equals(issue.Status, "ACCEPTED", StringComparison.OrdinalIgnoreCase))
+                if (IsNonActionableStatus(issue.Status))
                 {
                     continue;
                 }
@@ -83,6 +83,10 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
 
         return new SonarIssueSearchResult(total, selected);
     }
+
+    private static bool IsNonActionableStatus(string? status) =>
+        string.Equals(status, "ACCEPTED", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(status, "RESOLVED", StringComparison.OrdinalIgnoreCase);
 
     private string BuildIssueSearchUri(int page, int pageSize)
     {
