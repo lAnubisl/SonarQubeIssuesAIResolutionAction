@@ -105,7 +105,9 @@ public sealed class SonarCopilotFixApp(
             if (validationResult.ExitCode != 0)
             {
                 summary.Write(environment);
-                throw new ControlledFailureException("Validation command failed. Leaving changes in the workspace for inspection.", ExitCodes.ValidationFailure);
+                throw new ControlledFailureException(
+                    ValidationRunner.BuildFailureMessage(validationResult),
+                    ExitCodes.ValidationFailure);
             }
         }
 

@@ -6,6 +6,7 @@ using SonarCopilotFix.GitHub;
 using SonarCopilotFix.Infrastructure;
 using SonarCopilotFix.PromptGeneration;
 using SonarCopilotFix.SonarQube;
+using SonarCopilotFix.Validation;
 
 var tests = new (string Name, Func<Task> Run)[]
 {
@@ -22,6 +23,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Normal mode requires isolated Copilot and GitHub tokens", Tests.NormalModeTokenValidation),
     ("Copilot CLI uses the supported programmatic interface", Tests.CopilotCliArguments),
     ("CommandRunner safe environment excludes unrelated secrets", Tests.TokenIsolationEnvironment),
+    ("Validation failures include the exit code and captured output", Tests.ValidationFailureMessage),
     ("GitService detects changed files with command-scoped safe directory", Tests.GitChangedFiles)
 };
 
@@ -230,6 +232,17 @@ internal static class Tests
         Assert.True(safe.ContainsKey("GH_TOKEN"));
         Assert.False(safe.ContainsKey("SONAR_TOKEN"));
         Assert.False(safe.ContainsKey("COPILOT_CLI_TOKEN"));
+        return Task.CompletedTask;
+    }
+
+    public static Task ValidationFailureMessage()
+    {
+        var result = new CommandResult(17, "test output", "test error");
+        var message = ValidationRunner.BuildFailureMessage(result);
+
+        Assert.Contains("exit code 17", message);
+        Assert.Contains("test output", message);
+        Assert.Contains("test error", message);
         return Task.CompletedTask;
     }
 
