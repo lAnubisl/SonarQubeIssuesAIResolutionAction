@@ -314,6 +314,9 @@ internal static class Tests
         Assert.SequenceEqual(
             ["--session-id", "session-id", "--prompt", "/usage", "--no-ask-user", "--no-color"],
             CopilotCliRunner.BuildUsageArguments("session-id"));
+        Assert.SequenceEqual(
+            ["--session-id", "session-id", "--prompt", "/session", "--no-ask-user", "--no-color"],
+            CopilotCliRunner.BuildSessionArguments("session-id"));
         return Task.CompletedTask;
     }
 

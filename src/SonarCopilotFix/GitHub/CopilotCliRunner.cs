@@ -9,25 +9,30 @@ public sealed class CopilotCliRunner(CommandRunner commandRunner, string workspa
     {
         var prompt = await File.ReadAllTextAsync(promptPath, cancellationToken);
         LogPrompt(prompt);
-        var sessionId = Guid.NewGuid().ToString();
-        var args = BuildArguments(options, prompt, sessionId);
-        var env = new Dictionary<string, string?>
-        {
-            ["COPILOT_GITHUB_TOKEN"] = options.CopilotCliToken,
-            ["COPILOT_AUTO_UPDATE"] = "false"
-        };
 
+        var sessionId = Guid.NewGuid().ToString();
+        var environment = BuildEnvironment(options);
+
+        await ExecutePromptAsync(options, prompt, sessionId, environment, cancellationToken);
+        await LogSessionInfoAsync(sessionId, environment, cancellationToken);
+        return await GetUsageReportAsync(sessionId, environment, cancellationToken);
+    }
+
+    private async Task ExecutePromptAsync(
+        ActionInputs options,
+        string prompt,
+        string sessionId,
+        IReadOnlyDictionary<string, string?> environment,
+        CancellationToken cancellationToken)
+    {
         CommandResult result;
         try
         {
-            result = await commandRunner.RunAsync(
+            result = await RunCommandAsync(
+                BuildArguments(options, prompt, sessionId),
+                environment,
                 "copilot",
-                args,
-                workspace,
-                env,
-                cancellationToken,
-                line => logger.Info($"[copilot stdout] {line}"),
-                line => logger.Info($"[copilot stderr] {line}"));
+                cancellationToken);
         }
         catch (Win32Exception ex)
         {
@@ -44,23 +49,53 @@ public sealed class CopilotCliRunner(CommandRunner commandRunner, string workspa
         }
 
         logger.Info("GitHub Copilot CLI completed.");
-        logger.Info($"Querying Copilot CLI usage for session {sessionId}.");
-        var usageResult = await commandRunner.RunAsync(
-            "copilot",
-            BuildUsageArguments(sessionId),
-            workspace,
-            env,
-            cancellationToken,
-            line => logger.Info($"[copilot usage stdout] {line}"),
-            line => logger.Info($"[copilot usage stderr] {line}"));
-        if (usageResult.ExitCode != 0)
+    }
+
+    private async Task LogSessionInfoAsync(
+        string sessionId,
+        IReadOnlyDictionary<string, string?> environment,
+        CancellationToken cancellationToken)
+    {
+        logger.Info($"Querying Copilot CLI information for session {sessionId}.");
+        var result = await RunCommandAsync(
+            BuildSessionArguments(sessionId),
+            environment,
+            "copilot session",
+            cancellationToken);
+        if (result.ExitCode != 0)
         {
             throw new ControlledFailureException(
-                $"GitHub Copilot CLI failed to report usage for session {sessionId}. {usageResult.Summary}",
+                $"GitHub Copilot CLI failed to report information for session {sessionId}. {result.Summary}",
                 ExitCodes.CopilotFailure);
         }
 
-        var usageReport = usageResult.StandardOutput.Trim();
+        if (string.IsNullOrWhiteSpace(result.StandardOutput))
+        {
+            throw new ControlledFailureException(
+                $"GitHub Copilot CLI returned empty information for session {sessionId}.",
+                ExitCodes.CopilotFailure);
+        }
+    }
+
+    private async Task<string> GetUsageReportAsync(
+        string sessionId,
+        IReadOnlyDictionary<string, string?> environment,
+        CancellationToken cancellationToken)
+    {
+        logger.Info($"Querying Copilot CLI usage for session {sessionId}.");
+        var result = await RunCommandAsync(
+            BuildUsageArguments(sessionId),
+            environment,
+            "copilot usage",
+            cancellationToken);
+        if (result.ExitCode != 0)
+        {
+            throw new ControlledFailureException(
+                $"GitHub Copilot CLI failed to report usage for session {sessionId}. {result.Summary}",
+                ExitCodes.CopilotFailure);
+        }
+
+        var usageReport = result.StandardOutput.Trim();
         if (string.IsNullOrWhiteSpace(usageReport))
         {
             throw new ControlledFailureException(
@@ -70,6 +105,27 @@ public sealed class CopilotCliRunner(CommandRunner commandRunner, string workspa
 
         return usageReport;
     }
+
+    private Task<CommandResult> RunCommandAsync(
+        IReadOnlyList<string> arguments,
+        IReadOnlyDictionary<string, string?> environment,
+        string logPrefix,
+        CancellationToken cancellationToken) =>
+        commandRunner.RunAsync(
+            "copilot",
+            arguments,
+            workspace,
+            environment,
+            cancellationToken,
+            line => logger.Info($"[{logPrefix} stdout] {line}"),
+            line => logger.Info($"[{logPrefix} stderr] {line}"));
+
+    private static IReadOnlyDictionary<string, string?> BuildEnvironment(ActionInputs options) =>
+        new Dictionary<string, string?>
+        {
+            ["COPILOT_GITHUB_TOKEN"] = options.CopilotCliToken,
+            ["COPILOT_AUTO_UPDATE"] = "false"
+        };
 
     private void LogPrompt(string prompt)
     {
@@ -118,4 +174,7 @@ public sealed class CopilotCliRunner(CommandRunner commandRunner, string workspa
 
     public static IReadOnlyList<string> BuildUsageArguments(string sessionId) =>
         ["--session-id", sessionId, "--prompt", "/usage", "--no-ask-user", "--no-color"];
+
+    public static IReadOnlyList<string> BuildSessionArguments(string sessionId) =>
+        ["--session-id", sessionId, "--prompt", "/session", "--no-ask-user", "--no-color"];
 }

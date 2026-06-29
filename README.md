@@ -126,6 +126,8 @@ The command receives `COPILOT_GITHUB_TOKEN`, populated from the `COPILOT_CLI_TOK
 
 Before Copilot starts, the action writes the complete generated prompt to the job log with a `[copilot prompt]` prefix. While Copilot runs, each stdout and stderr line is forwarded immediately with `[copilot stdout]` or `[copilot stderr]`, so progress and generated output are visible without waiting for the process to finish.
 
+After Copilot finishes, the action queries `/session` for the same session and forwards its output with `[copilot session stdout]` or `[copilot session stderr]`. It then queries `/usage` and logs that output separately before including the usage report in the pull request and job summary.
+
 ## Pull Request Body
 
 The draft PR includes the SonarQube project, branch, base branch, generated branch, selected issue links, changed files, the current session report returned by the Copilot CLI `/usage` command (including sent, cached, written, received, and reasoning tokens and AI Credits consumed), a note that validation is delegated to PR checks, a Copilot generation note, and a human-review requirement. The same unmodified `/usage` report is included in the GitHub Actions job summary.
