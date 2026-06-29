@@ -90,7 +90,8 @@ public sealed partial class GitService(CommandRunner commandRunner, string works
             ["-c", $"safe.directory={Path.GetFullPath(workspace)}", .. arguments],
             workspace,
             scopedEnvironment,
-            cancellationToken);
+            cancellationToken,
+            logCommandDetails: true);
     }
 
     private static string ParseStatusPath(string statusLine)

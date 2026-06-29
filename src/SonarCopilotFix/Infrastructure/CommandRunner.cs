@@ -30,7 +30,8 @@ public sealed class CommandRunner(JsonLogger logger)
         IReadOnlyDictionary<string, string?>? scopedEnvironment = null,
         CancellationToken cancellationToken = default,
         Action<string>? standardOutputReceived = null,
-        Action<string>? standardErrorReceived = null)
+        Action<string>? standardErrorReceived = null,
+        bool logCommandDetails = false)
     {
         var psi = CreateBaseProcess(fileName, workingDirectory, scopedEnvironment);
         foreach (var argument in arguments)
@@ -38,7 +39,7 @@ public sealed class CommandRunner(JsonLogger logger)
             psi.ArgumentList.Add(argument);
         }
 
-        return await RunProcessAsync(psi, cancellationToken, standardOutputReceived, standardErrorReceived);
+        return await RunProcessAsync(psi, cancellationToken, standardOutputReceived, standardErrorReceived, logCommandDetails);
     }
 
     public async Task<CommandResult> RunShellAsync(
@@ -111,7 +112,8 @@ public sealed class CommandRunner(JsonLogger logger)
         ProcessStartInfo psi,
         CancellationToken cancellationToken,
         Action<string>? standardOutputReceived,
-        Action<string>? standardErrorReceived)
+        Action<string>? standardErrorReceived,
+        bool logCommandDetails)
     {
         using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
         var stdout = new StringBuilder();
@@ -121,6 +123,11 @@ public sealed class CommandRunner(JsonLogger logger)
             if (args.Data is not null)
             {
                 stdout.AppendLine(args.Data);
+                if (logCommandDetails)
+                {
+                    logger.Info($"[{psi.FileName} stdout] {args.Data}");
+                }
+
                 standardOutputReceived?.Invoke(args.Data);
             }
         };
@@ -129,11 +136,18 @@ public sealed class CommandRunner(JsonLogger logger)
             if (args.Data is not null)
             {
                 stderr.AppendLine(args.Data);
+                if (logCommandDetails)
+                {
+                    logger.Info($"[{psi.FileName} stderr] {args.Data}");
+                }
+
                 standardErrorReceived?.Invoke(args.Data);
             }
         };
 
-        logger.Info($"Starting command '{psi.FileName}'.");
+        logger.Info(logCommandDetails
+            ? $"Starting command: {FormatCommand(psi)}"
+            : $"Starting command '{psi.FileName}'.");
         if (!process.Start())
         {
             throw new InvalidOperationException($"Failed to start command '{psi.FileName}'.");
@@ -142,6 +156,36 @@ public sealed class CommandRunner(JsonLogger logger)
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
         await process.WaitForExitAsync(cancellationToken);
+        if (logCommandDetails)
+        {
+            if (stdout.Length == 0)
+            {
+                logger.Info($"[{psi.FileName} stdout] <empty>");
+            }
+
+            if (stderr.Length == 0)
+            {
+                logger.Info($"[{psi.FileName} stderr] <empty>");
+            }
+
+            logger.Info($"Command '{psi.FileName}' exited with code {process.ExitCode}.");
+        }
+
         return new CommandResult(process.ExitCode, stdout.ToString(), stderr.ToString());
+    }
+
+    private static string FormatCommand(ProcessStartInfo psi)
+    {
+        return string.Join(" ", new[] { QuoteArgument(psi.FileName) }.Concat(psi.ArgumentList.Select(QuoteArgument)));
+    }
+
+    private static string QuoteArgument(string argument)
+    {
+        if (argument.Length > 0 && argument.All(character => !char.IsWhiteSpace(character) && character is not '"' and not '\''))
+        {
+            return argument;
+        }
+
+        return $"'{argument.Replace("'", "'\\''", StringComparison.Ordinal)}'";
     }
 }

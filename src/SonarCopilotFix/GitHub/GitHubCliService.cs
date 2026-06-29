@@ -7,7 +7,13 @@ public sealed class GitHubCliService(CommandRunner commandRunner, string workspa
     public async Task SetupGitAuthenticationAsync(string token, CancellationToken cancellationToken)
     {
         var env = new Dictionary<string, string?> { ["GH_TOKEN"] = token };
-        var result = await commandRunner.RunAsync("gh", ["auth", "setup-git"], workspace, env, cancellationToken);
+        var result = await commandRunner.RunAsync(
+            "gh",
+            ["auth", "setup-git"],
+            workspace,
+            env,
+            cancellationToken,
+            logCommandDetails: true);
         if (result.ExitCode != 0)
         {
             throw new ControlledFailureException("GitHub CLI failed to configure git authentication.", ExitCodes.GitHubCliFailure);
@@ -37,7 +43,13 @@ public sealed class GitHubCliService(CommandRunner commandRunner, string workspa
         }
 
         var env = new Dictionary<string, string?> { ["GH_TOKEN"] = token };
-        var result = await commandRunner.RunAsync("gh", args, workspace, env, cancellationToken);
+        var result = await commandRunner.RunAsync(
+            "gh",
+            args,
+            workspace,
+            env,
+            cancellationToken,
+            logCommandDetails: true);
         if (result.ExitCode != 0)
         {
             throw new ControlledFailureException("GitHub CLI failed to create a pull request.", ExitCodes.GitHubCliFailure);

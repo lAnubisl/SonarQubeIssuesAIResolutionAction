@@ -22,6 +22,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Normal mode requires isolated Copilot and GitHub tokens", Tests.NormalModeTokenValidation),
     ("Copilot CLI uses the supported programmatic interface", Tests.CopilotCliArguments),
     ("CommandRunner forwards process output while it runs", Tests.CommandOutputForwarding),
+    ("CommandRunner logs full command details and output when enabled", Tests.CommandDetailLogging),
     ("CommandRunner safe environment excludes unrelated secrets", Tests.TokenIsolationEnvironment),
     ("GitService detects changed files with command-scoped safe directory", Tests.GitChangedFiles)
 };
@@ -265,6 +266,34 @@ internal static class Tests
         Assert.Equal(0, result.ExitCode);
         Assert.True(received.Count > 0);
         Assert.Equal(result.StandardOutput.Trim(), string.Join(Environment.NewLine, received));
+    }
+
+    public static async Task CommandDetailLogging()
+    {
+        var originalOut = Console.Out;
+        using var output = new StringWriter();
+        try
+        {
+            Console.SetOut(output);
+            var commandRunner = new CommandRunner(new JsonLogger());
+            var result = await commandRunner.RunAsync(
+                "dotnet",
+                ["--version"],
+                Directory.GetCurrentDirectory(),
+                cancellationToken: CancellationToken.None,
+                logCommandDetails: true);
+
+            Assert.Equal(0, result.ExitCode);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+
+        Assert.Contains("Starting command: dotnet --version", output.ToString());
+        Assert.Contains("[dotnet stdout]", output.ToString());
+        Assert.Contains("[dotnet stderr]", output.ToString());
+        Assert.Contains("exited with code 0.", output.ToString());
     }
 
     public static async Task GitChangedFiles()
