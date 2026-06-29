@@ -27,6 +27,12 @@ public sealed class SonarCopilotFixApp(
 
         logger.Info("Fetching SonarQube issues.");
         var issues = await sonarQube.GetIssuesAsync(cancellationToken);
+        logger.Info($"Fetched {issues.Issues.Count} SonarQube issue(s) ({issues.TotalFound} total matching issue(s) reported by SonarQube).");
+        foreach (var issue in issues.Issues)
+        {
+            logger.Info($"Fetched SonarQube issue: key={issue.Key}, severity={issue.Severity ?? "UNKNOWN"}, title={issue.Message}");
+        }
+
         summary.IssuesFound = issues.TotalFound;
         summary.IssuesSelected = issues.Issues.Count;
         WriteOutput("selected_issue_count", issues.Issues.Count.ToString());

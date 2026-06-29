@@ -17,6 +17,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("PR body contains issue links and validation result", Tests.PrBody),
     ("Dry-run input does not require Copilot or GitHub tokens", Tests.DryRunInputValidation),
     ("Dry-run app behavior writes prompt without creating a branch", Tests.DryRunAppBehavior),
+    ("App logs fetched SonarQube issue count and details", Tests.FetchedIssueLogging),
     ("Normal mode requires isolated Copilot and GitHub tokens", Tests.NormalModeTokenValidation),
     ("CommandRunner safe environment excludes unrelated secrets", Tests.TokenIsolationEnvironment)
 };
@@ -162,6 +163,48 @@ internal static class Tests
         Assert.Equal(0, exitCode);
         Assert.True(File.Exists(Path.Combine(temp.FullName, ".sonar-copilot", "issues-prompt.md")));
         Assert.False(Directory.Exists(Path.Combine(temp.FullName, ".git", "refs", "heads", "copilot")));
+    }
+
+    public static async Task FetchedIssueLogging()
+    {
+        var temp = Directory.CreateTempSubdirectory();
+        var logger = new JsonLogger();
+        var commandRunner = new CommandRunner(logger);
+        var gitInit = await commandRunner.RunAsync("git", ["init"], temp.FullName);
+        Assert.Equal(0, gitInit.ExitCode);
+        var env = new DictionaryEnvironment(new Dictionary<string, string?>
+        {
+            ["INPUT_SONAR_HOST_URL"] = "https://sonar.example",
+            ["INPUT_SONAR_PROJECT_KEY"] = "proj",
+            ["INPUT_DRY_RUN"] = "true",
+            ["SONAR_TOKEN"] = "sonar",
+            ["GITHUB_WORKSPACE"] = temp.FullName
+        });
+        var options = ActionInputs.FromEnvironment(env);
+        var app = new SonarCopilotFixApp(
+            options,
+            env,
+            logger,
+            new FakeSonarQubeClient([SampleIssue()]),
+            new CodeSnippetReader(),
+            new PromptBuilder(),
+            commandRunner,
+            new PrBodyBuilder());
+
+        var originalOut = Console.Out;
+        using var output = new StringWriter();
+        try
+        {
+            Console.SetOut(output);
+            await app.RunAsync();
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+
+        Assert.Contains("Fetched 1 SonarQube issue(s) (1 total matching issue(s) reported by SonarQube).", output.ToString());
+        Assert.Contains("Fetched SonarQube issue: key=ISSUE-1, severity=MAJOR, title=Fix this", output.ToString());
     }
 
     public static Task NormalModeTokenValidation()
