@@ -89,7 +89,7 @@ public sealed record ActionInputs(
             Trimmed(environment.Get("INPUT_SONAR_BRANCH")),
             Trimmed(environment.Get("INPUT_SONAR_ORGANIZATION")),
             Int(environment.Get("INPUT_MAX_ISSUES"), 10),
-            Csv(environment.Get("INPUT_ISSUE_STATUSES")),
+            Csv(Trimmed(environment.Get("INPUT_ISSUE_STATUSES")) ?? "OPEN"),
             Csv(environment.Get("INPUT_SEVERITIES")),
             Csv(environment.Get("INPUT_CLEAN_CODE_ATTRIBUTE_CATEGORIES")),
             Bool(environment.Get("INPUT_INCLUDE_RULE_DETAILS"), true),

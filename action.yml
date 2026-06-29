@@ -22,6 +22,7 @@ inputs:
   issue_statuses:
     description: Comma-separated SonarQube issue statuses.
     required: false
+    default: "OPEN"
   severities:
     description: Comma-separated SonarQube severities.
     required: false

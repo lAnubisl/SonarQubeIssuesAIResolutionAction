@@ -15,7 +15,6 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Issue filtering parameters are sent", Tests.Filtering),
     ("SonarQube issue search logs request URL and response body", Tests.IssueSearchLogging),
     ("SonarQube issue response fields are mapped", Tests.IssueResponseMapping),
-    ("Accepted, resolved, and fixed SonarQube issues are ignored without consuming max_issues", Tests.NonActionableIssuesAreIgnored),
     ("Code snippets are extracted around the issue line", Tests.SnippetExtraction),
     ("Prompt generation includes safety rules and issue details", Tests.PromptGeneration),
     ("PR body contains issue links and delegates validation to PR checks", Tests.PrBody),
@@ -111,40 +110,8 @@ internal static class Tests
         }
 
         var logs = output.ToString();
-        Assert.Contains("SonarQube issue search request URL: https://sonar.example/api/issues/search?componentKeys=proj&p=1&ps=10", logs);
+        Assert.Contains("SonarQube issue search request URL: https://sonar.example/api/issues/search?componentKeys=proj&p=1&ps=10&statuses=OPEN", logs);
         Assert.Contains($"SonarQube issue search response body: {responseBody}", logs);
-    }
-
-    public static async Task NonActionableIssuesAreIgnored()
-    {
-        var handler = new FakeHandler(request =>
-        {
-            var page = Query(request.RequestUri!, "p");
-            var json = page == "1"
-                ? """{"total":5,"issues":[{"key":"A","status":"RESOLVED","rule":"csharpsquid:S1","component":"proj:src/A.cs","line":1,"message":"resolved"},{"key":"B","status":"Accepted","rule":"csharpsquid:S2","component":"proj:src/B.cs","line":2,"message":"accepted"},{"key":"C","status":"CLOSED","issueStatus":"FIXED","resolution":"FIXED","rule":"csharpsquid:S3","component":"proj:src/C.cs","line":3,"message":"fixed"}]}"""
-                : """{"total":5,"issues":[{"key":"D","status":"OPEN","issueStatus":"OPEN","rule":"csharpsquid:S4","component":"proj:src/D.cs","line":4,"message":"open"},{"key":"E","status":"OPEN","issueStatus":"OPEN","rule":"csharpsquid:S5","component":"proj:src/E.cs","line":5,"message":"open"}]}""";
-            return Json(json);
-        });
-        var client = NewClient(handler, maxIssues: 2);
-
-        var originalOut = Console.Out;
-        using var output = new StringWriter();
-        SonarIssueSearchResult result;
-        try
-        {
-            Console.SetOut(output);
-            result = await client.GetIssuesAsync(CancellationToken.None);
-        }
-        finally
-        {
-            Console.SetOut(originalOut);
-        }
-
-        Assert.Equal(2, result.Issues.Count);
-        Assert.SequenceEqual(["D", "E"], result.Issues.Select(issue => issue.Key));
-        Assert.Equal(2, handler.Requests.Count(request => request.RequestUri!.AbsolutePath == "/api/issues/search"));
-        Assert.Contains("SonarQube returned issue: key=A, status=RESOLVED", output.ToString());
-        Assert.Contains("SonarQube returned issue: key=B, status=Accepted", output.ToString());
     }
 
     public static async Task IssueResponseMapping()
