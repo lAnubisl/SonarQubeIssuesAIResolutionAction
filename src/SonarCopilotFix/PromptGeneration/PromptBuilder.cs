@@ -73,7 +73,7 @@ public sealed class PromptBuilder
         builder.AppendLine($"- Message: {issue.Message}");
         builder.AppendLine($"- Rule key: `{issue.RuleKey}`");
         builder.AppendLine($"- Severity or impact: `{issue.Severity ?? "not specified"}`");
-        builder.AppendLine($"- Status: `{issue.Status ?? "not specified"}`");
+        builder.AppendLine($"- Status: `{issue.IssueStatus ?? issue.Status ?? "not specified"}`");
         builder.AppendLine($"- Type or category: `{issue.Type ?? issue.CleanCodeAttributeCategory ?? "not specified"}`");
         builder.AppendLine($"- Effort: `{issue.Effort ?? "not specified"}`");
         builder.AppendLine($"- Tags: `{(issue.Tags.Count == 0 ? "none" : string.Join(", ", issue.Tags))}`");

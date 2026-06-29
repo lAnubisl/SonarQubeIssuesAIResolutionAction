@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using SonarCopilotFix.Infrastructure;
@@ -54,7 +55,7 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
 
             foreach (var issue in payload.Issues)
             {
-                _logger.Info($"SonarQube returned issue: key={issue.Key ?? "unknown"}, status={issue.Status ?? "not specified"}");
+                _logger.Info($"SonarQube returned issue: key={issue.Key ?? "unknown"}, status={issue.IssueStatus ?? issue.Status ?? "not specified"}");
             }
 
             if (payload.Issues.Count == 0)
@@ -66,7 +67,9 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
             {
                 issuesSeen++;
 
-                if (IsNonActionableStatus(issue.Status))
+                if (IsNonActionableStatus(issue.IssueStatus)
+                    || IsNonActionableStatus(issue.Status)
+                    || IsNonActionableStatus(issue.Resolution))
                 {
                     continue;
                 }
@@ -92,7 +95,11 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
 
     private static bool IsNonActionableStatus(string? status) =>
         string.Equals(status, "ACCEPTED", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(status, "RESOLVED", StringComparison.OrdinalIgnoreCase);
+        || string.Equals(status, "RESOLVED", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(status, "CLOSED", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(status, "FIXED", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(status, "FALSE_POSITIVE", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(status, "FALSE-POSITIVE", StringComparison.OrdinalIgnoreCase);
 
     private string BuildIssueSearchUri(int page, int pageSize)
     {
@@ -151,7 +158,7 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
             dto.CleanCodeAttributeCategory,
             dto.Component ?? "",
             filePath,
-            dto.Line,
+            dto.Line ?? dto.TextRange?.StartLine,
             dto.TextRange is null ? null : new TextRange(dto.TextRange.StartLine, dto.TextRange.EndLine, dto.TextRange.StartOffset, dto.TextRange.EndOffset),
             dto.Message ?? "",
             dto.Effort ?? dto.Debt,
@@ -159,8 +166,42 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
             dto.Author,
             BuildIssueUrl(dto.Key),
             rule,
-            null);
+            null,
+            dto.Project,
+            dto.Hash,
+            dto.Flows?.Select(ToFlow).ToArray() ?? [],
+            dto.Resolution,
+            dto.Debt,
+            ParseSonarDate(dto.CreationDate),
+            ParseSonarDate(dto.UpdateDate),
+            ParseSonarDate(dto.CloseDate),
+            dto.Organization,
+            dto.ExternalRuleEngine,
+            dto.CleanCodeAttribute,
+            dto.Impacts?.Select(impact => new SonarImpact(impact.SoftwareQuality, impact.Severity)).ToArray() ?? [],
+            dto.IssueStatus,
+            dto.ProjectName,
+            dto.InternalTags ?? [],
+            dto.LastChangeAnalysisUuid,
+            dto.LastChangeSource);
     }
+
+    private static DateTimeOffset? ParseSonarDate(string? value) =>
+        DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var result)
+            ? result
+            : null;
+
+    private static SonarFlow ToFlow(FlowDto flow) =>
+        new(flow.Locations?.Select(location => new SonarLocation(
+            location.Component,
+            location.TextRange is null
+                ? null
+                : new TextRange(
+                    location.TextRange.StartLine,
+                    location.TextRange.EndLine,
+                    location.TextRange.StartOffset,
+                    location.TextRange.EndOffset),
+            location.Message)).ToArray() ?? []);
 
     private async Task<SonarRule?> TryGetRuleAsync(string ruleKey, CancellationToken cancellationToken)
     {
@@ -273,17 +314,34 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
         string? Status,
         string? Type,
         string? Component,
+        string? Project,
+        string? Hash,
         int? Line,
         TextRangeDto? TextRange,
+        IReadOnlyList<FlowDto>? Flows,
+        string? Resolution,
         string? Message,
         string? Effort,
         string? Debt,
         IReadOnlyList<string>? Tags,
         string? Author,
         string? CleanCodeAttributeCategory,
-        IReadOnlyList<ImpactDto>? Impacts);
+        string? CreationDate,
+        string? UpdateDate,
+        string? CloseDate,
+        string? Organization,
+        string? ExternalRuleEngine,
+        string? CleanCodeAttribute,
+        IReadOnlyList<ImpactDto>? Impacts,
+        string? IssueStatus,
+        string? ProjectName,
+        IReadOnlyList<string>? InternalTags,
+        string? LastChangeAnalysisUuid,
+        string? LastChangeSource);
 
     private sealed record TextRangeDto(int StartLine, int EndLine, int StartOffset, int EndOffset);
+    private sealed record FlowDto(IReadOnlyList<LocationDto>? Locations);
+    private sealed record LocationDto(string? Component, TextRangeDto? TextRange, [property: JsonPropertyName("msg")] string? Message);
     private sealed record ImpactDto(string? SoftwareQuality, string? Severity);
     private sealed record RuleShowResponse(RuleDto? Rule);
     private sealed record RuleDto(string? Key, string? Name, string? HtmlDesc, string? MarkdownDescription, string? Severity, IReadOnlyList<string>? Tags);

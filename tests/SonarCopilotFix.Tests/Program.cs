@@ -14,7 +14,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Malformed SonarQube responses fail", Tests.MalformedResponse),
     ("Issue filtering parameters are sent", Tests.Filtering),
     ("SonarQube issue search logs request URL and response body", Tests.IssueSearchLogging),
-    ("Accepted and resolved SonarQube issues are ignored without consuming max_issues", Tests.NonActionableIssuesAreIgnored),
+    ("SonarQube issue response fields are mapped", Tests.IssueResponseMapping),
+    ("Accepted, resolved, and fixed SonarQube issues are ignored without consuming max_issues", Tests.NonActionableIssuesAreIgnored),
     ("Code snippets are extracted around the issue line", Tests.SnippetExtraction),
     ("Prompt generation includes safety rules and issue details", Tests.PromptGeneration),
     ("PR body contains issue links and delegates validation to PR checks", Tests.PrBody),
@@ -120,8 +121,8 @@ internal static class Tests
         {
             var page = Query(request.RequestUri!, "p");
             var json = page == "1"
-                ? """{"total":4,"issues":[{"key":"A","status":"RESOLVED","rule":"csharpsquid:S1","component":"proj:src/A.cs","line":1,"message":"resolved"},{"key":"B","status":"Accepted","rule":"csharpsquid:S2","component":"proj:src/B.cs","line":2,"message":"accepted"}]}"""
-                : """{"total":4,"issues":[{"key":"C","status":"OPEN","rule":"csharpsquid:S3","component":"proj:src/C.cs","line":3,"message":"open"},{"key":"D","status":"OPEN","rule":"csharpsquid:S4","component":"proj:src/D.cs","line":4,"message":"open"}]}""";
+                ? """{"total":5,"issues":[{"key":"A","status":"RESOLVED","rule":"csharpsquid:S1","component":"proj:src/A.cs","line":1,"message":"resolved"},{"key":"B","status":"Accepted","rule":"csharpsquid:S2","component":"proj:src/B.cs","line":2,"message":"accepted"},{"key":"C","status":"CLOSED","issueStatus":"FIXED","resolution":"FIXED","rule":"csharpsquid:S3","component":"proj:src/C.cs","line":3,"message":"fixed"}]}"""
+                : """{"total":5,"issues":[{"key":"D","status":"OPEN","issueStatus":"OPEN","rule":"csharpsquid:S4","component":"proj:src/D.cs","line":4,"message":"open"},{"key":"E","status":"OPEN","issueStatus":"OPEN","rule":"csharpsquid:S5","component":"proj:src/E.cs","line":5,"message":"open"}]}""";
             return Json(json);
         });
         var client = NewClient(handler, maxIssues: 2);
@@ -140,10 +141,65 @@ internal static class Tests
         }
 
         Assert.Equal(2, result.Issues.Count);
-        Assert.SequenceEqual(["C", "D"], result.Issues.Select(issue => issue.Key));
+        Assert.SequenceEqual(["D", "E"], result.Issues.Select(issue => issue.Key));
         Assert.Equal(2, handler.Requests.Count(request => request.RequestUri!.AbsolutePath == "/api/issues/search"));
         Assert.Contains("SonarQube returned issue: key=A, status=RESOLVED", output.ToString());
         Assert.Contains("SonarQube returned issue: key=B, status=Accepted", output.ToString());
+    }
+
+    public static async Task IssueResponseMapping()
+    {
+        const string responseBody = """
+            {
+              "total": 1,
+              "issues": [{
+                "key": "AZ8BZ2rc-1jWpY_LduWr",
+                "rule": "external_roslyn:NUnit2045",
+                "severity": "INFO",
+                "component": "lAnubisl_LostFilmTorrentsFeed:LostFilmMonitoring.BLL.Tests/Commands/GetUserCommandTests.cs",
+                "project": "lAnubisl_LostFilmTorrentsFeed",
+                "hash": "fa48cd0d9a81b24cc78b6ab0b8efd12a",
+                "textRange": { "startLine": 55, "endLine": 55, "startOffset": 8, "endOffset": 48 },
+                "flows": [],
+                "status": "OPEN",
+                "message": "Call independent Assert statements from inside an Assert.EnterMultipleScope or Assert.Multiple",
+                "effort": "0min",
+                "debt": "0min",
+                "tags": [],
+                "creationDate": "2026-06-26T00:49:23+0000",
+                "updateDate": "2026-06-29T14:28:23+0000",
+                "type": "CODE_SMELL",
+                "organization": "lanubisl",
+                "externalRuleEngine": "roslyn",
+                "cleanCodeAttribute": "CONVENTIONAL",
+                "cleanCodeAttributeCategory": "CONSISTENT",
+                "impacts": [{ "softwareQuality": "MAINTAINABILITY", "severity": "MEDIUM" }],
+                "issueStatus": "OPEN",
+                "projectName": "LostFilmTorrentsFeed",
+                "internalTags": [],
+                "lastChangeAnalysisUuid": "95ebd727-7dc2-4654-afca-d36ab6b23bed",
+                "lastChangeSource": "ANALYSIS"
+              }]
+            }
+            """;
+        var client = NewClient(new FakeHandler(_ => Json(responseBody)));
+
+        var result = await client.GetIssuesAsync(CancellationToken.None);
+        var issue = result.Issues.Single();
+
+        Assert.Equal("lAnubisl_LostFilmTorrentsFeed", issue.Project);
+        Assert.Equal("fa48cd0d9a81b24cc78b6ab0b8efd12a", issue.Hash);
+        Assert.Equal(55, issue.Line);
+        Assert.Equal("CONVENTIONAL", issue.CleanCodeAttribute);
+        Assert.Equal("CONSISTENT", issue.CleanCodeAttributeCategory);
+        var impact = issue.Impacts!.Single();
+        Assert.Equal("MAINTAINABILITY", impact.SoftwareQuality);
+        Assert.Equal("MEDIUM", impact.Severity);
+        Assert.Equal("OPEN", issue.IssueStatus);
+        Assert.Equal("LostFilmTorrentsFeed", issue.ProjectName);
+        Assert.Equal("roslyn", issue.ExternalRuleEngine);
+        Assert.Equal("ANALYSIS", issue.LastChangeSource);
+        Assert.Equal(new DateTimeOffset(2026, 6, 26, 0, 49, 23, TimeSpan.Zero), issue.CreationDate);
     }
 
     public static Task SnippetExtraction()
