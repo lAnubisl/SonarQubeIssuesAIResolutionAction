@@ -16,6 +16,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Code snippets are extracted around the issue line", Tests.SnippetExtraction),
     ("Prompt generation includes safety rules and issue details", Tests.PromptGeneration),
     ("PR body contains issue links and delegates validation to PR checks", Tests.PrBody),
+    ("Job summary contains Copilot usage", Tests.JobSummaryUsage),
     ("Dry-run input does not require Copilot or GitHub tokens", Tests.DryRunInputValidation),
     ("Dry-run app behavior writes prompt without creating a branch", Tests.DryRunAppBehavior),
     ("App logs fetched SonarQube issue count and details", Tests.FetchedIssueLogging),
@@ -117,13 +118,39 @@ internal static class Tests
         {
             BaseBranch = "main",
             GeneratedBranch = "copilot/sonar/proj/20260101000000",
-            ChangedFiles = ["src/A.cs"]
+            ChangedFiles = ["src/A.cs"],
+            CopilotUsageReport = "Tokens    ↑ 29.3k • ↓ 219 • 1.5k (cached) • 400 (written) • 92 (reasoning)\nAI Credits 8.3"
         };
         var body = new PrBodyBuilder().Build(Options(), [SampleIssue()], summary);
         Assert.Contains("Human review is required", body);
         Assert.Contains("ISSUE-1", body);
         Assert.Contains("src/A.cs", body);
         Assert.Contains("Validation is delegated to the repository's pull request checks", body);
+        Assert.Contains("Copilot CLI `/usage`", body);
+        Assert.Contains("29.3k", body);
+        Assert.Contains("8.3", body);
+        return Task.CompletedTask;
+    }
+
+    public static Task JobSummaryUsage()
+    {
+        var temp = Directory.CreateTempSubdirectory();
+        var path = Path.Combine(temp.FullName, "summary.md");
+        var summary = new JobSummary(Options())
+        {
+            CopilotExecuted = true,
+            CopilotUsageReport = "Tokens    ↑ 1k • ↓ 200 • 700 (cached) • 50 (reasoning)\nAI Credits 1.25"
+        };
+
+        summary.Write(new DictionaryEnvironment(new Dictionary<string, string?>
+        {
+            ["GITHUB_STEP_SUMMARY"] = path
+        }));
+        var contents = File.ReadAllText(path);
+
+        Assert.Contains("Copilot CLI `/usage`", contents);
+        Assert.Contains("↑ 1k", contents);
+        Assert.Contains("1.25", contents);
         return Task.CompletedTask;
     }
 
@@ -243,7 +270,7 @@ internal static class Tests
             Options() with { CopilotModel = "gpt-5.2" },
             "Fix the selected issue.");
         Assert.SequenceEqual(
-            ["--prompt", "Fix the selected issue.", "--no-ask-user", "--model", "gpt-5.2", "--allow-tool=write"],
+            ["--prompt", "Fix the selected issue.", "--no-ask-user", "--no-color", "--model", "gpt-5.2", "--allow-tool=write"],
             restricted);
 
         var unrestricted = CopilotCliRunner.BuildArguments(
@@ -251,6 +278,9 @@ internal static class Tests
             "Fix it.");
         Assert.True(unrestricted.Contains("--allow-all-tools"));
         Assert.False(unrestricted.Contains("--allow-tool=write"));
+        Assert.SequenceEqual(
+            ["--session-id", "session-id", "--prompt", "/usage", "--no-ask-user", "--no-color"],
+            CopilotCliRunner.BuildUsageArguments("session-id"));
         return Task.CompletedTask;
     }
 

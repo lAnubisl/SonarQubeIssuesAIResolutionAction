@@ -128,7 +128,7 @@ Before Copilot starts, the action writes the complete generated prompt to the jo
 
 ## Pull Request Body
 
-The draft PR includes the SonarQube project, branch, base branch, generated branch, selected issue links, changed files, a note that validation is delegated to PR checks, a Copilot generation note, and a human-review requirement.
+The draft PR includes the SonarQube project, branch, base branch, generated branch, selected issue links, changed files, the current session report returned by the Copilot CLI `/usage` command (including sent, cached, written, received, and reasoning tokens and AI Credits consumed), a note that validation is delegated to PR checks, a Copilot generation note, and a human-review requirement. The same unmodified `/usage` report is included in the GitHub Actions job summary.
 
 ## SonarQube Compatibility
 

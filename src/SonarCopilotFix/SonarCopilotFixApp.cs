@@ -81,7 +81,7 @@ public sealed class SonarCopilotFixApp(
         }
 
         logger.Info("Running GitHub Copilot CLI.");
-        await copilot.RunAsync(options, promptPath, cancellationToken);
+        summary.CopilotUsageReport = await copilot.RunAsync(options, promptPath, cancellationToken);
         summary.CopilotExecuted = true;
 
         var changedFiles = await git.GetChangedFilesAsync(excludeGenerated: true, cancellationToken);

@@ -5,11 +5,12 @@ namespace SonarCopilotFix.GitHub;
 
 public sealed class CopilotCliRunner(CommandRunner commandRunner, string workspace, TextLogger logger)
 {
-    public async Task RunAsync(ActionInputs options, string promptPath, CancellationToken cancellationToken)
+    public async Task<string> RunAsync(ActionInputs options, string promptPath, CancellationToken cancellationToken)
     {
         var prompt = await File.ReadAllTextAsync(promptPath, cancellationToken);
         LogPrompt(prompt);
-        var args = BuildArguments(options, prompt);
+        var sessionId = Guid.NewGuid().ToString();
+        var args = BuildArguments(options, prompt, sessionId);
         var env = new Dictionary<string, string?>
         {
             ["COPILOT_GITHUB_TOKEN"] = options.CopilotCliToken,
@@ -43,6 +44,31 @@ public sealed class CopilotCliRunner(CommandRunner commandRunner, string workspa
         }
 
         logger.Info("GitHub Copilot CLI completed.");
+        logger.Info($"Querying Copilot CLI usage for session {sessionId}.");
+        var usageResult = await commandRunner.RunAsync(
+            "copilot",
+            BuildUsageArguments(sessionId),
+            workspace,
+            env,
+            cancellationToken,
+            line => logger.Info($"[copilot usage stdout] {line}"),
+            line => logger.Info($"[copilot usage stderr] {line}"));
+        if (usageResult.ExitCode != 0)
+        {
+            throw new ControlledFailureException(
+                $"GitHub Copilot CLI failed to report usage for session {sessionId}. {usageResult.Summary}",
+                ExitCodes.CopilotFailure);
+        }
+
+        var usageReport = usageResult.StandardOutput.Trim();
+        if (string.IsNullOrWhiteSpace(usageReport))
+        {
+            throw new ControlledFailureException(
+                $"GitHub Copilot CLI returned an empty usage report for session {sessionId}.",
+                ExitCodes.CopilotFailure);
+        }
+
+        return usageReport;
     }
 
     private void LogPrompt(string prompt)
@@ -56,14 +82,21 @@ public sealed class CopilotCliRunner(CommandRunner commandRunner, string workspa
         logger.Info("End GitHub Copilot CLI prompt.");
     }
 
-    public static IReadOnlyList<string> BuildArguments(ActionInputs options, string prompt)
+    public static IReadOnlyList<string> BuildArguments(ActionInputs options, string prompt, string? sessionId = null)
     {
         var args = new List<string>
         {
             "--prompt",
             prompt,
-            "--no-ask-user"
+            "--no-ask-user",
+            "--no-color"
         };
+
+        if (!string.IsNullOrWhiteSpace(sessionId))
+        {
+            args.Add("--session-id");
+            args.Add(sessionId);
+        }
 
         if (!string.IsNullOrWhiteSpace(options.CopilotModel))
         {
@@ -82,4 +115,7 @@ public sealed class CopilotCliRunner(CommandRunner commandRunner, string workspa
 
         return args;
     }
+
+    public static IReadOnlyList<string> BuildUsageArguments(string sessionId) =>
+        ["--session-id", sessionId, "--prompt", "/usage", "--no-ask-user", "--no-color"];
 }
