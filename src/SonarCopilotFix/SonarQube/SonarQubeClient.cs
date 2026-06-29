@@ -46,6 +46,11 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
             var payload = await DeserializeAsync<IssueSearchResponse>(response, cancellationToken);
             total = payload.Total;
 
+            foreach (var issue in payload.Issues)
+            {
+                _logger.Info($"SonarQube returned issue: key={issue.Key ?? "unknown"}, status={issue.Status ?? "not specified"}");
+            }
+
             if (payload.Issues.Count == 0)
             {
                 break;

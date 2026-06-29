@@ -103,11 +103,24 @@ internal static class Tests
         });
         var client = NewClient(handler, maxIssues: 2);
 
-        var result = await client.GetIssuesAsync(CancellationToken.None);
+        var originalOut = Console.Out;
+        using var output = new StringWriter();
+        SonarIssueSearchResult result;
+        try
+        {
+            Console.SetOut(output);
+            result = await client.GetIssuesAsync(CancellationToken.None);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
 
         Assert.Equal(2, result.Issues.Count);
         Assert.SequenceEqual(["B", "C"], result.Issues.Select(issue => issue.Key));
         Assert.Equal(2, handler.Requests.Count(request => request.RequestUri!.AbsolutePath == "/api/issues/search"));
+        Assert.Contains("SonarQube returned issue: key=A, status=Accepted", output.ToString());
+        Assert.Contains("SonarQube returned issue: key=B, status=OPEN", output.ToString());
     }
 
     public static Task SnippetExtraction()
