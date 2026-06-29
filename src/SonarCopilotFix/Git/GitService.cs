@@ -7,29 +7,29 @@ public sealed partial class GitService(CommandRunner commandRunner, string works
 {
     public async Task<string> CurrentBranchAsync(CancellationToken cancellationToken)
     {
-        var result = await commandRunner.RunAsync("git", ["branch", "--show-current"], workspace, cancellationToken: cancellationToken);
+        var result = await RunGitAsync(["branch", "--show-current"], cancellationToken: cancellationToken);
         return result.StandardOutput.Trim().Length > 0 ? result.StandardOutput.Trim() : "detached";
     }
 
     public async Task<string> DetectDefaultBranchAsync(CancellationToken cancellationToken)
     {
-        var symbolic = await commandRunner.RunAsync("git", ["symbolic-ref", "refs/remotes/origin/HEAD", "--short"], workspace, cancellationToken: cancellationToken);
+        var symbolic = await RunGitAsync(["symbolic-ref", "refs/remotes/origin/HEAD", "--short"], cancellationToken: cancellationToken);
         if (symbolic.ExitCode == 0 && symbolic.StandardOutput.Trim().StartsWith("origin/", StringComparison.Ordinal))
         {
             return symbolic.StandardOutput.Trim()["origin/".Length..];
         }
 
-        var remote = await commandRunner.RunAsync("git", ["remote", "show", "origin"], workspace, cancellationToken: cancellationToken);
+        var remote = await RunGitAsync(["remote", "show", "origin"], cancellationToken: cancellationToken);
         var match = Regex.Match(remote.StandardOutput, @"HEAD branch:\s*(?<branch>\S+)");
         return match.Success ? match.Groups["branch"].Value : "main";
     }
 
     public async Task<IReadOnlyList<string>> GetChangedFilesAsync(bool excludeGenerated, CancellationToken cancellationToken)
     {
-        var result = await commandRunner.RunAsync("git", ["status", "--porcelain"], workspace, cancellationToken: cancellationToken);
+        var result = await RunGitAsync(["status", "--porcelain"], cancellationToken: cancellationToken);
         if (result.ExitCode != 0)
         {
-            throw new ControlledFailureException("Failed to inspect git status.", ExitCodes.GitFailure);
+            throw GitFailure("inspect git status", result);
         }
 
         return result.StandardOutput
@@ -50,32 +50,47 @@ public sealed partial class GitService(CommandRunner commandRunner, string works
 
     public async Task CreateBranchAsync(string branchName, CancellationToken cancellationToken)
     {
-        await EnsureSuccess("create git branch", commandRunner.RunAsync("git", ["switch", "-c", branchName], workspace, cancellationToken: cancellationToken), ExitCodes.GitFailure);
+        await EnsureSuccess("create git branch", RunGitAsync(["switch", "-c", branchName], cancellationToken: cancellationToken), ExitCodes.GitFailure);
     }
 
     public async Task ConfigureBotUserAsync(CancellationToken cancellationToken)
     {
-        await EnsureSuccess("configure git user email", commandRunner.RunAsync("git", ["config", "user.email", "github-actions[bot]@users.noreply.github.com"], workspace, cancellationToken: cancellationToken), ExitCodes.GitFailure);
-        await EnsureSuccess("configure git user name", commandRunner.RunAsync("git", ["config", "user.name", "github-actions[bot]"], workspace, cancellationToken: cancellationToken), ExitCodes.GitFailure);
+        await EnsureSuccess("configure git user email", RunGitAsync(["config", "user.email", "github-actions[bot]@users.noreply.github.com"], cancellationToken: cancellationToken), ExitCodes.GitFailure);
+        await EnsureSuccess("configure git user name", RunGitAsync(["config", "user.name", "github-actions[bot]"], cancellationToken: cancellationToken), ExitCodes.GitFailure);
     }
 
     public async Task StageFilesAsync(IReadOnlyList<string> changedFiles, CancellationToken cancellationToken)
     {
         foreach (var file in changedFiles)
         {
-            await EnsureSuccess($"stage {file}", commandRunner.RunAsync("git", ["add", "--", file], workspace, cancellationToken: cancellationToken), ExitCodes.GitFailure);
+            await EnsureSuccess($"stage {file}", RunGitAsync(["add", "--", file], cancellationToken: cancellationToken), ExitCodes.GitFailure);
         }
     }
 
     public async Task CommitAsync(string message, CancellationToken cancellationToken)
     {
-        await EnsureSuccess("commit changes", commandRunner.RunAsync("git", ["commit", "-m", message], workspace, cancellationToken: cancellationToken), ExitCodes.GitFailure);
+        await EnsureSuccess("commit changes", RunGitAsync(["commit", "-m", message], cancellationToken: cancellationToken), ExitCodes.GitFailure);
     }
 
     public async Task PushBranchAsync(string branchName, string gitHubToken, CancellationToken cancellationToken)
     {
         var env = new Dictionary<string, string?> { ["GH_TOKEN"] = gitHubToken };
-        await EnsureSuccess("push generated branch", commandRunner.RunAsync("git", ["push", "--set-upstream", "origin", branchName], workspace, env, cancellationToken), ExitCodes.GitFailure);
+        await EnsureSuccess("push generated branch", RunGitAsync(["push", "--set-upstream", "origin", branchName], env, cancellationToken), ExitCodes.GitFailure);
+    }
+
+    private Task<CommandResult> RunGitAsync(
+        IEnumerable<string> arguments,
+        IReadOnlyDictionary<string, string?>? scopedEnvironment = null,
+        CancellationToken cancellationToken = default)
+    {
+        // Docker actions access a host-owned bind mount. Mark only this workspace as
+        // safe for this invocation so Git's ownership check does not reject it.
+        return commandRunner.RunAsync(
+            "git",
+            ["-c", $"safe.directory={Path.GetFullPath(workspace)}", .. arguments],
+            workspace,
+            scopedEnvironment,
+            cancellationToken);
     }
 
     private static string ParseStatusPath(string statusLine)
@@ -95,8 +110,20 @@ public sealed partial class GitService(CommandRunner commandRunner, string works
         var result = await commandTask;
         if (result.ExitCode != 0)
         {
-            throw new ControlledFailureException($"Failed to {operation}.", exitCode);
+            throw GitFailure(operation, result, exitCode);
         }
+    }
+
+    private static ControlledFailureException GitFailure(string operation, CommandResult result, int exitCode = ExitCodes.GitFailure)
+    {
+        var detail = result.Summary;
+        var message = $"Failed to {operation} (git exited with code {result.ExitCode}).";
+        if (!string.IsNullOrWhiteSpace(detail))
+        {
+            message += $" {detail}";
+        }
+
+        return new ControlledFailureException(message, exitCode);
     }
 
     [GeneratedRegex(@"[^A-Za-z0-9._/-]+")]

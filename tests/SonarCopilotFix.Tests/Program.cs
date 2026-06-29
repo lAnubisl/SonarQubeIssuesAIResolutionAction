@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using SonarCopilotFix;
+using SonarCopilotFix.Git;
 using SonarCopilotFix.GitHub;
 using SonarCopilotFix.Infrastructure;
 using SonarCopilotFix.PromptGeneration;
@@ -19,7 +20,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Dry-run app behavior writes prompt without creating a branch", Tests.DryRunAppBehavior),
     ("App logs fetched SonarQube issue count and details", Tests.FetchedIssueLogging),
     ("Normal mode requires isolated Copilot and GitHub tokens", Tests.NormalModeTokenValidation),
-    ("CommandRunner safe environment excludes unrelated secrets", Tests.TokenIsolationEnvironment)
+    ("CommandRunner safe environment excludes unrelated secrets", Tests.TokenIsolationEnvironment),
+    ("GitService detects changed files with command-scoped safe directory", Tests.GitChangedFiles)
 };
 
 var failures = 0;
@@ -228,6 +230,20 @@ internal static class Tests
         Assert.False(safe.ContainsKey("SONAR_TOKEN"));
         Assert.False(safe.ContainsKey("COPILOT_CLI_TOKEN"));
         return Task.CompletedTask;
+    }
+
+    public static async Task GitChangedFiles()
+    {
+        var temp = Directory.CreateTempSubdirectory();
+        var commandRunner = new CommandRunner(new JsonLogger());
+        Assert.Equal(0, (await commandRunner.RunAsync("git", ["init"], temp.FullName)).ExitCode);
+        await File.WriteAllTextAsync(Path.Combine(temp.FullName, "changed.txt"), "changed");
+
+        var git = new GitService(commandRunner, temp.FullName);
+        var changedFiles = await git.GetChangedFilesAsync(excludeGenerated: true, CancellationToken.None);
+
+        Assert.Equal(1, changedFiles.Count);
+        Assert.Equal("changed.txt", changedFiles[0]);
     }
 
     private static SonarQubeClient NewClient(FakeHandler handler, int maxIssues = 10, string? statuses = null, string? severities = null, string? cleanCode = null)
