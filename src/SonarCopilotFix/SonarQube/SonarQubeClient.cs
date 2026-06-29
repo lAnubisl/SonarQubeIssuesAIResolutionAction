@@ -41,9 +41,15 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
         while (selected.Count < _options.MaxIssues)
         {
             var uri = BuildIssueSearchUri(page, pageSize);
+            var requestUrl = new Uri(_httpClient.BaseAddress!, uri);
+            _logger.Info($"SonarQube issue search request URL: {requestUrl.AbsoluteUri}");
+
             using var response = await _httpClient.GetAsync(uri, cancellationToken);
-            await EnsureSuccessAsync(response, "search SonarQube issues", cancellationToken);
-            var payload = await DeserializeAsync<IssueSearchResponse>(response, cancellationToken);
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.Info($"SonarQube issue search response body: {responseBody}");
+
+            EnsureSuccess(response, "search SonarQube issues", responseBody);
+            var payload = Deserialize<IssueSearchResponse>(responseBody);
             total = payload.Total;
 
             foreach (var issue in payload.Issues)
@@ -214,14 +220,26 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
         }
     }
 
-    private static async Task EnsureSuccessAsync(HttpResponseMessage response, string operation, CancellationToken cancellationToken)
+    private static T Deserialize<T>(string responseBody)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<T>(responseBody, JsonOptions)
+                ?? throw new ControlledFailureException("SonarQube returned an empty or malformed JSON response.", ExitCodes.SonarQubeError);
+        }
+        catch (JsonException ex)
+        {
+            throw new ControlledFailureException($"SonarQube returned a malformed JSON response: {ex.Message}", ExitCodes.SonarQubeError);
+        }
+    }
+
+    private static void EnsureSuccess(HttpResponseMessage response, string operation, string responseBody)
     {
         if (response.IsSuccessStatusCode)
         {
             return;
         }
 
-        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         var status = response.StatusCode switch
         {
             HttpStatusCode.BadRequest => "Malformed request or unsupported SonarQube filter.",
@@ -233,7 +251,7 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
             _ => $"Unexpected SonarQube status {(int)response.StatusCode}."
         };
 
-        throw new ControlledFailureException($"Failed to {operation}. {status} Response body length: {body.Length}.", ExitCodes.SonarQubeError);
+        throw new ControlledFailureException($"Failed to {operation}. {status} Response body length: {responseBody.Length}.", ExitCodes.SonarQubeError);
     }
 
     public void Dispose()

@@ -13,6 +13,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("SonarQube authentication errors are mapped clearly", Tests.AuthenticationError),
     ("Malformed SonarQube responses fail", Tests.MalformedResponse),
     ("Issue filtering parameters are sent", Tests.Filtering),
+    ("SonarQube issue search logs request URL and response body", Tests.IssueSearchLogging),
     ("Accepted and resolved SonarQube issues are ignored without consuming max_issues", Tests.NonActionableIssuesAreIgnored),
     ("Code snippets are extracted around the issue line", Tests.SnippetExtraction),
     ("Prompt generation includes safety rules and issue details", Tests.PromptGeneration),
@@ -89,6 +90,28 @@ internal static class Tests
         Assert.Equal("OPEN,CONFIRMED", Query(uri, "statuses"));
         Assert.Equal("CRITICAL", Query(uri, "severities"));
         Assert.Equal("INTENTIONAL", Query(uri, "cleanCodeAttributeCategories"));
+    }
+
+    public static async Task IssueSearchLogging()
+    {
+        const string responseBody = """{"total":0,"issues":[]}""";
+        var client = NewClient(new FakeHandler(_ => Json(responseBody)));
+        var originalOut = Console.Out;
+        using var output = new StringWriter();
+
+        try
+        {
+            Console.SetOut(output);
+            await client.GetIssuesAsync(CancellationToken.None);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+
+        var logs = output.ToString();
+        Assert.Contains("SonarQube issue search request URL: https://sonar.example/api/issues/search?componentKeys=proj&p=1&ps=10", logs);
+        Assert.Contains($"SonarQube issue search response body: {responseBody}", logs);
     }
 
     public static async Task NonActionableIssuesAreIgnored()
