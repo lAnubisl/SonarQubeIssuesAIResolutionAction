@@ -9,7 +9,7 @@ namespace SonarCopilotFix;
 public sealed class SonarCopilotFixApp(
     ActionInputs options,
     IEnvironment environment,
-    JsonLogger logger,
+    TextLogger logger,
     ISonarQubeClient sonarQube,
     CodeSnippetReader snippetReader,
     PromptBuilder promptBuilder,

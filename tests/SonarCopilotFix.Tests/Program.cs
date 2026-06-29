@@ -21,6 +21,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("App logs fetched SonarQube issue count and details", Tests.FetchedIssueLogging),
     ("Normal mode requires isolated Copilot and GitHub tokens", Tests.NormalModeTokenValidation),
     ("Copilot CLI uses the supported programmatic interface", Tests.CopilotCliArguments),
+    ("TextLogger writes pipe-delimited timestamps with one-second precision", Tests.TextLoggerFormat),
     ("CommandRunner forwards process output while it runs", Tests.CommandOutputForwarding),
     ("CommandRunner logs full command details and output when enabled", Tests.CommandDetailLogging),
     ("CommandRunner safe environment excludes unrelated secrets", Tests.TokenIsolationEnvironment),
@@ -142,7 +143,7 @@ internal static class Tests
     public static async Task DryRunAppBehavior()
     {
         var temp = Directory.CreateTempSubdirectory();
-        var commandRunner = new CommandRunner(new JsonLogger());
+        var commandRunner = new CommandRunner(new TextLogger());
         var gitInit = await commandRunner.RunAsync("git", ["init"], temp.FullName);
         Assert.Equal(0, gitInit.ExitCode);
         var env = new DictionaryEnvironment(new Dictionary<string, string?>
@@ -157,7 +158,7 @@ internal static class Tests
         var app = new SonarCopilotFixApp(
             options,
             env,
-            new JsonLogger(),
+            new TextLogger(),
             new FakeSonarQubeClient([SampleIssue()]),
             new CodeSnippetReader(),
             new PromptBuilder(),
@@ -173,7 +174,7 @@ internal static class Tests
     public static async Task FetchedIssueLogging()
     {
         var temp = Directory.CreateTempSubdirectory();
-        var logger = new JsonLogger();
+        var logger = new TextLogger();
         var commandRunner = new CommandRunner(logger);
         var gitInit = await commandRunner.RunAsync("git", ["init"], temp.FullName);
         Assert.Equal(0, gitInit.ExitCode);
@@ -252,10 +253,30 @@ internal static class Tests
         return Task.CompletedTask;
     }
 
+    public static Task TextLoggerFormat()
+    {
+        var originalOut = Console.Out;
+        using var output = new StringWriter();
+        try
+        {
+            Console.SetOut(output);
+            new TextLogger().Info("hello");
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+
+        Assert.True(System.Text.RegularExpressions.Regex.IsMatch(
+            output.ToString().Trim(),
+            @"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z \| info \| hello$"));
+        return Task.CompletedTask;
+    }
+
     public static async Task CommandOutputForwarding()
     {
         var received = new List<string>();
-        var commandRunner = new CommandRunner(new JsonLogger());
+        var commandRunner = new CommandRunner(new TextLogger());
         var result = await commandRunner.RunAsync(
             "dotnet",
             ["--version"],
@@ -275,7 +296,7 @@ internal static class Tests
         try
         {
             Console.SetOut(output);
-            var commandRunner = new CommandRunner(new JsonLogger());
+            var commandRunner = new CommandRunner(new TextLogger());
             var result = await commandRunner.RunAsync(
                 "dotnet",
                 ["--version"],
@@ -299,7 +320,7 @@ internal static class Tests
     public static async Task GitChangedFiles()
     {
         var temp = Directory.CreateTempSubdirectory();
-        var commandRunner = new CommandRunner(new JsonLogger());
+        var commandRunner = new CommandRunner(new TextLogger());
         Assert.Equal(0, (await commandRunner.RunAsync("git", ["init"], temp.FullName)).ExitCode);
         var trackedFile = Path.Combine(temp.FullName, "HostFilmMonitoring.cs");
         await File.WriteAllTextAsync(trackedFile, "original");
@@ -335,7 +356,7 @@ internal static class Tests
             ["INPUT_INCLUDE_RULE_DETAILS"] = "false",
             ["SONAR_TOKEN"] = "sonar"
         });
-        return new SonarQubeClient(ActionInputs.FromEnvironment(env), new JsonLogger(), new HttpClient(handler), disposeClient: true);
+        return new SonarQubeClient(ActionInputs.FromEnvironment(env), new TextLogger(), new HttpClient(handler), disposeClient: true);
     }
 
     private static ActionInputs Options() => ActionInputs.FromEnvironment(new DictionaryEnvironment(new Dictionary<string, string?>

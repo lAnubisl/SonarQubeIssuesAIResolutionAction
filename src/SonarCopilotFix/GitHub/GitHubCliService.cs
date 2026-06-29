@@ -2,7 +2,7 @@ using SonarCopilotFix.Infrastructure;
 
 namespace SonarCopilotFix.GitHub;
 
-public sealed class GitHubCliService(CommandRunner commandRunner, string workspace, JsonLogger logger)
+public sealed class GitHubCliService(CommandRunner commandRunner, string workspace, TextLogger logger)
 {
     public async Task SetupGitAuthenticationAsync(string token, CancellationToken cancellationToken)
     {

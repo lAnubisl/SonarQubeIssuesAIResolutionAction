@@ -5,7 +5,7 @@ using SonarCopilotFix.Infrastructure;
 using SonarCopilotFix.PromptGeneration;
 using SonarCopilotFix.SonarQube;
 
-var logger = new JsonLogger();
+var logger = new TextLogger();
 
 try
 {

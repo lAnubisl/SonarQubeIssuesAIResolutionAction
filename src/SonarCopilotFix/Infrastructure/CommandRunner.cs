@@ -21,7 +21,7 @@ public sealed record CommandResult(int ExitCode, string StandardOutput, string S
     }
 }
 
-public sealed class CommandRunner(JsonLogger logger)
+public sealed class CommandRunner(TextLogger logger)
 {
     public async Task<CommandResult> RunAsync(
         string fileName,

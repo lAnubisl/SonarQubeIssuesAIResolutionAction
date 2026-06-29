@@ -4,7 +4,7 @@ public static class SecretMasker
 {
     private static readonly string[] SecretNames = ["SONAR_TOKEN", "COPILOT_CLI_TOKEN", "GH_CLI_TOKEN", "GITHUB_TOKEN"];
 
-    public static void MaskKnownSecrets(IEnvironment environment, JsonLogger logger)
+    public static void MaskKnownSecrets(IEnvironment environment, TextLogger logger)
     {
         foreach (var name in SecretNames)
         {
