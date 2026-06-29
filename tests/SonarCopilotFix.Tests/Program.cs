@@ -272,13 +272,24 @@ internal static class Tests
         var temp = Directory.CreateTempSubdirectory();
         var commandRunner = new CommandRunner(new JsonLogger());
         Assert.Equal(0, (await commandRunner.RunAsync("git", ["init"], temp.FullName)).ExitCode);
-        await File.WriteAllTextAsync(Path.Combine(temp.FullName, "changed.txt"), "changed");
+        var trackedFile = Path.Combine(temp.FullName, "HostFilmMonitoring.cs");
+        await File.WriteAllTextAsync(trackedFile, "original");
+        Assert.Equal(0, (await commandRunner.RunAsync("git", ["add", "--", "HostFilmMonitoring.cs"], temp.FullName)).ExitCode);
+        Assert.Equal(
+            0,
+            (await commandRunner.RunAsync(
+                "git",
+                ["-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "initial"],
+                temp.FullName)).ExitCode);
+
+        await File.WriteAllTextAsync(trackedFile, "changed");
+        await File.WriteAllTextAsync(Path.Combine(temp.FullName, "untracked.txt"), "new");
 
         var git = new GitService(commandRunner, temp.FullName);
         var changedFiles = await git.GetChangedFilesAsync(excludeGenerated: true, CancellationToken.None);
 
-        Assert.Equal(1, changedFiles.Count);
-        Assert.Equal("changed.txt", changedFiles[0]);
+        Assert.Equal(2, changedFiles.Count);
+        Assert.SequenceEqual(["HostFilmMonitoring.cs", "untracked.txt"], changedFiles);
     }
 
     private static SonarQubeClient NewClient(FakeHandler handler, int maxIssues = 10, string? statuses = null, string? severities = null, string? cleanCode = null)

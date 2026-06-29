@@ -33,7 +33,7 @@ public sealed partial class GitService(CommandRunner commandRunner, string works
         }
 
         return result.StandardOutput
-            .Split([Environment.NewLine, "\n"], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
             .Select(ParseStatusPath)
             .Where(path => !string.IsNullOrWhiteSpace(path))
             .Where(path => !excludeGenerated || !path.StartsWith(".sonar-copilot/", StringComparison.OrdinalIgnoreCase))
@@ -95,6 +95,8 @@ public sealed partial class GitService(CommandRunner commandRunner, string works
 
     private static string ParseStatusPath(string statusLine)
     {
+        // The first two characters are fixed-width index/worktree status columns.
+        // In particular, an unstaged modification starts with a significant space.
         var path = statusLine.Length > 3 ? statusLine[3..] : statusLine;
         var renameIndex = path.IndexOf(" -> ", StringComparison.Ordinal);
         if (renameIndex >= 0)
