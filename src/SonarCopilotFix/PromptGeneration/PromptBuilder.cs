@@ -73,30 +73,30 @@ public sealed class PromptBuilder
         builder.AppendLine($"- Message: {issue.Message}");
         builder.AppendLine($"- Rule key: `{issue.RuleKey}`");
         builder.AppendLine($"- Severity or impact: `{issue.Severity ?? "not specified"}`");
-        builder.AppendLine($"- Status: `{issue.IssueStatus ?? issue.Status ?? "not specified"}`");
+        // builder.AppendLine($"- Status: `{issue.IssueStatus ?? issue.Status ?? "not specified"}`");
         builder.AppendLine($"- Type or category: `{issue.Type ?? issue.CleanCodeAttributeCategory ?? "not specified"}`");
         builder.AppendLine($"- Effort: `{issue.Effort ?? "not specified"}`");
-        builder.AppendLine($"- Tags: `{(issue.Tags.Count == 0 ? "none" : string.Join(", ", issue.Tags))}`");
-        if (issue.Rule is not null)
-        {
-            builder.AppendLine($"- Rule name: {issue.Rule.Name ?? "not specified"}");
-            builder.AppendLine($"- Rule description: {CleanDescription(issue.Rule.MarkdownDescription ?? issue.Rule.HtmlDescription)}");
-        }
-        else
-        {
-            builder.AppendLine("- Rule description: not available");
-        }
+        // builder.AppendLine($"- Tags: `{(issue.Tags.Count == 0 ? "none" : string.Join(", ", issue.Tags))}`");
+        // if (issue.Rule is not null)
+        // {
+        //     builder.AppendLine($"- Rule name: {issue.Rule.Name ?? "not specified"}");
+        //     builder.AppendLine($"- Rule description: {CleanDescription(issue.Rule.MarkdownDescription ?? issue.Rule.HtmlDescription)}");
+        // }
+        // else
+        // {
+        //     builder.AppendLine("- Rule description: not available");
+        // }
 
-        builder.AppendLine("- Suggested fix strategy: inspect the local snippet, apply the smallest rule-compliant change, and add focused tests when useful.");
-        builder.AppendLine();
-        builder.AppendLine("```text");
-        builder.AppendLine(issue.CodeSnippet is null
-            ? "Code snippet was not requested."
-            : issue.CodeSnippet.FileFound
-                ? issue.CodeSnippet.Content
-                : $"Local file not found: {issue.CodeSnippet.Content}");
-        builder.AppendLine("```");
-        builder.AppendLine();
+        // builder.AppendLine("- Suggested fix strategy: inspect the local snippet, apply the smallest rule-compliant change, and add focused tests when useful.");
+        // builder.AppendLine();
+        // builder.AppendLine("```text");
+        // builder.AppendLine(issue.CodeSnippet is null
+        //     ? "Code snippet was not requested."
+        //     : issue.CodeSnippet.FileFound
+        //         ? issue.CodeSnippet.Content
+        //         : $"Local file not found: {issue.CodeSnippet.Content}");
+        // builder.AppendLine("```");
+        // builder.AppendLine();
     }
 
     private static string CleanDescription(string? description)
