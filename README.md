@@ -1,6 +1,6 @@
 # SonarQube Copilot Fix Action
 
-Reusable Docker-based GitHub Action that fetches selected SonarQube issues, builds a deterministic repair prompt, runs GitHub Copilot CLI against the checked-out repository, validates the result, and opens a draft pull request.
+Reusable Docker-based GitHub Action that fetches selected SonarQube issues, builds a deterministic repair prompt, runs GitHub Copilot CLI against the checked-out repository, and opens a draft pull request.
 
 Use this for supervised, workflow-dispatched remediation of known SonarQube issues. Do not use it on untrusted pull request code, forked pull requests, or repositories where AI-generated edits cannot receive human review.
 
@@ -41,7 +41,6 @@ All known token values are masked with `::add-mask::`. Child processes receive m
 | `code_snippet_context_lines` | `20` | Lines before and after issue line |
 | `copilot_model` | empty | Passed to Copilot CLI with `--model` |
 | `copilot_extra_instructions` | empty | Added to the prompt |
-| `validation_command` | empty | Example: `dotnet test` |
 | `branch_prefix` | `copilot/sonar-fixes` | Generated branch prefix |
 | `base_branch` | detected | Uses `origin/HEAD` or `main` fallback |
 | `pull_request_draft` | `true` | Draft PRs by default |
@@ -86,7 +85,6 @@ jobs:
           sonar_project_key: ${{ vars.SONAR_PROJECT_KEY }}
           sonar_branch: ${{ github.ref_name }}
           max_issues: ${{ inputs.max_issues }}
-          validation_command: dotnet test
           dry_run: ${{ inputs.dry_run }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -109,11 +107,12 @@ Normal mode requires `SONAR_TOKEN`, `COPILOT_CLI_TOKEN`, and `GH_CLI_TOKEN` unle
 5. Requires a clean worktree outside `.sonar-copilot`.
 6. Runs Copilot CLI with only Copilot token environment variables.
 7. Detects changed repository files, excluding generated prompt files.
-8. Runs `validation_command` when provided.
-9. Creates a branch named `<branch_prefix>/<sonar_project_key>/<timestamp>`.
-10. Commits, pushes, and creates a draft PR with `gh pr create`.
+8. Creates a branch named `<branch_prefix>/<sonar_project_key>/<timestamp>`.
+9. Commits, pushes, and creates a draft PR with `gh pr create`.
 
-If no files changed, the action exits successfully without an empty commit or PR.
+If no files changed, the action exits successfully without an empty commit or PR. Build, test, lint, and other validation remain the responsibility of the consuming repository's pull request workflows, where the required toolchain and services can be configured normally.
+
+Configure those workflows for `pull_request` events such as `opened` and `synchronize`, and enforce their checks with branch protection or rulesets. Prefer a personal access token or GitHub App installation token for `GH_CLI_TOKEN`; pull request workflows initiated through the repository `GITHUB_TOKEN` may require a maintainer to approve the workflow runs before validation starts.
 
 ## Copilot CLI Notes
 
@@ -127,7 +126,7 @@ The command receives `COPILOT_GITHUB_TOKEN`, populated from the `COPILOT_CLI_TOK
 
 ## Pull Request Body
 
-The draft PR includes the SonarQube project, branch, base branch, generated branch, selected issue links, changed files, validation result, a Copilot generation note, and a human-review requirement.
+The draft PR includes the SonarQube project, branch, base branch, generated branch, selected issue links, changed files, a note that validation is delegated to PR checks, a Copilot generation note, and a human-review requirement.
 
 ## SonarQube Compatibility
 
@@ -143,7 +142,7 @@ permissions:
   pull-requests: write
 ```
 
-Run this action from `workflow_dispatch` or another trusted event. Do not expose secrets to forked pull requests. Draft PRs are the default because AI-generated changes require human review before merge. The only arbitrary user command is `validation_command`; keep it repository-owned and trusted.
+Run this action from `workflow_dispatch` or another trusted event. Do not expose secrets to forked pull requests. Draft PRs are the default because AI-generated changes require human review before merge.
 
 ## Build And Test Locally
 

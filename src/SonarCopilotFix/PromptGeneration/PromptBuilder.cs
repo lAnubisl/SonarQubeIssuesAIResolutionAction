@@ -18,7 +18,6 @@ public sealed class PromptBuilder
         builder.AppendLine($"- SonarQube project key: `{options.SonarProjectKey}`");
         builder.AppendLine($"- SonarQube branch: `{options.SonarBranch ?? "not specified"}`");
         builder.AppendLine($"- Selected issue count: `{issues.Count}`");
-        builder.AppendLine($"- Validation command: `{options.ValidationCommand ?? "not configured"}`");
         builder.AppendLine();
         builder.AppendLine("## Safety Rules");
         builder.AppendLine("- Fix only the listed SonarQube issues.");

@@ -6,7 +6,6 @@ using SonarCopilotFix.GitHub;
 using SonarCopilotFix.Infrastructure;
 using SonarCopilotFix.PromptGeneration;
 using SonarCopilotFix.SonarQube;
-using SonarCopilotFix.Validation;
 
 var tests = new (string Name, Func<Task> Run)[]
 {
@@ -16,14 +15,13 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Issue filtering parameters are sent", Tests.Filtering),
     ("Code snippets are extracted around the issue line", Tests.SnippetExtraction),
     ("Prompt generation includes safety rules and issue details", Tests.PromptGeneration),
-    ("PR body contains issue links and validation result", Tests.PrBody),
+    ("PR body contains issue links and delegates validation to PR checks", Tests.PrBody),
     ("Dry-run input does not require Copilot or GitHub tokens", Tests.DryRunInputValidation),
     ("Dry-run app behavior writes prompt without creating a branch", Tests.DryRunAppBehavior),
     ("App logs fetched SonarQube issue count and details", Tests.FetchedIssueLogging),
     ("Normal mode requires isolated Copilot and GitHub tokens", Tests.NormalModeTokenValidation),
     ("Copilot CLI uses the supported programmatic interface", Tests.CopilotCliArguments),
     ("CommandRunner safe environment excludes unrelated secrets", Tests.TokenIsolationEnvironment),
-    ("Validation failures include the exit code and captured output", Tests.ValidationFailureMessage),
     ("GitService detects changed files with command-scoped safe directory", Tests.GitChangedFiles)
 };
 
@@ -115,13 +113,13 @@ internal static class Tests
         {
             BaseBranch = "main",
             GeneratedBranch = "copilot/sonar/proj/20260101000000",
-            ChangedFiles = ["src/A.cs"],
-            ValidationSucceeded = true
+            ChangedFiles = ["src/A.cs"]
         };
         var body = new PrBodyBuilder().Build(Options(), [SampleIssue()], summary);
         Assert.Contains("Human review is required", body);
         Assert.Contains("ISSUE-1", body);
         Assert.Contains("src/A.cs", body);
+        Assert.Contains("Validation is delegated to the repository's pull request checks", body);
         return Task.CompletedTask;
     }
 
@@ -232,17 +230,6 @@ internal static class Tests
         Assert.True(safe.ContainsKey("GH_TOKEN"));
         Assert.False(safe.ContainsKey("SONAR_TOKEN"));
         Assert.False(safe.ContainsKey("COPILOT_CLI_TOKEN"));
-        return Task.CompletedTask;
-    }
-
-    public static Task ValidationFailureMessage()
-    {
-        var result = new CommandResult(17, "test output", "test error");
-        var message = ValidationRunner.BuildFailureMessage(result);
-
-        Assert.Contains("exit code 17", message);
-        Assert.Contains("test output", message);
-        Assert.Contains("test error", message);
         return Task.CompletedTask;
     }
 

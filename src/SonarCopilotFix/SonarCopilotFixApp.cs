@@ -3,7 +3,6 @@ using SonarCopilotFix.GitHub;
 using SonarCopilotFix.Infrastructure;
 using SonarCopilotFix.PromptGeneration;
 using SonarCopilotFix.SonarQube;
-using SonarCopilotFix.Validation;
 
 namespace SonarCopilotFix;
 
@@ -22,7 +21,6 @@ public sealed class SonarCopilotFixApp(
         var git = new GitService(commandRunner, options.Workspace);
         var github = new GitHubCliService(commandRunner, options.Workspace, logger);
         var copilot = new CopilotCliRunner(commandRunner, options.Workspace, logger);
-        var validation = new ValidationRunner(commandRunner, options.Workspace);
         var summary = new JobSummary(options);
 
         logger.Info("Fetching SonarQube issues.");
@@ -93,22 +91,6 @@ public sealed class SonarCopilotFixApp(
             logger.Info("Copilot completed without repository file changes.");
             summary.Write(environment);
             return ExitCodes.Success;
-        }
-
-        if (!string.IsNullOrWhiteSpace(options.ValidationCommand))
-        {
-            logger.Info("Running validation command.");
-            summary.ValidationCommand = options.ValidationCommand;
-            var validationResult = await validation.RunAsync(options.ValidationCommand, cancellationToken);
-            summary.ValidationSucceeded = validationResult.ExitCode == 0;
-            summary.ValidationOutput = validationResult.Summary;
-            if (validationResult.ExitCode != 0)
-            {
-                summary.Write(environment);
-                throw new ControlledFailureException(
-                    ValidationRunner.BuildFailureMessage(validationResult),
-                    ExitCodes.ValidationFailure);
-            }
         }
 
         var branchName = git.BuildBranchName(options.BranchPrefix, options.SonarProjectKey, DateTimeOffset.UtcNow);

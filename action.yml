@@ -46,9 +46,6 @@ inputs:
   copilot_extra_instructions:
     description: Extra reviewer-approved instructions to include in the Copilot prompt.
     required: false
-  validation_command:
-    description: Optional validation command, for example dotnet test.
-    required: false
   branch_prefix:
     description: Prefix for generated fix branches.
     required: false
@@ -102,7 +99,6 @@ runs:
     INPUT_CODE_SNIPPET_CONTEXT_LINES: ${{ inputs.code_snippet_context_lines }}
     INPUT_COPILOT_MODEL: ${{ inputs.copilot_model }}
     INPUT_COPILOT_EXTRA_INSTRUCTIONS: ${{ inputs.copilot_extra_instructions }}
-    INPUT_VALIDATION_COMMAND: ${{ inputs.validation_command }}
     INPUT_BRANCH_PREFIX: ${{ inputs.branch_prefix }}
     INPUT_BASE_BRANCH: ${{ inputs.base_branch }}
     INPUT_PULL_REQUEST_DRAFT: ${{ inputs.pull_request_draft }}

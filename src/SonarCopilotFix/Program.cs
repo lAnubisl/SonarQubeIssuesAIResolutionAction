@@ -4,7 +4,6 @@ using SonarCopilotFix.GitHub;
 using SonarCopilotFix.Infrastructure;
 using SonarCopilotFix.PromptGeneration;
 using SonarCopilotFix.SonarQube;
-using SonarCopilotFix.Validation;
 
 var logger = new JsonLogger();
 

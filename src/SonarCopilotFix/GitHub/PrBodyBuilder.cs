@@ -18,8 +18,6 @@ public sealed class PrBodyBuilder
         builder.AppendLine($"| Generated branch | `{summary.GeneratedBranch ?? "not created"}` |");
         builder.AppendLine($"| Issues selected | `{issues.Count}` |");
         builder.AppendLine($"| Issues attempted | `{issues.Count}` |");
-        builder.AppendLine($"| Validation command | `{options.ValidationCommand ?? "not configured"}` |");
-        builder.AppendLine($"| Validation result | `{(summary.ValidationSucceeded is null ? "not run" : summary.ValidationSucceeded.Value ? "passed" : "failed")}` |");
         builder.AppendLine();
         builder.AppendLine("## Issue List");
         foreach (var issue in issues)
@@ -55,6 +53,7 @@ public sealed class PrBodyBuilder
         builder.AppendLine("## Review Notes");
         builder.AppendLine("- These changes were generated using GitHub Copilot CLI from selected SonarQube issue context.");
         builder.AppendLine("- Human review is required before merge.");
+        builder.AppendLine("- Validation is delegated to the repository's pull request checks.");
         builder.AppendLine("- Verify that no unrelated behavior, formatting, generated files, or security-sensitive values were changed.");
         return builder.ToString();
     }

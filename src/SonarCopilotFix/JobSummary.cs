@@ -10,9 +10,6 @@ public sealed class JobSummary(ActionInputs options)
     public string? BaseBranch { get; set; }
     public string? GeneratedBranch { get; set; }
     public IReadOnlyList<string> ChangedFiles { get; set; } = [];
-    public string? ValidationCommand { get; set; }
-    public bool? ValidationSucceeded { get; set; }
-    public string? ValidationOutput { get; set; }
     public string? PullRequestUrl { get; set; }
 
     public void Write(Infrastructure.IEnvironment environment)
@@ -34,8 +31,6 @@ public sealed class JobSummary(ActionInputs options)
             $"* Dry run: `{DryRun || options.DryRun}`",
             $"* Copilot CLI executed: `{CopilotExecuted}`",
             $"* Files changed: `{ChangedFiles.Count}`",
-            $"* Validation command: `{ValidationCommand ?? options.ValidationCommand ?? "not configured"}`",
-            $"* Validation result: `{(ValidationSucceeded is null ? "not run" : ValidationSucceeded.Value ? "passed" : "failed")}`",
             $"* Pull request: `{PullRequestUrl ?? "not created"}`",
             $"* Prompt file: `{PromptFile ?? "not generated"}`"
         };

@@ -7,7 +7,6 @@ public static class ExitCodes
     public const int SonarQubeError = 10;
     public const int NoIssuesFound = 20;
     public const int CopilotFailure = 30;
-    public const int ValidationFailure = 40;
     public const int GitFailure = 50;
     public const int GitHubCliFailure = 60;
     public const int UnhandledFailure = 99;
