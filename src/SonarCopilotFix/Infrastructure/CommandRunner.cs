@@ -28,7 +28,9 @@ public sealed class CommandRunner(JsonLogger logger)
         IEnumerable<string> arguments,
         string workingDirectory,
         IReadOnlyDictionary<string, string?>? scopedEnvironment = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Action<string>? standardOutputReceived = null,
+        Action<string>? standardErrorReceived = null)
     {
         var psi = CreateBaseProcess(fileName, workingDirectory, scopedEnvironment);
         foreach (var argument in arguments)
@@ -36,7 +38,7 @@ public sealed class CommandRunner(JsonLogger logger)
             psi.ArgumentList.Add(argument);
         }
 
-        return await RunProcessAsync(psi, cancellationToken);
+        return await RunProcessAsync(psi, cancellationToken, standardOutputReceived, standardErrorReceived);
     }
 
     public async Task<CommandResult> RunShellAsync(
@@ -105,7 +107,11 @@ public sealed class CommandRunner(JsonLogger logger)
         return result;
     }
 
-    private async Task<CommandResult> RunProcessAsync(ProcessStartInfo psi, CancellationToken cancellationToken)
+    private async Task<CommandResult> RunProcessAsync(
+        ProcessStartInfo psi,
+        CancellationToken cancellationToken,
+        Action<string>? standardOutputReceived,
+        Action<string>? standardErrorReceived)
     {
         using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
         var stdout = new StringBuilder();
@@ -115,6 +121,7 @@ public sealed class CommandRunner(JsonLogger logger)
             if (args.Data is not null)
             {
                 stdout.AppendLine(args.Data);
+                standardOutputReceived?.Invoke(args.Data);
             }
         };
         process.ErrorDataReceived += (_, args) =>
@@ -122,6 +129,7 @@ public sealed class CommandRunner(JsonLogger logger)
             if (args.Data is not null)
             {
                 stderr.AppendLine(args.Data);
+                standardErrorReceived?.Invoke(args.Data);
             }
         };
 

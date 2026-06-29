@@ -124,6 +124,8 @@ copilot --prompt <prompt> --no-ask-user [--model <model>] (--allow-tool=write | 
 
 The command receives `COPILOT_GITHUB_TOKEN`, populated from the `COPILOT_CLI_TOKEN` secret, and disables CLI self-updates. It never receives `SONAR_TOKEN`, `GH_CLI_TOKEN`, or `GITHUB_TOKEN`. The token must be a supported Copilot CLI token, such as a fine-grained personal access token with the Copilot Requests account permission; classic personal access tokens are not supported.
 
+Before Copilot starts, the action writes the complete generated prompt to the job log with a `[copilot prompt]` prefix. While Copilot runs, each stdout and stderr line is forwarded immediately with `[copilot stdout]` or `[copilot stderr]`, so progress and generated output are visible without waiting for the process to finish.
+
 ## Pull Request Body
 
 The draft PR includes the SonarQube project, branch, base branch, generated branch, selected issue links, changed files, a note that validation is delegated to PR checks, a Copilot generation note, and a human-review requirement.

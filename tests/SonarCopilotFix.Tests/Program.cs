@@ -21,6 +21,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("App logs fetched SonarQube issue count and details", Tests.FetchedIssueLogging),
     ("Normal mode requires isolated Copilot and GitHub tokens", Tests.NormalModeTokenValidation),
     ("Copilot CLI uses the supported programmatic interface", Tests.CopilotCliArguments),
+    ("CommandRunner forwards process output while it runs", Tests.CommandOutputForwarding),
     ("CommandRunner safe environment excludes unrelated secrets", Tests.TokenIsolationEnvironment),
     ("GitService detects changed files with command-scoped safe directory", Tests.GitChangedFiles)
 };
@@ -248,6 +249,22 @@ internal static class Tests
         Assert.True(unrestricted.Contains("--allow-all-tools"));
         Assert.False(unrestricted.Contains("--allow-tool=write"));
         return Task.CompletedTask;
+    }
+
+    public static async Task CommandOutputForwarding()
+    {
+        var received = new List<string>();
+        var commandRunner = new CommandRunner(new JsonLogger());
+        var result = await commandRunner.RunAsync(
+            "dotnet",
+            ["--version"],
+            Directory.GetCurrentDirectory(),
+            cancellationToken: CancellationToken.None,
+            standardOutputReceived: line => received.Add(line));
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.True(received.Count > 0);
+        Assert.Equal(result.StandardOutput.Trim(), string.Join(Environment.NewLine, received));
     }
 
     public static async Task GitChangedFiles()

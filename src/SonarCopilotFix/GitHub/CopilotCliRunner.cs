@@ -8,6 +8,7 @@ public sealed class CopilotCliRunner(CommandRunner commandRunner, string workspa
     public async Task RunAsync(ActionInputs options, string promptPath, CancellationToken cancellationToken)
     {
         var prompt = await File.ReadAllTextAsync(promptPath, cancellationToken);
+        LogPrompt(prompt);
         var args = BuildArguments(options, prompt);
         var env = new Dictionary<string, string?>
         {
@@ -18,7 +19,14 @@ public sealed class CopilotCliRunner(CommandRunner commandRunner, string workspa
         CommandResult result;
         try
         {
-            result = await commandRunner.RunAsync("copilot", args, workspace, env, cancellationToken);
+            result = await commandRunner.RunAsync(
+                "copilot",
+                args,
+                workspace,
+                env,
+                cancellationToken,
+                line => logger.Info($"[copilot stdout] {line}"),
+                line => logger.Info($"[copilot stderr] {line}"));
         }
         catch (Win32Exception ex)
         {
@@ -35,6 +43,17 @@ public sealed class CopilotCliRunner(CommandRunner commandRunner, string workspa
         }
 
         logger.Info("GitHub Copilot CLI completed.");
+    }
+
+    private void LogPrompt(string prompt)
+    {
+        logger.Info("GitHub Copilot CLI prompt follows.");
+        foreach (var line in prompt.ReplaceLineEndings("\n").Split('\n'))
+        {
+            logger.Info($"[copilot prompt] {line}");
+        }
+
+        logger.Info("End GitHub Copilot CLI prompt.");
     }
 
     public static IReadOnlyList<string> BuildArguments(ActionInputs options, string prompt)
