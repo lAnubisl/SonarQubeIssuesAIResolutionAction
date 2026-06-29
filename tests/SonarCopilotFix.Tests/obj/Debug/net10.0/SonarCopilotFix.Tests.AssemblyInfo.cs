@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SonarCopilotFix.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a639399e312c6b5d2faa97a34b296cbdb1d65c58")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+34d9a0cbe6b5364c36a4956f1f52e1d7a7ec6ef5")]
 [assembly: System.Reflection.AssemblyProductAttribute("SonarCopilotFix.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SonarCopilotFix.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

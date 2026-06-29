@@ -1,0 +1,16 @@
+# .NET build outputs
+**/bin/
+**/obj/
+artifacts/
+TestResults/
+
+# IDE and user-specific files
+.vs/
+*.user
+*.suo
+
+# Test and coverage outputs
+*.coverage
+*.coveragexml
+coverage/
+coverage.cobertura.xml

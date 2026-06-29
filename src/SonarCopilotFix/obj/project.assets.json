@@ -13,11 +13,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Dev\\SonarQubeIssuesAIResolutionAction\\src\\SonarCopilotFix\\SonarCopilotFix.csproj",
+      "projectUniqueName": "d:\\Dev\\SonarQubeIssuesAIResolutionAction\\src\\SonarCopilotFix\\SonarCopilotFix.csproj",
       "projectName": "SonarCopilotFix",
-      "projectPath": "D:\\Dev\\SonarQubeIssuesAIResolutionAction\\src\\SonarCopilotFix\\SonarCopilotFix.csproj",
+      "projectPath": "d:\\Dev\\SonarQubeIssuesAIResolutionAction\\src\\SonarCopilotFix\\SonarCopilotFix.csproj",
       "packagesPath": "C:\\Users\\alexa\\.nuget\\packages\\",
-      "outputPath": "D:\\Dev\\SonarQubeIssuesAIResolutionAction\\src\\SonarCopilotFix\\obj\\",
+      "outputPath": "d:\\Dev\\SonarQubeIssuesAIResolutionAction\\src\\SonarCopilotFix\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\alexa\\AppData\\Roaming\\NuGet\\NuGet.Config"
