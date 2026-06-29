@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0-bookworm-slim AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-noble AS build
 WORKDIR /src
 COPY . .
 RUN dotnet publish src/SonarCopilotFix/SonarCopilotFix.csproj \
@@ -9,7 +9,7 @@ RUN dotnet publish src/SonarCopilotFix/SonarCopilotFix.csproj \
     --self-contained false \
     --output /app/publish
 
-FROM mcr.microsoft.com/dotnet/runtime:10.0-bookworm-slim AS runtime
+FROM mcr.microsoft.com/dotnet/runtime:10.0-noble AS runtime
 ARG GH_CLI_VERSION=2.74.2
 ARG INSTALL_GH_COPILOT_EXTENSION=true
 
