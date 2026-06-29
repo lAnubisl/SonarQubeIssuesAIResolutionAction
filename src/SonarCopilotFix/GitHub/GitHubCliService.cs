@@ -6,7 +6,7 @@ public sealed class GitHubCliService(CommandRunner commandRunner, string workspa
 {
     public async Task SetupGitAuthenticationAsync(string token, CancellationToken cancellationToken)
     {
-        var env = new Dictionary<string, string?> { ["GH_TOKEN"] = token };
+        var env = BuildEnvironment(token, workspace);
         var result = await commandRunner.RunAsync(
             "gh",
             ["auth", "setup-git"],
@@ -42,7 +42,7 @@ public sealed class GitHubCliService(CommandRunner commandRunner, string workspa
             args.Add("--draft");
         }
 
-        var env = new Dictionary<string, string?> { ["GH_TOKEN"] = token };
+        var env = BuildEnvironment(token, workspace);
         var result = await commandRunner.RunAsync(
             "gh",
             args,
@@ -58,5 +58,19 @@ public sealed class GitHubCliService(CommandRunner commandRunner, string workspa
         var url = result.StandardOutput.Trim().Split('\n', StringSplitOptions.RemoveEmptyEntries).LastOrDefault()?.Trim() ?? "";
         logger.Info($"Created pull request: {url}");
         return url;
+    }
+
+    public static IReadOnlyDictionary<string, string?> BuildEnvironment(string token, string workspace)
+    {
+        // gh invokes git while creating a pull request. Docker actions operate on
+        // a host-owned bind mount, so pass command-scoped Git configuration that
+        // is inherited by gh's child processes without changing global config.
+        return new Dictionary<string, string?>
+        {
+            ["GH_TOKEN"] = token,
+            ["GIT_CONFIG_COUNT"] = "1",
+            ["GIT_CONFIG_KEY_0"] = "safe.directory",
+            ["GIT_CONFIG_VALUE_0"] = Path.GetFullPath(workspace)
+        };
     }
 }

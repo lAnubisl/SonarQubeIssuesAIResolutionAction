@@ -25,7 +25,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("CommandRunner forwards process output while it runs", Tests.CommandOutputForwarding),
     ("CommandRunner logs full command details and output when enabled", Tests.CommandDetailLogging),
     ("CommandRunner safe environment excludes unrelated secrets", Tests.TokenIsolationEnvironment),
-    ("GitService detects changed files with command-scoped safe directory", Tests.GitChangedFiles)
+    ("GitService detects changed files with command-scoped safe directory", Tests.GitChangedFiles),
+    ("GitHub CLI passes command-scoped safe directory to child Git processes", Tests.GitHubCliEnvironment)
 };
 
 var failures = 0;
@@ -340,6 +341,18 @@ internal static class Tests
 
         Assert.Equal(2, changedFiles.Count);
         Assert.SequenceEqual(["HostFilmMonitoring.cs", "untracked.txt"], changedFiles);
+    }
+
+    public static Task GitHubCliEnvironment()
+    {
+        var workspace = Path.Combine(Path.GetTempPath(), "github-workspace");
+        var environment = GitHubCliService.BuildEnvironment("github-secret", workspace);
+
+        Assert.Equal("github-secret", environment["GH_TOKEN"]);
+        Assert.Equal("1", environment["GIT_CONFIG_COUNT"]);
+        Assert.Equal("safe.directory", environment["GIT_CONFIG_KEY_0"]);
+        Assert.Equal(Path.GetFullPath(workspace), environment["GIT_CONFIG_VALUE_0"]);
+        return Task.CompletedTask;
     }
 
     private static SonarQubeClient NewClient(FakeHandler handler, int maxIssues = 10, string? statuses = null, string? severities = null, string? cleanCode = null)
