@@ -20,6 +20,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Dry-run app behavior writes prompt without creating a branch", Tests.DryRunAppBehavior),
     ("App logs fetched SonarQube issue count and details", Tests.FetchedIssueLogging),
     ("Normal mode requires isolated Copilot and GitHub tokens", Tests.NormalModeTokenValidation),
+    ("Copilot CLI uses the supported programmatic interface", Tests.CopilotCliArguments),
     ("CommandRunner safe environment excludes unrelated secrets", Tests.TokenIsolationEnvironment),
     ("GitService detects changed files with command-scoped safe directory", Tests.GitChangedFiles)
 };
@@ -232,6 +233,23 @@ internal static class Tests
         return Task.CompletedTask;
     }
 
+    public static Task CopilotCliArguments()
+    {
+        var restricted = CopilotCliRunner.BuildArguments(
+            Options() with { CopilotModel = "gpt-5.2" },
+            "Fix the selected issue.");
+        Assert.SequenceEqual(
+            ["--prompt", "Fix the selected issue.", "--no-ask-user", "--model", "gpt-5.2", "--allow-tool=write"],
+            restricted);
+
+        var unrestricted = CopilotCliRunner.BuildArguments(
+            Options() with { CopilotAllowAllTools = true },
+            "Fix it.");
+        Assert.True(unrestricted.Contains("--allow-all-tools"));
+        Assert.False(unrestricted.Contains("--allow-tool=write"));
+        return Task.CompletedTask;
+    }
+
     public static async Task GitChangedFiles()
     {
         var temp = Directory.CreateTempSubdirectory();
@@ -364,6 +382,15 @@ internal static class Assert
         if (!actual.Contains(expected, StringComparison.Ordinal))
         {
             throw new InvalidOperationException($"Expected text to contain '{expected}'.");
+        }
+    }
+
+    public static void SequenceEqual<T>(IEnumerable<T> expected, IEnumerable<T> actual)
+    {
+        if (!expected.SequenceEqual(actual))
+        {
+            throw new InvalidOperationException(
+                $"Expected [{string.Join(", ", expected)}], got [{string.Join(", ", actual)}].");
         }
     }
 

@@ -11,7 +11,7 @@ RUN dotnet publish src/SonarCopilotFix/SonarCopilotFix.csproj \
 
 FROM mcr.microsoft.com/dotnet/runtime:10.0-noble AS runtime
 ARG GH_CLI_VERSION=2.74.2
-ARG INSTALL_GH_COPILOT_EXTENSION=true
+ARG COPILOT_CLI_VERSION=v1.0.65
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl git jq unzip \
@@ -23,10 +23,11 @@ RUN curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_CLI_VERSION}/
     && rm -f /tmp/gh.deb \
     && rm -rf /var/lib/apt/lists/*
 
-# GitHub Copilot CLI support is still environment-dependent. The image attempts to
-# install the official gh extension, while the app fails clearly if no configured
-# non-interactive Copilot command can run.
-RUN if [ "$INSTALL_GH_COPILOT_EXTENSION" = "true" ]; then gh extension install github/gh-copilot || true; fi
+# Install the standalone GitHub Copilot CLI. The legacy gh-copilot extension does
+# not provide the `copilot` executable used for programmatic agent workflows.
+RUN curl -fsSL https://gh.io/copilot-install \
+    | VERSION="${COPILOT_CLI_VERSION}" PREFIX=/usr/local bash \
+    && copilot version
 
 WORKDIR /github/workspace
 COPY --from=build /app/publish /app

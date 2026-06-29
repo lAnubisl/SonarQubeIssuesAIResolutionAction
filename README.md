@@ -6,7 +6,7 @@ Use this for supervised, workflow-dispatched remediation of known SonarQube issu
 
 ## Design
 
-The reusable unit is a Docker action. The core automation is a .NET 10 C# console app inside the image. GitHub Actions only checks out the consuming repository, passes inputs and isolated secrets, and runs the container. The image includes Git, GitHub CLI, .NET runtime, and attempts to install the official `gh copilot` extension. Copilot CLI non-interactive support is environment-dependent, and the action fails clearly when the expected `copilot` executable is unavailable.
+The reusable unit is a Docker action. The core automation is a .NET 10 C# console app inside the image. GitHub Actions only checks out the consuming repository, passes inputs and isolated secrets, and runs the container. The image includes Git, GitHub CLI, .NET runtime, and the standalone GitHub Copilot CLI.
 
 This project avoids JavaScript and TypeScript for core logic. C# gives typed SonarQube models, explicit process environments, testable prompt generation, and predictable exit codes.
 
@@ -39,7 +39,7 @@ All known token values are masked with `::add-mask::`. Child processes receive m
 | `include_rule_details` | `true` | Calls `/api/rules/show` per issue |
 | `include_code_snippets` | `true` | Reads snippets from checked-out files |
 | `code_snippet_context_lines` | `20` | Lines before and after issue line |
-| `copilot_model` | empty | Passed to command templates through `{model}` |
+| `copilot_model` | empty | Passed to Copilot CLI with `--model` |
 | `copilot_extra_instructions` | empty | Added to the prompt |
 | `validation_command` | empty | Example: `dotnet test` |
 | `branch_prefix` | `copilot/sonar-fixes` | Generated branch prefix |
@@ -48,7 +48,7 @@ All known token values are masked with `::add-mask::`. Child processes receive m
 | `dry_run` | `false` | No Copilot, branch, commit, push, or PR |
 | `fail_if_no_issues` | `false` | Strict empty-result behavior |
 | `allow_github_token_fallback` | `false` | Explicit fallback only |
-| `copilot_allow_all_tools` | `false` | Adds `{allow_all_tools}` only when true |
+| `copilot_allow_all_tools` | `false` | Allows all CLI tools without confirmation; otherwise only file writes are pre-approved |
 
 ## Example Workflow
 
@@ -117,13 +117,13 @@ If no files changed, the action exits successfully without an empty commit or PR
 
 ## Copilot CLI Notes
 
-GitHub Copilot CLI authentication and non-interactive editing support can differ by installed CLI version and enterprise policy. The action intentionally does not accept arbitrary Copilot command input. It invokes a fixed executable and argument list:
+GitHub Copilot CLI access can differ by subscription and enterprise policy. The action intentionally does not accept arbitrary Copilot command input. It invokes the standalone CLI from the repository workspace with a fixed argument shape:
 
 ```text
-copilot --non-interactive --prompt-file <prompt> --workspace <workspace> [--model <model>] [--allow-all-tools]
+copilot --prompt <prompt> --no-ask-user [--model <model>] (--allow-tool=write | --allow-all-tools)
 ```
 
-The command receives only `COPILOT_CLI_TOKEN` and `GITHUB_COPILOT_TOKEN`, both populated from the `COPILOT_CLI_TOKEN` secret. It never receives `SONAR_TOKEN`, `GH_CLI_TOKEN`, or `GITHUB_TOKEN`. If the installed Copilot CLI cannot authenticate or run non-interactively with this interface, the action fails and reports the limitation.
+The command receives `COPILOT_GITHUB_TOKEN`, populated from the `COPILOT_CLI_TOKEN` secret, and disables CLI self-updates. It never receives `SONAR_TOKEN`, `GH_CLI_TOKEN`, or `GITHUB_TOKEN`. The token must be a supported Copilot CLI token, such as a fine-grained personal access token with the Copilot Requests account permission; classic personal access tokens are not supported.
 
 ## Pull Request Body
 

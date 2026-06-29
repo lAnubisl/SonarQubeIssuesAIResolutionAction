@@ -41,7 +41,7 @@ inputs:
     required: false
     default: "20"
   copilot_model:
-    description: Optional model name to pass to a supported Copilot CLI command.
+    description: Optional model name to pass to GitHub Copilot CLI.
     required: false
   copilot_extra_instructions:
     description: Extra reviewer-approved instructions to include in the Copilot prompt.
@@ -73,7 +73,7 @@ inputs:
     required: false
     default: "false"
   copilot_allow_all_tools:
-    description: Allow unrestricted Copilot CLI tool execution when supported by the selected CLI command.
+    description: Allow unrestricted Copilot CLI tool execution. When false, only file writes are pre-approved.
     required: false
     default: "false"
 
