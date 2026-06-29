@@ -36,6 +36,7 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
         var page = 1;
         var pageSize = Math.Min(_options.MaxIssues, 100);
         var total = 0;
+        var issuesSeen = 0;
 
         while (selected.Count < _options.MaxIssues)
         {
@@ -52,6 +53,13 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
 
             foreach (var issue in payload.Issues)
             {
+                issuesSeen++;
+
+                if (string.Equals(issue.Status, "ACCEPTED", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
                 if (selected.Count >= _options.MaxIssues)
                 {
                     break;
@@ -60,7 +68,7 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
                 selected.Add(await ToIssueAsync(issue, cancellationToken));
             }
 
-            if (selected.Count >= total)
+            if (issuesSeen >= total)
             {
                 break;
             }

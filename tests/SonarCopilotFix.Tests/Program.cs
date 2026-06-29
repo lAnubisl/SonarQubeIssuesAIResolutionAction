@@ -13,6 +13,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("SonarQube authentication errors are mapped clearly", Tests.AuthenticationError),
     ("Malformed SonarQube responses fail", Tests.MalformedResponse),
     ("Issue filtering parameters are sent", Tests.Filtering),
+    ("Accepted SonarQube issues are ignored without consuming max_issues", Tests.AcceptedIssuesAreIgnored),
     ("Code snippets are extracted around the issue line", Tests.SnippetExtraction),
     ("Prompt generation includes safety rules and issue details", Tests.PromptGeneration),
     ("PR body contains issue links and delegates validation to PR checks", Tests.PrBody),
@@ -88,6 +89,25 @@ internal static class Tests
         Assert.Equal("OPEN,CONFIRMED", Query(uri, "statuses"));
         Assert.Equal("CRITICAL", Query(uri, "severities"));
         Assert.Equal("INTENTIONAL", Query(uri, "cleanCodeAttributeCategories"));
+    }
+
+    public static async Task AcceptedIssuesAreIgnored()
+    {
+        var handler = new FakeHandler(request =>
+        {
+            var page = Query(request.RequestUri!, "p");
+            var json = page == "1"
+                ? """{"total":3,"issues":[{"key":"A","status":"Accepted","rule":"csharpsquid:S1","component":"proj:src/A.cs","line":1,"message":"accepted"},{"key":"B","status":"OPEN","rule":"csharpsquid:S2","component":"proj:src/B.cs","line":2,"message":"open"}]}"""
+                : """{"total":3,"issues":[{"key":"C","status":"OPEN","rule":"csharpsquid:S3","component":"proj:src/C.cs","line":3,"message":"open"}]}""";
+            return Json(json);
+        });
+        var client = NewClient(handler, maxIssues: 2);
+
+        var result = await client.GetIssuesAsync(CancellationToken.None);
+
+        Assert.Equal(2, result.Issues.Count);
+        Assert.SequenceEqual(["B", "C"], result.Issues.Select(issue => issue.Key));
+        Assert.Equal(2, handler.Requests.Count(request => request.RequestUri!.AbsolutePath == "/api/issues/search"));
     }
 
     public static Task SnippetExtraction()
