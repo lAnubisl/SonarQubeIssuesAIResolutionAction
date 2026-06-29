@@ -11,7 +11,7 @@ public sealed class JobSummary(ActionInputs options)
     public string? GeneratedBranch { get; set; }
     public IReadOnlyList<string> ChangedFiles { get; set; } = [];
     public string? PullRequestUrl { get; set; }
-    public string? CopilotUsageReport { get; set; }
+    public string? CopilotSessionSummary { get; set; }
 
     public void Write(Infrastructure.IEnvironment environment)
     {
@@ -32,10 +32,12 @@ public sealed class JobSummary(ActionInputs options)
             $"* Dry run: `{DryRun || options.DryRun}`",
             $"* Copilot CLI executed: `{CopilotExecuted}`",
             "",
-            "## AI Usage (Copilot CLI `/usage`)",
+            "## Copilot Session Summary",
             "",
             "```text",
-            CopilotUsageReport ?? "Not available because Copilot CLI was not executed.",
+            string.IsNullOrWhiteSpace(CopilotSessionSummary)
+                ? "Not available because Copilot CLI did not write session information to stderr."
+                : CopilotSessionSummary,
             "```",
             "",
             "## Result",

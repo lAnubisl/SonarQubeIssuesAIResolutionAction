@@ -19,10 +19,12 @@ public sealed class PrBodyBuilder
         builder.AppendLine($"| Issues selected | `{issues.Count}` |");
         builder.AppendLine($"| Issues attempted | `{issues.Count}` |");
         builder.AppendLine();
-        builder.AppendLine("## AI Usage (Copilot CLI `/usage`)");
+        builder.AppendLine("## Copilot Session Summary");
         builder.AppendLine();
         builder.AppendLine("```text");
-        builder.AppendLine(summary.CopilotUsageReport ?? "Usage report unavailable.");
+        builder.AppendLine(string.IsNullOrWhiteSpace(summary.CopilotSessionSummary)
+            ? "Copilot CLI did not write session information to stderr."
+            : summary.CopilotSessionSummary);
         builder.AppendLine("```");
         builder.AppendLine();
         builder.AppendLine("## Issue List");
