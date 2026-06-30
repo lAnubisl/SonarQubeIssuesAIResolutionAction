@@ -3,7 +3,7 @@ using SonarCopilotFix.Infrastructure;
 
 namespace SonarCopilotFix.GitHub;
 
-public sealed class CopilotCliRunner(CommandRunner commandRunner, string workspace, TextLogger logger)
+public sealed class CopilotCliRunner(CommandRunner commandRunner, string workspace, ILogger logger)
 {
     public async Task<string> RunAsync(ActionInputs options, string promptPath, CancellationToken cancellationToken)
     {

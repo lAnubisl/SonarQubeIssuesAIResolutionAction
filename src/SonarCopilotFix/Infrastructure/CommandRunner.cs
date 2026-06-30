@@ -21,7 +21,7 @@ public sealed record CommandResult(int ExitCode, string StandardOutput, string S
     }
 }
 
-public sealed class CommandRunner(TextLogger logger)
+public sealed class CommandRunner(ILogger logger, IConfigurationHelper configurationHelper) : ICommandRunner
 {
     public async Task<CommandResult> RunAsync(
         string fileName,
@@ -55,7 +55,7 @@ public sealed class CommandRunner(TextLogger logger)
         return await RunAsync(shell, shellArgs, workingDirectory, scopedEnvironment, cancellationToken);
     }
 
-    private static ProcessStartInfo CreateBaseProcess(string fileName, string workingDirectory, IReadOnlyDictionary<string, string?>? scopedEnvironment)
+    private ProcessStartInfo CreateBaseProcess(string fileName, string workingDirectory, IReadOnlyDictionary<string, string?>? scopedEnvironment)
     {
         var psi = new ProcessStartInfo(fileName)
         {
@@ -75,24 +75,32 @@ public sealed class CommandRunner(TextLogger logger)
         return psi;
     }
 
-    public static IReadOnlyDictionary<string, string> BuildSafeEnvironment(IReadOnlyDictionary<string, string?>? scopedEnvironment)
+    public IReadOnlyDictionary<string, string> BuildSafeEnvironment(IReadOnlyDictionary<string, string?>? scopedEnvironment)
     {
-        var safeNames = new[]
+        var safeEnvironment = new Dictionary<string, string?>
         {
-            "PATH", "HOME", "USER", "USERPROFILE", "TMPDIR", "TEMP", "TMP", "CI", "GITHUB_ACTIONS",
-            "GITHUB_WORKSPACE", "RUNNER_TEMP", "DOTNET_ROOT", "DOTNET_CLI_TELEMETRY_OPTOUT"
+            ["PATH"] = configurationHelper.Path,
+            ["HOME"] = configurationHelper.Home,
+            ["USER"] = configurationHelper.User,
+            ["USERPROFILE"] = configurationHelper.UserProfile,
+            ["TMPDIR"] = configurationHelper.TmpDir,
+            ["TEMP"] = configurationHelper.Temp,
+            ["TMP"] = configurationHelper.Tmp,
+            ["CI"] = configurationHelper.Ci,
+            ["GITHUB_ACTIONS"] = configurationHelper.GitHubActions,
+            ["GITHUB_WORKSPACE"] = configurationHelper.GitHubWorkspace,
+            ["RUNNER_TEMP"] = configurationHelper.RunnerTemp,
+            ["DOTNET_ROOT"] = configurationHelper.DotNetRoot,
+            ["DOTNET_CLI_TELEMETRY_OPTOUT"] = configurationHelper.DotNetCliTelemetryOptOut
         };
         var result = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var name in safeNames)
+        foreach (var (name, value) in safeEnvironment)
         {
-            var value = Environment.GetEnvironmentVariable(name);
             if (!string.IsNullOrEmpty(value))
             {
                 result[name] = value;
             }
         }
-
-        result["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1";
 
         if (scopedEnvironment is not null)
         {

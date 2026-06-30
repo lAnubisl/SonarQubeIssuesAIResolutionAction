@@ -8,8 +8,8 @@ namespace SonarCopilotFix;
 
 public sealed class SonarCopilotFixApp(
     ActionInputs options,
-    IEnvironment environment,
-    TextLogger logger,
+    IConfigurationHelper configurationHelper,
+    ILogger logger,
     ISonarQubeClient sonarQube,
     CodeSnippetReader snippetReader,
     PromptBuilder promptBuilder,
@@ -37,7 +37,7 @@ public sealed class SonarCopilotFixApp(
 
         if (issues.Issues.Count == 0)
         {
-            summary.Write(environment);
+            summary.Write(configurationHelper);
             if (options.FailIfNoIssues)
             {
                 throw new ControlledFailureException("No matching SonarQube issues were found.", ExitCodes.NoIssuesFound);
@@ -70,7 +70,7 @@ public sealed class SonarCopilotFixApp(
         {
             logger.Info("Dry-run mode enabled. Copilot, git push, and PR creation will be skipped.");
             summary.DryRun = true;
-            summary.Write(environment);
+            summary.Write(configurationHelper);
             return ExitCodes.Success;
         }
 
@@ -89,7 +89,7 @@ public sealed class SonarCopilotFixApp(
         if (changedFiles.Count == 0)
         {
             logger.Info("Copilot completed without repository file changes.");
-            summary.Write(environment);
+            summary.Write(configurationHelper);
             return ExitCodes.Success;
         }
 
@@ -121,13 +121,13 @@ public sealed class SonarCopilotFixApp(
 
         summary.PullRequestUrl = prUrl;
         WriteOutput("pull_request_url", prUrl);
-        summary.Write(environment);
+        summary.Write(configurationHelper);
         return ExitCodes.Success;
     }
 
     private void WriteOutput(string name, string value)
     {
-        var outputPath = environment.Get("GITHUB_OUTPUT");
+        var outputPath = configurationHelper.GitHubOutput;
         if (string.IsNullOrWhiteSpace(outputPath))
         {
             return;

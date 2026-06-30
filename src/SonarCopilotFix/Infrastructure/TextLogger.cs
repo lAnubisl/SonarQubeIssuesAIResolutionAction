@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace SonarCopilotFix.Infrastructure;
 
-public sealed class TextLogger
+public sealed class TextLogger : ILogger
 {
     public void Info(string message) => Write("info", message);
     public void Warn(string message) => Write("warning", message);

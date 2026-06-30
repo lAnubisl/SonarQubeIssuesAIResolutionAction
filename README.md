@@ -156,7 +156,7 @@ Run this action from `workflow_dispatch` or another trusted event. Do not expose
 
 ```bash
 dotnet build
-dotnet run --project tests/SonarCopilotFix.Tests/SonarCopilotFix.Tests.csproj
+dotnet test
 docker build -t sonar-copilot-fix-action .
 ```
 

@@ -10,17 +10,17 @@ namespace SonarCopilotFix.SonarQube;
 public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
 {
     private readonly ActionInputs _options;
-    private readonly TextLogger _logger;
+    private readonly ILogger _logger;
     private readonly HttpClient _httpClient;
     private readonly bool _disposeClient;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public SonarQubeClient(ActionInputs options, TextLogger logger)
+    public SonarQubeClient(ActionInputs options, ILogger logger)
         : this(options, logger, new HttpClient(), disposeClient: true)
     {
     }
 
-    public SonarQubeClient(ActionInputs options, TextLogger logger, HttpClient httpClient, bool disposeClient = false)
+    public SonarQubeClient(ActionInputs options, ILogger logger, HttpClient httpClient, bool disposeClient = false)
     {
         _options = options;
         _logger = logger;

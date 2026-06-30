@@ -13,9 +13,9 @@ public sealed class JobSummary(ActionInputs options)
     public string? PullRequestUrl { get; set; }
     public string? CopilotSessionSummary { get; set; }
 
-    public void Write(Infrastructure.IEnvironment environment)
+    public void Write(Infrastructure.IConfigurationHelper configurationHelper)
     {
-        var path = environment.Get("GITHUB_STEP_SUMMARY");
+        var path = configurationHelper.GitHubStepSummary;
         if (string.IsNullOrWhiteSpace(path))
         {
             return;

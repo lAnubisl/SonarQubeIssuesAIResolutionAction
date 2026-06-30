@@ -2,13 +2,17 @@ namespace SonarCopilotFix.Infrastructure;
 
 public static class SecretMasker
 {
-    private static readonly string[] SecretNames = ["SONAR_TOKEN", "COPILOT_CLI_TOKEN", "GH_CLI_TOKEN", "GITHUB_TOKEN"];
-
-    public static void MaskKnownSecrets(IEnvironment environment, TextLogger logger)
+    public static void MaskKnownSecrets(IConfigurationHelper configurationHelper, ILogger logger)
     {
-        foreach (var name in SecretNames)
+        var secrets = new[]
         {
-            var value = environment.Get(name);
+            configurationHelper.SonarToken,
+            configurationHelper.CopilotCliToken,
+            configurationHelper.GhCliToken,
+            configurationHelper.GitHubToken
+        };
+        foreach (var value in secrets)
+        {
             if (!string.IsNullOrWhiteSpace(value))
             {
                 Console.WriteLine($"::add-mask::{value}");

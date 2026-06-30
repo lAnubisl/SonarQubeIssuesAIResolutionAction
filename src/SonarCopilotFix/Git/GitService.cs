@@ -3,7 +3,7 @@ using SonarCopilotFix.Infrastructure;
 
 namespace SonarCopilotFix.Git;
 
-public sealed partial class GitService(CommandRunner commandRunner, string workspace)
+public sealed partial class GitService(ICommandRunner commandRunner, string workspace)
 {
     public async Task<string> CurrentBranchAsync(CancellationToken cancellationToken)
     {

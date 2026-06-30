@@ -89,14 +89,14 @@ public sealed class PromptBuilder
 
         // builder.AppendLine("- Suggested fix strategy: inspect the local snippet, apply the smallest rule-compliant change, and add focused tests when useful.");
         // builder.AppendLine();
-        // builder.AppendLine("```text");
-        // builder.AppendLine(issue.CodeSnippet is null
-        //     ? "Code snippet was not requested."
-        //     : issue.CodeSnippet.FileFound
-        //         ? issue.CodeSnippet.Content
-        //         : $"Local file not found: {issue.CodeSnippet.Content}");
-        // builder.AppendLine("```");
-        // builder.AppendLine();
+        builder.AppendLine("```text");
+        builder.AppendLine(issue.CodeSnippet is null
+            ? "Code snippet was not requested."
+            : issue.CodeSnippet.FileFound
+                ? issue.CodeSnippet.Content
+                : $"Local file not found: {issue.CodeSnippet.Content}");
+        builder.AppendLine("```");
+        builder.AppendLine();
     }
 
     private static string CleanDescription(string? description)
