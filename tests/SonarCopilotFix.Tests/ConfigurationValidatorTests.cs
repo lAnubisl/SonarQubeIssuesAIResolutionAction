@@ -4,16 +4,16 @@ namespace SonarCopilotFix.Tests;
 
 [TestFixture]
 [NonParallelizable]
-internal sealed class ActionInputsTests
+internal sealed class ConfigurationValidatorTests
 {
     [Test]
     public static void DryRunInputValidation()
     {
         var configurationHelper = TestData.MockConfigurationHelper();
 
-        var options = ActionInputs.FromEnvironment(configurationHelper.Object);
+        ConfigurationValidator.Validate(configurationHelper.Object);
 
-        Assert.True(options.DryRun);
+        Assert.True(configurationHelper.Object.InputDryRun);
     }
 
     [Test]
@@ -21,7 +21,7 @@ internal sealed class ActionInputsTests
     {
         var configurationHelper = TestData.MockConfigurationHelper(inputDryRun: false);
 
-        var ex = Assert.Throws<ControlledFailureException>(() => ActionInputs.FromEnvironment(configurationHelper.Object));
+        var ex = Assert.Throws<ControlledFailureException>(() => ConfigurationValidator.Validate(configurationHelper.Object));
 
         Assert.Contains("COPILOT_CLI_TOKEN", ex.Message);
     }

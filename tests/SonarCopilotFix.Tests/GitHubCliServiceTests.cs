@@ -11,8 +11,11 @@ internal sealed class GitHubCliServiceTests
     public static void GitHubCliEnvironment()
     {
         var workspace = Path.Combine(Path.GetTempPath(), "github-workspace");
+        var configurationHelper = TestData.MockConfigurationHelper(
+            ghCliToken: "github-secret",
+            gitHubWorkspace: workspace);
 
-        var environment = GitHubCliService.BuildEnvironment("github-secret", workspace);
+        var environment = GitHubCliService.BuildEnvironment(configurationHelper.Object);
 
         Assert.Equal("github-secret", environment["GH_TOKEN"]);
         Assert.Equal("1", environment["GIT_CONFIG_COUNT"]);

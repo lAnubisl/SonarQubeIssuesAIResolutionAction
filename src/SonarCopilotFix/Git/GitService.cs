@@ -3,7 +3,7 @@ using SonarCopilotFix.Infrastructure;
 
 namespace SonarCopilotFix.Git;
 
-public sealed partial class GitService(ICommandRunner commandRunner, string workspace)
+public sealed partial class GitService(ICommandRunner commandRunner, IConfigurationHelper configurationHelper)
 {
     public async Task<string> CurrentBranchAsync(CancellationToken cancellationToken)
     {
@@ -42,10 +42,10 @@ public sealed partial class GitService(ICommandRunner commandRunner, string work
             .ToArray();
     }
 
-    public string BuildBranchName(string branchPrefix, string projectKey, DateTimeOffset timestamp)
+    public string BuildBranchName(DateTimeOffset timestamp)
     {
-        var safeProject = UnsafeBranchChars().Replace(projectKey, "-").Trim('-');
-        return $"{branchPrefix.TrimEnd('/')}/{safeProject}/{timestamp:yyyyMMddHHmmss}";
+        var safeProject = UnsafeBranchChars().Replace(configurationHelper.GetSonarProjectKey(), "-").Trim('-');
+        return $"{configurationHelper.InputBranchPrefix.TrimEnd('/')}/{safeProject}/{timestamp:yyyyMMddHHmmss}";
     }
 
     public async Task CreateBranchAsync(string branchName, CancellationToken cancellationToken)
@@ -72,9 +72,9 @@ public sealed partial class GitService(ICommandRunner commandRunner, string work
         await EnsureSuccess("commit changes", RunGitAsync(["commit", "-m", message], cancellationToken: cancellationToken), ExitCodes.GitFailure);
     }
 
-    public async Task PushBranchAsync(string branchName, string gitHubToken, CancellationToken cancellationToken)
+    public async Task PushBranchAsync(string branchName, CancellationToken cancellationToken)
     {
-        var env = new Dictionary<string, string?> { ["GH_TOKEN"] = gitHubToken };
+        var env = new Dictionary<string, string?> { ["GH_TOKEN"] = configurationHelper.GetEffectiveGitHubToken() };
         await EnsureSuccess("push generated branch", RunGitAsync(["push", "--set-upstream", "origin", branchName], env, cancellationToken), ExitCodes.GitFailure);
     }
 
@@ -87,8 +87,8 @@ public sealed partial class GitService(ICommandRunner commandRunner, string work
         // safe for this invocation so Git's ownership check does not reject it.
         return commandRunner.RunAsync(
             "git",
-            ["-c", $"safe.directory={Path.GetFullPath(workspace)}", .. arguments],
-            workspace,
+            ["-c", $"safe.directory={Path.GetFullPath(configurationHelper.GitHubWorkspace)}", .. arguments],
+            configurationHelper.GitHubWorkspace,
             scopedEnvironment,
             cancellationToken,
             logCommandDetails: true);

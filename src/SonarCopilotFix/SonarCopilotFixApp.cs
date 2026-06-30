@@ -7,7 +7,6 @@ using SonarCopilotFix.SonarQube;
 namespace SonarCopilotFix;
 
 public sealed class SonarCopilotFixApp(
-    ActionInputs options,
     IConfigurationHelper configurationHelper,
     ILogger logger,
     ISonarQubeClient sonarQube,
@@ -18,10 +17,11 @@ public sealed class SonarCopilotFixApp(
 {
     public async Task<int> RunAsync(CancellationToken cancellationToken = default)
     {
-        var git = new GitService(commandRunner, options.Workspace);
-        var github = new GitHubCliService(commandRunner, options.Workspace, logger);
-        var copilot = new CopilotCliRunner(commandRunner, options.Workspace, logger);
-        var summary = new JobSummary(options);
+        ConfigurationValidator.Validate(configurationHelper);
+        var git = new GitService(commandRunner, configurationHelper);
+        var github = new GitHubCliService(commandRunner, configurationHelper, logger);
+        var copilot = new CopilotCliRunner(commandRunner, configurationHelper, logger);
+        var summary = new JobSummary(configurationHelper);
 
         logger.Info("Fetching SonarQube issues.");
         var issues = await sonarQube.GetIssuesAsync(cancellationToken);
@@ -37,8 +37,8 @@ public sealed class SonarCopilotFixApp(
 
         if (issues.Issues.Count == 0)
         {
-            summary.Write(configurationHelper);
-            if (options.FailIfNoIssues)
+            summary.Write();
+            if (configurationHelper.InputFailIfNoIssues)
             {
                 throw new ControlledFailureException("No matching SonarQube issues were found.", ExitCodes.NoIssuesFound);
             }
@@ -47,30 +47,29 @@ public sealed class SonarCopilotFixApp(
             return ExitCodes.Success;
         }
 
-        var baseBranch = string.IsNullOrWhiteSpace(options.BaseBranch)
+        var baseBranch = string.IsNullOrWhiteSpace(configurationHelper.InputBaseBranch)
             ? await git.DetectDefaultBranchAsync(cancellationToken)
-            : options.BaseBranch;
+            : configurationHelper.InputBaseBranch;
         summary.BaseBranch = baseBranch;
 
         var currentBranch = await git.CurrentBranchAsync(cancellationToken);
-        var enrichedIssues = options.IncludeCodeSnippets
-            ? snippetReader.AddSnippets(options.Workspace, options.SonarProjectKey, issues.Issues, options.CodeSnippetContextLines)
+        var enrichedIssues = configurationHelper.InputIncludeCodeSnippets
+            ? snippetReader.AddSnippets(issues.Issues)
             : issues.Issues;
 
-        var promptPath = Path.Combine(options.Workspace, ".sonar-copilot", "issues-prompt.md");
+        var promptPath = Path.Combine(configurationHelper.GitHubWorkspace, ".sonar-copilot", "issues-prompt.md");
         Directory.CreateDirectory(Path.GetDirectoryName(promptPath)!);
         await File.WriteAllTextAsync(
             promptPath,
-            promptBuilder.Build(options, enrichedIssues, currentBranch, baseBranch),
+            promptBuilder.Build(enrichedIssues, currentBranch, baseBranch),
             cancellationToken);
         WriteOutput("prompt_file", promptPath);
         summary.PromptFile = promptPath;
 
-        if (options.DryRun)
+        if (configurationHelper.InputDryRun)
         {
             logger.Info("Dry-run mode enabled. Copilot, git push, and PR creation will be skipped.");
-            summary.DryRun = true;
-            summary.Write(configurationHelper);
+            summary.Write();
             return ExitCodes.Success;
         }
 
@@ -81,7 +80,7 @@ public sealed class SonarCopilotFixApp(
         }
 
         logger.Info("Running GitHub Copilot CLI.");
-        summary.CopilotSessionSummary = await copilot.RunAsync(options, promptPath, cancellationToken);
+        summary.CopilotSessionSummary = await copilot.RunAsync(promptPath, cancellationToken);
         summary.CopilotExecuted = true;
 
         var changedFiles = await git.GetChangedFilesAsync(excludeGenerated: true, cancellationToken);
@@ -89,39 +88,37 @@ public sealed class SonarCopilotFixApp(
         if (changedFiles.Count == 0)
         {
             logger.Info("Copilot completed without repository file changes.");
-            summary.Write(configurationHelper);
+            summary.Write();
             return ExitCodes.Success;
         }
 
-        var branchName = git.BuildBranchName(options.BranchPrefix, options.SonarProjectKey, DateTimeOffset.UtcNow);
+        var branchName = git.BuildBranchName(DateTimeOffset.UtcNow);
         summary.GeneratedBranch = branchName;
         await git.CreateBranchAsync(branchName, cancellationToken);
         await git.ConfigureBotUserAsync(cancellationToken);
         await git.StageFilesAsync(changedFiles, cancellationToken);
-        await git.CommitAsync($"Fix SonarQube issues for {options.SonarProjectKey}", cancellationToken);
+        await git.CommitAsync($"Fix SonarQube issues for {configurationHelper.GetSonarProjectKey()}", cancellationToken);
 
-        var githubTokenSource = string.IsNullOrWhiteSpace(options.GhCliToken) ? "GITHUB_TOKEN fallback" : "GH_CLI_TOKEN";
+        var githubTokenSource = string.IsNullOrWhiteSpace(configurationHelper.GhCliToken) ? "GITHUB_TOKEN fallback" : "GH_CLI_TOKEN";
         logger.Info($"Using {githubTokenSource} for GitHub repository operations.");
-        await github.SetupGitAuthenticationAsync(options.EffectiveGitHubToken, cancellationToken);
-        await git.PushBranchAsync(branchName, options.EffectiveGitHubToken, cancellationToken);
+        await github.SetupGitAuthenticationAsync(cancellationToken);
+        await git.PushBranchAsync(branchName, cancellationToken);
 
-        var prBodyPath = Path.Combine(options.Workspace, ".sonar-copilot", "pull-request-body.md");
+        var prBodyPath = Path.Combine(configurationHelper.GitHubWorkspace, ".sonar-copilot", "pull-request-body.md");
         await File.WriteAllTextAsync(
             prBodyPath,
-            prBodyBuilder.Build(options, enrichedIssues, summary),
+            prBodyBuilder.Build(enrichedIssues, summary),
             cancellationToken);
         var prUrl = await github.CreatePullRequestAsync(
-            options.EffectiveGitHubToken,
-            $"Fix SonarQube issues for {options.SonarProjectKey}",
+            $"Fix SonarQube issues for {configurationHelper.GetSonarProjectKey()}",
             prBodyPath,
             baseBranch,
             branchName,
-            options.PullRequestDraft,
             cancellationToken);
 
         summary.PullRequestUrl = prUrl;
         WriteOutput("pull_request_url", prUrl);
-        summary.Write(configurationHelper);
+        summary.Write();
         return ExitCodes.Success;
     }
 

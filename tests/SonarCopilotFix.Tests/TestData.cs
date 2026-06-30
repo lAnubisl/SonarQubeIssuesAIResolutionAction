@@ -1,6 +1,4 @@
-using System.Net;
 using Moq;
-using NUnit.Framework;
 using SonarCopilotFix.Infrastructure;
 using SonarCopilotFix.SonarQube;
 
@@ -10,7 +8,7 @@ internal static class TestData
 {
     public static Mock<ILogger> MockLogger() => new();
 
-    public static ActionInputs Options() => ActionInputs.FromEnvironment(MockConfigurationHelper().Object);
+    public static IConfigurationHelper Configuration() => MockConfigurationHelper().Object;
 
     public static Mock<IConfigurationHelper> MockConfigurationHelper(
         string? inputSonarHostUrl = "https://sonar.example",
@@ -28,6 +26,8 @@ internal static class TestData
         bool inputIncludeRuleDetails = true,
         bool inputIncludeCodeSnippets = true,
         int inputCodeSnippetContextLines = 20,
+        string? inputCopilotModel = null,
+        bool inputCopilotAllowAllTools = false,
         bool inputDryRun = true,
         string? sonarToken = "sonar",
         string? copilotCliToken = null,
@@ -54,7 +54,7 @@ internal static class TestData
         configurationHelper.SetupGet(value => value.InputIncludeRuleDetails).Returns(inputIncludeRuleDetails);
         configurationHelper.SetupGet(value => value.InputIncludeCodeSnippets).Returns(inputIncludeCodeSnippets);
         configurationHelper.SetupGet(value => value.InputCodeSnippetContextLines).Returns(inputCodeSnippetContextLines);
-        configurationHelper.SetupGet(value => value.InputCopilotModel).Returns((string?)null);
+        configurationHelper.SetupGet(value => value.InputCopilotModel).Returns(inputCopilotModel);
         configurationHelper.SetupGet(value => value.InputCopilotExtraInstructions).Returns((string?)null);
         configurationHelper.SetupGet(value => value.InputBranchPrefix).Returns("copilot/sonar-fixes");
         configurationHelper.SetupGet(value => value.InputBaseBranch).Returns((string?)null);
@@ -62,7 +62,7 @@ internal static class TestData
         configurationHelper.SetupGet(value => value.InputDryRun).Returns(inputDryRun);
         configurationHelper.SetupGet(value => value.InputFailIfNoIssues).Returns(false);
         configurationHelper.SetupGet(value => value.InputAllowGitHubTokenFallback).Returns(false);
-        configurationHelper.SetupGet(value => value.InputCopilotAllowAllTools).Returns(false);
+        configurationHelper.SetupGet(value => value.InputCopilotAllowAllTools).Returns(inputCopilotAllowAllTools);
         configurationHelper.SetupGet(value => value.SonarToken).Returns(sonarToken);
         configurationHelper.SetupGet(value => value.CopilotCliToken).Returns(copilotCliToken);
         configurationHelper.SetupGet(value => value.GhCliToken).Returns(ghCliToken);
@@ -115,54 +115,4 @@ internal static class TestData
             .ReturnsAsync(new SonarIssueSearchResult(issues.Count, issues));
         return client.Object;
     }
-}
-
-internal sealed class FakeHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
-{
-    public List<HttpRequestMessage> Requests { get; } = [];
-
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-    {
-        Requests.Add(request);
-        return Task.FromResult(respond(request));
-    }
-}
-
-internal static class Assert
-{
-    public static void Equal<T>(T expected, T actual) =>
-        NUnit.Framework.Assert.That(actual, Is.EqualTo(expected));
-
-    public static void True(bool value) =>
-        NUnit.Framework.Assert.That(value, Is.True);
-
-    public static void False(bool value) =>
-        NUnit.Framework.Assert.That(value, Is.False);
-
-    public static void Contains(string expected, string actual) =>
-        NUnit.Framework.Assert.That(actual, Does.Contain(expected));
-
-    public static T Throws<T>(Action action) where T : Exception =>
-        NUnit.Framework.Assert.Throws<T>(action)!;
-
-    public static async Task<T> ThrowsAsync<T>(Func<Task> action) where T : Exception
-    {
-        try
-        {
-            await action();
-        }
-        catch (T exception)
-        {
-            return exception;
-        }
-
-        NUnit.Framework.Assert.Fail($"Expected exception of type {typeof(T).Name}.");
-        throw new InvalidOperationException("NUnit assertion did not throw.");
-    }
-}
-
-internal static class CollectionAssert
-{
-    public static void AreEqual<T>(IEnumerable<T> expected, IEnumerable<T> actual) =>
-        NUnit.Framework.Assert.That(actual, Is.EqualTo(expected));
 }

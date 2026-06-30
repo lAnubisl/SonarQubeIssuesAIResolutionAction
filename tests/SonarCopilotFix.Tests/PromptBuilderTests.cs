@@ -13,7 +13,7 @@ internal sealed class PromptBuilderTests
     {
         var issue = TestData.SampleIssue() with { CodeSnippet = new CodeSnippet("src/A.cs", true, 1, 1, "    1: code") };
 
-        var prompt = new PromptBuilder().Build(TestData.Options(), [issue], "feature", "main");
+        var prompt = new PromptBuilder(TestData.Configuration()).Build([issue], "feature", "main");
 
         Assert.Contains("Fix only the listed SonarQube issues", prompt);
         Assert.Contains("ISSUE-1", prompt);

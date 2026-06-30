@@ -14,7 +14,10 @@ internal sealed class CodeSnippetReaderTests
         Directory.CreateDirectory(Path.Combine(temp.FullName, "src"));
         File.WriteAllLines(Path.Combine(temp.FullName, "src", "A.cs"), ["one", "two", "three", "four", "five"]);
 
-        var snippet = new CodeSnippetReader().ReadSnippet(temp.FullName, "src/A.cs", 3, 1);
+        var configurationHelper = TestData.MockConfigurationHelper(
+            inputCodeSnippetContextLines: 1,
+            gitHubWorkspace: temp.FullName);
+        var snippet = new CodeSnippetReader(configurationHelper.Object).ReadSnippet("src/A.cs", 3);
 
         Assert.True(snippet.FileFound);
         Assert.Equal(2, snippet.StartLine);

@@ -11,14 +11,14 @@ internal sealed class JobSummaryTests
     {
         var temp = Directory.CreateTempSubdirectory();
         var path = Path.Combine(temp.FullName, "summary.md");
-        var summary = new JobSummary(TestData.Options())
+        var configurationHelper = TestData.MockConfigurationHelper(gitHubStepSummary: path);
+        var summary = new JobSummary(configurationHelper.Object)
         {
             CopilotExecuted = true,
             CopilotSessionSummary = "Total usage est: 1k tokens\nTotal duration: 5s"
         };
 
-        var configurationHelper = TestData.MockConfigurationHelper(gitHubStepSummary: path);
-        summary.Write(configurationHelper.Object);
+        summary.Write();
 
         var contents = File.ReadAllText(path);
         Assert.Contains("Copilot Session Summary", contents);

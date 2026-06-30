@@ -1,23 +1,24 @@
+using SonarCopilotFix.Infrastructure;
 using SonarCopilotFix.SonarQube;
 
 namespace SonarCopilotFix.PromptGeneration;
 
-public sealed class CodeSnippetReader
+public sealed class CodeSnippetReader(IConfigurationHelper configurationHelper)
 {
-    public IReadOnlyList<SonarIssue> AddSnippets(string workspace, string projectKey, IReadOnlyList<SonarIssue> issues, int contextLines)
+    public IReadOnlyList<SonarIssue> AddSnippets(IReadOnlyList<SonarIssue> issues)
     {
-        return issues.Select(issue => issue with { CodeSnippet = ReadSnippet(workspace, issue.FilePath, issue.Line, contextLines) }).ToArray();
+        return issues.Select(issue => issue with { CodeSnippet = ReadSnippet(issue.FilePath, issue.Line) }).ToArray();
     }
 
-    public CodeSnippet ReadSnippet(string workspace, string relativePath, int? line, int contextLines)
+    public CodeSnippet ReadSnippet(string relativePath, int? line)
     {
         if (string.IsNullOrWhiteSpace(relativePath))
         {
             return new CodeSnippet(relativePath, FileFound: false, null, null, "No file path was provided by SonarQube.");
         }
 
-        var fullPath = Path.GetFullPath(Path.Combine(workspace, relativePath));
-        var root = Path.GetFullPath(workspace);
+        var fullPath = Path.GetFullPath(Path.Combine(configurationHelper.GitHubWorkspace, relativePath));
+        var root = Path.GetFullPath(configurationHelper.GitHubWorkspace);
         if (!fullPath.StartsWith(root, StringComparison.OrdinalIgnoreCase))
         {
             return new CodeSnippet(relativePath, FileFound: false, null, null, "Resolved path is outside the workspace.");
@@ -35,8 +36,8 @@ public sealed class CodeSnippetReader
         }
 
         var targetLine = Math.Clamp(line ?? 1, 1, lines.Length);
-        var start = Math.Max(1, targetLine - contextLines);
-        var end = Math.Min(lines.Length, targetLine + contextLines);
+        var start = Math.Max(1, targetLine - configurationHelper.InputCodeSnippetContextLines);
+        var end = Math.Min(lines.Length, targetLine + configurationHelper.InputCodeSnippetContextLines);
         var content = string.Join(Environment.NewLine, Enumerable.Range(start, end - start + 1)
             .Select(number => $"{number,5}: {lines[number - 1]}"));
 

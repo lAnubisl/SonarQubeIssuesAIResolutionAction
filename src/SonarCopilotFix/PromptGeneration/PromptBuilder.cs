@@ -1,22 +1,23 @@
 using System.Net;
 using System.Text;
+using SonarCopilotFix.Infrastructure;
 using SonarCopilotFix.SonarQube;
 
 namespace SonarCopilotFix.PromptGeneration;
 
-public sealed class PromptBuilder
+public sealed class PromptBuilder(IConfigurationHelper configurationHelper)
 {
-    public string Build(ActionInputs options, IReadOnlyList<SonarIssue> issues, string currentBranch, string baseBranch)
+    public string Build(IReadOnlyList<SonarIssue> issues, string currentBranch, string baseBranch)
     {
         var builder = new StringBuilder();
         builder.AppendLine("# SonarQube Issue Fix Request");
         builder.AppendLine();
         builder.AppendLine("## Repository Context");
-        builder.AppendLine($"- Repository: `{options.Repository}`");
+        builder.AppendLine($"- Repository: `{configurationHelper.GitHubRepository}`");
         builder.AppendLine($"- Current branch: `{currentBranch}`");
         builder.AppendLine($"- Base branch: `{baseBranch}`");
-        builder.AppendLine($"- SonarQube project key: `{options.SonarProjectKey}`");
-        builder.AppendLine($"- SonarQube branch: `{options.SonarBranch ?? "not specified"}`");
+        builder.AppendLine($"- SonarQube project key: `{configurationHelper.GetSonarProjectKey()}`");
+        builder.AppendLine($"- SonarQube branch: `{configurationHelper.InputSonarBranch ?? "not specified"}`");
         builder.AppendLine($"- Selected issue count: `{issues.Count}`");
         builder.AppendLine();
         builder.AppendLine("## Safety Rules");
@@ -31,10 +32,10 @@ public sealed class PromptBuilder
         builder.AppendLine("- Do not read, print, or write token values or authentication headers.");
         builder.AppendLine();
 
-        if (!string.IsNullOrWhiteSpace(options.CopilotExtraInstructions))
+        if (!string.IsNullOrWhiteSpace(configurationHelper.InputCopilotExtraInstructions))
         {
             builder.AppendLine("## Extra Instructions");
-            builder.AppendLine(options.CopilotExtraInstructions);
+            builder.AppendLine(configurationHelper.InputCopilotExtraInstructions);
             builder.AppendLine();
         }
 

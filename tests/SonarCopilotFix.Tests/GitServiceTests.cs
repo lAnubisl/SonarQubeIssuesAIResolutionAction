@@ -34,7 +34,8 @@ internal sealed class GitServiceTests
                 0,
                 " M HostFilmMonitoring.cs\n?? untracked.txt\n?? .sonar-copilot/issues-prompt.md\n",
                 ""));
-        var git = new GitService(commandRunner.Object, workspace);
+        var configurationHelper = TestData.MockConfigurationHelper(gitHubWorkspace: workspace);
+        var git = new GitService(commandRunner.Object, configurationHelper.Object);
 
         var changedFiles = await git.GetChangedFilesAsync(excludeGenerated: true, CancellationToken.None);
 

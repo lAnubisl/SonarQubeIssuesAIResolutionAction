@@ -172,7 +172,7 @@ internal sealed class SonarQubeClientTests
             inputRules: Csv(rules),
             inputIncludeRuleDetails: false);
         return new SonarQubeClient(
-            ActionInputs.FromEnvironment(configurationHelper.Object),
+            configurationHelper.Object,
             logger ?? TestData.MockLogger().Object,
             new HttpClient(handler),
             disposeClient: true);

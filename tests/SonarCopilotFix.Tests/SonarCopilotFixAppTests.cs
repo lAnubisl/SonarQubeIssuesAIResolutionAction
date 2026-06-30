@@ -19,16 +19,14 @@ internal sealed class SonarCopilotFixAppTests
         var commandRunner = new CommandRunner(logger.Object, configurationHelper.Object);
         var gitInit = await commandRunner.RunAsync("git", ["init"], temp.FullName);
         Assert.Equal(0, gitInit.ExitCode);
-        var options = ActionInputs.FromEnvironment(configurationHelper.Object);
         var app = new SonarCopilotFixApp(
-            options,
             configurationHelper.Object,
             logger.Object,
             TestData.MockSonarQubeClient([TestData.SampleIssue()]),
-            new CodeSnippetReader(),
-            new PromptBuilder(),
+            new CodeSnippetReader(configurationHelper.Object),
+            new PromptBuilder(configurationHelper.Object),
             commandRunner,
-            new PrBodyBuilder());
+            new PrBodyBuilder(configurationHelper.Object));
 
         var exitCode = await app.RunAsync();
 
@@ -46,16 +44,14 @@ internal sealed class SonarCopilotFixAppTests
         var commandRunner = new CommandRunner(logger.Object, configurationHelper.Object);
         var gitInit = await commandRunner.RunAsync("git", ["init"], temp.FullName);
         Assert.Equal(0, gitInit.ExitCode);
-        var options = ActionInputs.FromEnvironment(configurationHelper.Object);
         var app = new SonarCopilotFixApp(
-            options,
             configurationHelper.Object,
             logger.Object,
             TestData.MockSonarQubeClient([TestData.SampleIssue()]),
-            new CodeSnippetReader(),
-            new PromptBuilder(),
+            new CodeSnippetReader(configurationHelper.Object),
+            new PromptBuilder(configurationHelper.Object),
             commandRunner,
-            new PrBodyBuilder());
+            new PrBodyBuilder(configurationHelper.Object));
         await app.RunAsync();
 
         logger.Verify(

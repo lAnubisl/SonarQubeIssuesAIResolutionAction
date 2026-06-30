@@ -1,20 +1,21 @@
 using System.Text;
+using SonarCopilotFix.Infrastructure;
 using SonarCopilotFix.SonarQube;
 
 namespace SonarCopilotFix.GitHub;
 
-public sealed class PrBodyBuilder
+public sealed class PrBodyBuilder(IConfigurationHelper configurationHelper)
 {
-    public string Build(ActionInputs options, IReadOnlyList<SonarIssue> issues, JobSummary summary)
+    public string Build(IReadOnlyList<SonarIssue> issues, JobSummary summary)
     {
         var builder = new StringBuilder();
-        builder.AppendLine($"## Fix SonarQube issues for `{options.SonarProjectKey}`");
+        builder.AppendLine($"## Fix SonarQube issues for `{configurationHelper.GetSonarProjectKey()}`");
         builder.AppendLine();
         builder.AppendLine("| Field | Value |");
         builder.AppendLine("| --- | --- |");
-        builder.AppendLine($"| SonarQube project | `{options.SonarProjectKey}` |");
-        builder.AppendLine($"| SonarQube branch | `{options.SonarBranch ?? "not specified"}` |");
-        builder.AppendLine($"| Base branch | `{summary.BaseBranch ?? options.BaseBranch ?? "not detected"}` |");
+        builder.AppendLine($"| SonarQube project | `{configurationHelper.GetSonarProjectKey()}` |");
+        builder.AppendLine($"| SonarQube branch | `{configurationHelper.InputSonarBranch ?? "not specified"}` |");
+        builder.AppendLine($"| Base branch | `{summary.BaseBranch ?? configurationHelper.InputBaseBranch ?? "not detected"}` |");
         builder.AppendLine($"| Generated branch | `{summary.GeneratedBranch ?? "not created"}` |");
         builder.AppendLine($"| Issues selected | `{issues.Count}` |");
         builder.AppendLine($"| Issues attempted | `{issues.Count}` |");

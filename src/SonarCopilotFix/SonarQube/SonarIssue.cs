@@ -35,11 +35,3 @@ public sealed record SonarIssue(
     IReadOnlyList<string>? InternalTags = null,
     string? LastChangeAnalysisUuid = null,
     string? LastChangeSource = null);
-
-public sealed record TextRange(int StartLine, int EndLine, int StartOffset, int EndOffset);
-public sealed record SonarFlow(IReadOnlyList<SonarLocation> Locations);
-public sealed record SonarLocation(string? Component, TextRange? TextRange, string? Message);
-public sealed record SonarImpact(string? SoftwareQuality, string? Severity);
-public sealed record SonarRule(string Key, string? Name, string? HtmlDescription, string? MarkdownDescription, string? Severity, IReadOnlyList<string> Tags);
-public sealed record CodeSnippet(string FilePath, bool FileFound, int? StartLine, int? EndLine, string Content);
-public sealed record SonarIssueSearchResult(int TotalFound, IReadOnlyList<SonarIssue> Issues);

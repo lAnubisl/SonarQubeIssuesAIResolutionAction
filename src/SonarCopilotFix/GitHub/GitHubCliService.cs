@@ -2,15 +2,18 @@ using SonarCopilotFix.Infrastructure;
 
 namespace SonarCopilotFix.GitHub;
 
-public sealed class GitHubCliService(CommandRunner commandRunner, string workspace, ILogger logger)
+public sealed class GitHubCliService(
+    CommandRunner commandRunner,
+    IConfigurationHelper configurationHelper,
+    ILogger logger)
 {
-    public async Task SetupGitAuthenticationAsync(string token, CancellationToken cancellationToken)
+    public async Task SetupGitAuthenticationAsync(CancellationToken cancellationToken)
     {
-        var env = BuildEnvironment(token, workspace);
+        var env = BuildEnvironment(configurationHelper);
         var result = await commandRunner.RunAsync(
             "gh",
             ["auth", "setup-git"],
-            workspace,
+            configurationHelper.GitHubWorkspace,
             env,
             cancellationToken,
             logCommandDetails: true);
@@ -21,12 +24,10 @@ public sealed class GitHubCliService(CommandRunner commandRunner, string workspa
     }
 
     public async Task<string> CreatePullRequestAsync(
-        string token,
         string title,
         string bodyFile,
         string baseBranch,
         string headBranch,
-        bool draft,
         CancellationToken cancellationToken)
     {
         var args = new List<string>
@@ -37,16 +38,16 @@ public sealed class GitHubCliService(CommandRunner commandRunner, string workspa
             "--base", baseBranch,
             "--head", headBranch
         };
-        if (draft)
+        if (configurationHelper.InputPullRequestDraft)
         {
             args.Add("--draft");
         }
 
-        var env = BuildEnvironment(token, workspace);
+        var env = BuildEnvironment(configurationHelper);
         var result = await commandRunner.RunAsync(
             "gh",
             args,
-            workspace,
+            configurationHelper.GitHubWorkspace,
             env,
             cancellationToken,
             logCommandDetails: true);
@@ -60,17 +61,17 @@ public sealed class GitHubCliService(CommandRunner commandRunner, string workspa
         return url;
     }
 
-    public static IReadOnlyDictionary<string, string?> BuildEnvironment(string token, string workspace)
+    public static IReadOnlyDictionary<string, string?> BuildEnvironment(IConfigurationHelper configurationHelper)
     {
         // gh invokes git while creating a pull request. Docker actions operate on
         // a host-owned bind mount, so pass command-scoped Git configuration that
         // is inherited by gh's child processes without changing global config.
         return new Dictionary<string, string?>
         {
-            ["GH_TOKEN"] = token,
+            ["GH_TOKEN"] = configurationHelper.GetEffectiveGitHubToken(),
             ["GIT_CONFIG_COUNT"] = "1",
             ["GIT_CONFIG_KEY_0"] = "safe.directory",
-            ["GIT_CONFIG_VALUE_0"] = Path.GetFullPath(workspace)
+            ["GIT_CONFIG_VALUE_0"] = Path.GetFullPath(configurationHelper.GitHubWorkspace)
         };
     }
 }

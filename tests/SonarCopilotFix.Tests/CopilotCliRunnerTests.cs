@@ -11,14 +11,14 @@ internal sealed class CopilotCliRunnerTests
     public static void CopilotCliArguments()
     {
         var restricted = CopilotCliRunner.BuildArguments(
-            TestData.Options() with { CopilotModel = "gpt-5.2" },
+            TestData.MockConfigurationHelper(inputCopilotModel: "gpt-5.2").Object,
             "Fix the selected issue.");
         CollectionAssert.AreEqual(
             ["--prompt", "Fix the selected issue.", "--no-ask-user", "--no-color", "--model", "gpt-5.2", "--allow-tool=write"],
             restricted);
 
         var unrestricted = CopilotCliRunner.BuildArguments(
-            TestData.Options() with { CopilotAllowAllTools = true },
+            TestData.MockConfigurationHelper(inputCopilotAllowAllTools: true).Object,
             "Fix it.");
         Assert.True(unrestricted.Contains("--allow-all-tools"));
         Assert.False(unrestricted.Contains("--allow-tool=write"));

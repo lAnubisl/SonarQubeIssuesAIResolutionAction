@@ -3,22 +3,24 @@ using SonarCopilotFix.Infrastructure;
 
 namespace SonarCopilotFix.GitHub;
 
-public sealed class CopilotCliRunner(CommandRunner commandRunner, string workspace, ILogger logger)
+public sealed class CopilotCliRunner(
+    CommandRunner commandRunner,
+    IConfigurationHelper configurationHelper,
+    ILogger logger)
 {
-    public async Task<string> RunAsync(ActionInputs options, string promptPath, CancellationToken cancellationToken)
+    public async Task<string> RunAsync(string promptPath, CancellationToken cancellationToken)
     {
         var prompt = await File.ReadAllTextAsync(promptPath, cancellationToken);
         LogPrompt(prompt);
 
         var sessionId = Guid.NewGuid().ToString();
-        var environment = BuildEnvironment(options);
+        var environment = BuildEnvironment(configurationHelper);
 
-        var result = await ExecutePromptAsync(options, prompt, sessionId, environment, cancellationToken);
+        var result = await ExecutePromptAsync(prompt, sessionId, environment, cancellationToken);
         return result.StandardError.Trim();
     }
 
     private async Task<CommandResult> ExecutePromptAsync(
-        ActionInputs options,
         string prompt,
         string sessionId,
         IReadOnlyDictionary<string, string?> environment,
@@ -28,7 +30,7 @@ public sealed class CopilotCliRunner(CommandRunner commandRunner, string workspa
         try
         {
             result = await RunCommandAsync(
-                BuildArguments(options, prompt, sessionId),
+                BuildArguments(configurationHelper, prompt, sessionId),
                 environment,
                 "copilot",
                 cancellationToken);
@@ -59,16 +61,16 @@ public sealed class CopilotCliRunner(CommandRunner commandRunner, string workspa
         commandRunner.RunAsync(
             "copilot",
             arguments,
-            workspace,
+            configurationHelper.GitHubWorkspace,
             environment,
             cancellationToken,
             line => logger.Info($"[{logPrefix} stdout] {line}"),
             line => logger.Info($"[{logPrefix} stderr] {line}"));
 
-    private static IReadOnlyDictionary<string, string?> BuildEnvironment(ActionInputs options) =>
+    private static IReadOnlyDictionary<string, string?> BuildEnvironment(IConfigurationHelper configurationHelper) =>
         new Dictionary<string, string?>
         {
-            ["COPILOT_GITHUB_TOKEN"] = options.CopilotCliToken,
+            ["COPILOT_GITHUB_TOKEN"] = configurationHelper.CopilotCliToken,
             ["COPILOT_AUTO_UPDATE"] = "false"
         };
 
@@ -83,7 +85,10 @@ public sealed class CopilotCliRunner(CommandRunner commandRunner, string workspa
         logger.Info("End GitHub Copilot CLI prompt.");
     }
 
-    public static IReadOnlyList<string> BuildArguments(ActionInputs options, string prompt, string? sessionId = null)
+    public static IReadOnlyList<string> BuildArguments(
+        IConfigurationHelper configurationHelper,
+        string prompt,
+        string? sessionId = null)
     {
         var args = new List<string>
         {
@@ -99,13 +104,13 @@ public sealed class CopilotCliRunner(CommandRunner commandRunner, string workspa
             args.Add(sessionId);
         }
 
-        if (!string.IsNullOrWhiteSpace(options.CopilotModel))
+        if (!string.IsNullOrWhiteSpace(configurationHelper.InputCopilotModel))
         {
             args.Add("--model");
-            args.Add(options.CopilotModel);
+            args.Add(configurationHelper.InputCopilotModel);
         }
 
-        if (options.CopilotAllowAllTools)
+        if (configurationHelper.InputCopilotAllowAllTools)
         {
             args.Add("--allow-all-tools");
         }

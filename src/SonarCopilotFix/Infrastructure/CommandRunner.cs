@@ -4,23 +4,6 @@ using System.Text;
 
 namespace SonarCopilotFix.Infrastructure;
 
-public sealed record CommandResult(int ExitCode, string StandardOutput, string StandardError)
-{
-    public string Summary
-    {
-        get
-        {
-            var combined = string.Join(Environment.NewLine, [StandardOutput, StandardError]).Trim();
-            if (combined.Length <= 4000)
-            {
-                return combined;
-            }
-
-            return combined[^4000..];
-        }
-    }
-}
-
 public sealed class CommandRunner(ILogger logger, IConfigurationHelper configurationHelper) : ICommandRunner
 {
     public async Task<CommandResult> RunAsync(

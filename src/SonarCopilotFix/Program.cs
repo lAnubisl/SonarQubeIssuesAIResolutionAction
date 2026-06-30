@@ -10,18 +10,17 @@ var logger = new TextLogger();
 try
 {
     var configurationHelper = new ConfigurationHelper();
-    var options = ActionInputs.FromEnvironment(configurationHelper);
+    ConfigurationValidator.Validate(configurationHelper);
     SecretMasker.MaskKnownSecrets(configurationHelper, logger);
 
     var app = new SonarCopilotFixApp(
-        options,
         configurationHelper,
         logger,
-        new SonarQubeClient(options, logger),
-        new CodeSnippetReader(),
-        new PromptBuilder(),
+        new SonarQubeClient(configurationHelper, logger),
+        new CodeSnippetReader(configurationHelper),
+        new PromptBuilder(configurationHelper),
         new CommandRunner(logger, configurationHelper),
-        new PrBodyBuilder());
+        new PrBodyBuilder(configurationHelper));
 
     return await app.RunAsync();
 }

@@ -10,7 +10,8 @@ internal sealed class PrBodyBuilderTests
     [Test]
     public static void PrBody()
     {
-        var summary = new JobSummary(TestData.Options())
+        var configurationHelper = TestData.Configuration();
+        var summary = new JobSummary(configurationHelper)
         {
             BaseBranch = "main",
             GeneratedBranch = "copilot/sonar/proj/20260101000000",
@@ -18,7 +19,7 @@ internal sealed class PrBodyBuilderTests
             CopilotSessionSummary = "Total usage est: 29.3k tokens\nTotal duration: 42s"
         };
 
-        var body = new PrBodyBuilder().Build(TestData.Options(), [TestData.SampleIssue()], summary);
+        var body = new PrBodyBuilder(configurationHelper).Build([TestData.SampleIssue()], summary);
 
         Assert.Contains("Human review is required", body);
         Assert.Contains("ISSUE-1", body);

@@ -2,32 +2,35 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Globalization;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using SonarCopilotFix.Infrastructure;
 
 namespace SonarCopilotFix.SonarQube;
 
 public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
 {
-    private readonly ActionInputs _options;
+    private readonly IConfigurationHelper _configurationHelper;
     private readonly ILogger _logger;
     private readonly HttpClient _httpClient;
     private readonly bool _disposeClient;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public SonarQubeClient(ActionInputs options, ILogger logger)
-        : this(options, logger, new HttpClient(), disposeClient: true)
+    public SonarQubeClient(IConfigurationHelper configurationHelper, ILogger logger)
+        : this(configurationHelper, logger, new HttpClient(), disposeClient: true)
     {
     }
 
-    public SonarQubeClient(ActionInputs options, ILogger logger, HttpClient httpClient, bool disposeClient = false)
+    public SonarQubeClient(
+        IConfigurationHelper configurationHelper,
+        ILogger logger,
+        HttpClient httpClient,
+        bool disposeClient = false)
     {
-        _options = options;
+        _configurationHelper = configurationHelper;
         _logger = logger;
         _httpClient = httpClient;
         _disposeClient = disposeClient;
-        _httpClient.BaseAddress = options.SonarHostUrl;
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", options.SonarToken);
+        _httpClient.BaseAddress = configurationHelper.GetSonarHostUri();
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", configurationHelper.GetSonarToken());
         _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     }
 
@@ -35,11 +38,11 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
     {
         var selected = new List<SonarIssue>();
         var page = 1;
-        var pageSize = Math.Min(_options.MaxIssues, 100);
+        var pageSize = Math.Min(_configurationHelper.InputMaxIssues, 100);
         var total = 0;
         var issuesSeen = 0;
 
-        while (selected.Count < _options.MaxIssues)
+        while (selected.Count < _configurationHelper.InputMaxIssues)
         {
             var uri = BuildIssueSearchUri(page, pageSize);
             var requestUrl = new Uri(_httpClient.BaseAddress!, uri);
@@ -67,7 +70,7 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
             {
                 issuesSeen++;
 
-                if (selected.Count >= _options.MaxIssues)
+                if (selected.Count >= _configurationHelper.InputMaxIssues)
                 {
                     break;
                 }
@@ -90,51 +93,51 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
     {
         var query = new Dictionary<string, string?>
         {
-            ["components"] = _options.Components.Count > 0
-                ? string.Join(",", _options.Components)
-                : _options.SonarProjectKey,
+            ["components"] = _configurationHelper.InputComponents.Count > 0
+                ? string.Join(",", _configurationHelper.InputComponents)
+                : _configurationHelper.GetSonarProjectKey(),
             ["p"] = page.ToString(),
             ["ps"] = pageSize.ToString()
         };
 
-        if (!string.IsNullOrWhiteSpace(_options.SonarBranch))
+        if (!string.IsNullOrWhiteSpace(_configurationHelper.InputSonarBranch))
         {
-            query["branch"] = _options.SonarBranch;
+            query["branch"] = _configurationHelper.InputSonarBranch;
         }
 
-        if (!string.IsNullOrWhiteSpace(_options.SonarOrganization))
+        if (!string.IsNullOrWhiteSpace(_configurationHelper.InputSonarOrganization))
         {
-            query["organization"] = _options.SonarOrganization;
+            query["organization"] = _configurationHelper.InputSonarOrganization;
         }
 
-        if (_options.Statuses.Count > 0)
+        if (_configurationHelper.InputStatuses.Count > 0)
         {
-            query["statuses"] = string.Join(",", _options.Statuses);
+            query["statuses"] = string.Join(",", _configurationHelper.InputStatuses);
         }
 
-        if (_options.Severities.Count > 0)
+        if (_configurationHelper.InputSeverities.Count > 0)
         {
-            query["severities"] = string.Join(",", _options.Severities);
+            query["severities"] = string.Join(",", _configurationHelper.InputSeverities);
         }
 
-        if (_options.ImpactSoftwareQualities.Count > 0)
+        if (_configurationHelper.InputImpactSoftwareQualities.Count > 0)
         {
-            query["impactSoftwareQualities"] = string.Join(",", _options.ImpactSoftwareQualities);
+            query["impactSoftwareQualities"] = string.Join(",", _configurationHelper.InputImpactSoftwareQualities);
         }
 
-        if (_options.ImpactSeverities.Count > 0)
+        if (_configurationHelper.InputImpactSeverities.Count > 0)
         {
-            query["impactSeverities"] = string.Join(",", _options.ImpactSeverities);
+            query["impactSeverities"] = string.Join(",", _configurationHelper.InputImpactSeverities);
         }
 
-        if (_options.CleanCodeAttributeCategories.Count > 0)
+        if (_configurationHelper.InputCleanCodeAttributeCategories.Count > 0)
         {
-            query["cleanCodeAttributeCategories"] = string.Join(",", _options.CleanCodeAttributeCategories);
+            query["cleanCodeAttributeCategories"] = string.Join(",", _configurationHelper.InputCleanCodeAttributeCategories);
         }
 
-        if (_options.Rules.Count > 0)
+        if (_configurationHelper.InputRules.Count > 0)
         {
-            query["rules"] = string.Join(",", _options.Rules);
+            query["rules"] = string.Join(",", _configurationHelper.InputRules);
         }
 
         return "/api/issues/search?" + string.Join("&", query
@@ -144,9 +147,9 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
 
     private async Task<SonarIssue> ToIssueAsync(IssueDto dto, CancellationToken cancellationToken)
     {
-        var filePath = ExtractFilePath(dto.Component, _options.SonarProjectKey);
+        var filePath = ExtractFilePath(dto.Component, _configurationHelper.GetSonarProjectKey());
         SonarRule? rule = null;
-        if (_options.IncludeRuleDetails && !string.IsNullOrWhiteSpace(dto.Rule))
+        if (_configurationHelper.InputIncludeRuleDetails && !string.IsNullOrWhiteSpace(dto.Rule))
         {
             rule = await TryGetRuleAsync(dto.Rule, cancellationToken);
         }
@@ -228,10 +231,10 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
 
     private Uri BuildIssueUrl(string? issueKey)
     {
-        var builder = new UriBuilder(_options.SonarHostUrl)
+        var builder = new UriBuilder(_configurationHelper.GetSonarHostUri())
         {
             Path = "project/issues",
-            Query = $"id={Uri.EscapeDataString(_options.SonarProjectKey)}&issues={Uri.EscapeDataString(issueKey ?? "")}&open={Uri.EscapeDataString(issueKey ?? "")}"
+            Query = $"id={Uri.EscapeDataString(_configurationHelper.GetSonarProjectKey())}&issues={Uri.EscapeDataString(issueKey ?? "")}&open={Uri.EscapeDataString(issueKey ?? "")}"
         };
         return builder.Uri;
     }
@@ -304,47 +307,4 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
             _httpClient.Dispose();
         }
     }
-
-    private sealed record IssueSearchResponse(
-        [property: JsonPropertyName("total")] int Total,
-        [property: JsonPropertyName("issues")] List<IssueDto> Issues);
-
-    private sealed record IssueDto(
-        string? Key,
-        string? Rule,
-        string? Severity,
-        string? Status,
-        string? Type,
-        string? Component,
-        string? Project,
-        string? Hash,
-        int? Line,
-        TextRangeDto? TextRange,
-        IReadOnlyList<FlowDto>? Flows,
-        string? Resolution,
-        string? Message,
-        string? Effort,
-        string? Debt,
-        IReadOnlyList<string>? Tags,
-        string? Author,
-        string? CleanCodeAttributeCategory,
-        string? CreationDate,
-        string? UpdateDate,
-        string? CloseDate,
-        string? Organization,
-        string? ExternalRuleEngine,
-        string? CleanCodeAttribute,
-        IReadOnlyList<ImpactDto>? Impacts,
-        string? IssueStatus,
-        string? ProjectName,
-        IReadOnlyList<string>? InternalTags,
-        string? LastChangeAnalysisUuid,
-        string? LastChangeSource);
-
-    private sealed record TextRangeDto(int StartLine, int EndLine, int StartOffset, int EndOffset);
-    private sealed record FlowDto(IReadOnlyList<LocationDto>? Locations);
-    private sealed record LocationDto(string? Component, TextRangeDto? TextRange, [property: JsonPropertyName("msg")] string? Message);
-    private sealed record ImpactDto(string? SoftwareQuality, string? Severity);
-    private sealed record RuleShowResponse(RuleDto? Rule);
-    private sealed record RuleDto(string? Key, string? Name, string? HtmlDesc, string? MarkdownDescription, string? Severity, IReadOnlyList<string>? Tags);
 }
