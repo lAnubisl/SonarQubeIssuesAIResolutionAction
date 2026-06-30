@@ -31,8 +31,15 @@ jobs:
         with:
           sonar_host_url: ${{ vars.SONAR_HOST_URL }}
           sonar_project_key: ${{ vars.SONAR_PROJECT_KEY }}
+          components: ${{ vars.SONAR_PROJECT_KEY }}:src/Example.cs,${{ vars.SONAR_PROJECT_KEY }}:src/Other.cs
           sonar_branch: ${{ github.ref_name }}
           max_issues: ${{ inputs.max_issues }}
+          statuses: OPEN
+          severities: CRITICAL,BLOCKER
+          impactSoftwareQualities: RELIABILITY,SECURITY
+          impactSeverities: HIGH
+          cleanCodeAttributeCategories: INTENTIONAL
+          rules: csharpsquid:S1234,csharpsquid:S5678
           dry_run: ${{ inputs.dry_run }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

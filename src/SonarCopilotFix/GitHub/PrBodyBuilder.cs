@@ -48,16 +48,6 @@ public sealed class PrBodyBuilder
         }
 
         builder.AppendLine();
-        builder.AppendLine("## Resolution Summary");
-        foreach (var issue in issues)
-        {
-            builder.AppendLine($"- `{issue.Key}`: attempted by GitHub Copilot CLI. Review the diff to confirm the issue is fully resolved.");
-        }
-
-        builder.AppendLine();
-        builder.AppendLine("## Skipped Or Not Fixed");
-        builder.AppendLine("- The automation cannot conclusively verify SonarQube closure until SonarQube re-analyzes this branch.");
-        builder.AppendLine();
         builder.AppendLine("## Review Notes");
         builder.AppendLine("- These changes were generated using GitHub Copilot CLI from selected SonarQube issue context.");
         builder.AppendLine("- Human review is required before merge.");

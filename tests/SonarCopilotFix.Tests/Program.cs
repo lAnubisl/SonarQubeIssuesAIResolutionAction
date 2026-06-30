@@ -84,12 +84,24 @@ internal static class Tests
     public static async Task Filtering()
     {
         var handler = new FakeHandler(_ => Json("""{"total":0,"issues":[]}"""));
-        var client = NewClient(handler, statuses: "OPEN,CONFIRMED", severities: "CRITICAL", cleanCode: "INTENTIONAL");
+        var client = NewClient(
+            handler,
+            statuses: "OPEN,CONFIRMED",
+            severities: "CRITICAL",
+            impactSoftwareQualities: "RELIABILITY,SECURITY",
+            impactSeverities: "HIGH",
+            cleanCodeAttributeCategories: "INTENTIONAL",
+            rules: "csharpsquid:S1234,csharpsquid:S5678",
+            components: "proj:src/A.cs,proj:src/B.cs");
         await client.GetIssuesAsync(CancellationToken.None);
         var uri = handler.Requests.Single().RequestUri!;
+        Assert.Equal("proj:src/A.cs,proj:src/B.cs", Query(uri, "components"));
         Assert.Equal("OPEN,CONFIRMED", Query(uri, "statuses"));
         Assert.Equal("CRITICAL", Query(uri, "severities"));
+        Assert.Equal("RELIABILITY,SECURITY", Query(uri, "impactSoftwareQualities"));
+        Assert.Equal("HIGH", Query(uri, "impactSeverities"));
         Assert.Equal("INTENTIONAL", Query(uri, "cleanCodeAttributeCategories"));
+        Assert.Equal("csharpsquid:S1234,csharpsquid:S5678", Query(uri, "rules"));
     }
 
     public static async Task IssueSearchLogging()
@@ -110,7 +122,7 @@ internal static class Tests
         }
 
         var logs = output.ToString();
-        Assert.Contains("SonarQube issue search request URL: https://sonar.example/api/issues/search?componentKeys=proj&p=1&ps=10&statuses=OPEN", logs);
+        Assert.Contains("SonarQube issue search request URL: https://sonar.example/api/issues/search?components=proj&p=1&ps=10&statuses=OPEN", logs);
         Assert.Contains($"SonarQube issue search response body: {responseBody}", logs);
     }
 
@@ -461,16 +473,29 @@ internal static class Tests
         return Task.CompletedTask;
     }
 
-    private static SonarQubeClient NewClient(FakeHandler handler, int maxIssues = 10, string? statuses = null, string? severities = null, string? cleanCode = null)
+    private static SonarQubeClient NewClient(
+        FakeHandler handler,
+        int maxIssues = 10,
+        string? statuses = null,
+        string? severities = null,
+        string? impactSoftwareQualities = null,
+        string? impactSeverities = null,
+        string? cleanCodeAttributeCategories = null,
+        string? rules = null,
+        string? components = null)
     {
         var env = new DictionaryEnvironment(new Dictionary<string, string?>
         {
             ["INPUT_SONAR_HOST_URL"] = "https://sonar.example",
             ["INPUT_SONAR_PROJECT_KEY"] = "proj",
+            ["INPUT_COMPONENTS"] = components,
             ["INPUT_MAX_ISSUES"] = maxIssues.ToString(),
-            ["INPUT_ISSUE_STATUSES"] = statuses,
+            ["INPUT_STATUSES"] = statuses,
             ["INPUT_SEVERITIES"] = severities,
-            ["INPUT_CLEAN_CODE_ATTRIBUTE_CATEGORIES"] = cleanCode,
+            ["INPUT_IMPACT_SOFTWARE_QUALITIES"] = impactSoftwareQualities,
+            ["INPUT_IMPACT_SEVERITIES"] = impactSeverities,
+            ["INPUT_CLEAN_CODE_ATTRIBUTE_CATEGORIES"] = cleanCodeAttributeCategories,
+            ["INPUT_RULES"] = rules,
             ["INPUT_DRY_RUN"] = "true",
             ["INPUT_INCLUDE_RULE_DETAILS"] = "false",
             ["SONAR_TOKEN"] = "sonar"

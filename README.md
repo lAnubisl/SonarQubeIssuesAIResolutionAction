@@ -30,12 +30,16 @@ All known token values are masked with `::add-mask::`. Child processes receive m
 | --- | --- | --- |
 | `sonar_host_url` | required | SonarQube Server or Cloud URL |
 | `sonar_project_key` | required | SonarQube project key |
+| `components` | empty | Comma-separated component keys; defaults to `sonar_project_key`. Use `projectKey:path/to/file` for source files |
 | `sonar_branch` | empty | Sonar branch parameter |
 | `sonar_organization` | empty | SonarQube Cloud organization |
 | `max_issues` | `10` | Maximum selected issues |
-| `issue_statuses` | `OPEN` | Comma-separated statuses |
+| `statuses` | `OPEN` | Comma-separated statuses |
 | `severities` | empty | Comma-separated severities |
-| `clean_code_attribute_categories` | empty | Modern clean-code category filter where supported |
+| `impactSoftwareQualities` | empty | Comma-separated software qualities, such as `RELIABILITY`, `SECURITY`, or `MAINTAINABILITY` |
+| `impactSeverities` | empty | Comma-separated impact severities |
+| `cleanCodeAttributeCategories` | empty | Modern clean-code category filter where supported |
+| `rules` | empty | Comma-separated rule keys, such as `csharpsquid:S1234` |
 | `include_rule_details` | `true` | Calls `/api/rules/show` per issue |
 | `include_code_snippets` | `true` | Reads snippets from checked-out files |
 | `code_snippet_context_lines` | `20` | Lines before and after issue line |
@@ -134,7 +138,7 @@ The draft PR includes the SonarQube project, branch, base branch, generated bran
 
 ## SonarQube Compatibility
 
-The implementation uses bearer authentication and `/api/issues/search`, with project, branch, organization, status, severity, and clean-code category filters. Issue status defaults to `OPEN`, so status filtering happens in SonarQube rather than after retrieval. SonarQube Server and SonarQube Cloud can vary by version; unsupported filter combinations produce a clear API error. The client is intentionally small so endpoint parameters can be updated as SonarQube evolves.
+The implementation uses bearer authentication and `/api/issues/search`. Search-filter input names match SonarQube 10.2+ query parameter names: `components`, `statuses`, `severities`, `impactSoftwareQualities`, `impactSeverities`, `cleanCodeAttributeCategories`, and `rules`. `components` defaults to `sonar_project_key`; filter source files with component keys such as `my-project:src/Example.cs`. `statuses` defaults to `OPEN`, so status filtering happens in SonarQube rather than after retrieval. SonarQube Server and SonarQube Cloud can vary by version; unsupported filter combinations produce a clear API error. The client is intentionally small so endpoint parameters can be updated as SonarQube evolves.
 
 ## Security
 

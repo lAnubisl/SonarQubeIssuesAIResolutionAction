@@ -9,6 +9,9 @@ inputs:
   sonar_project_key:
     description: SonarQube project key.
     required: true
+  components:
+    description: "Comma-separated SonarQube component keys. Defaults to sonar_project_key. Use projectKey:path/to/file to select source files."
+    required: false
   sonar_branch:
     description: Optional SonarQube branch.
     required: false
@@ -19,15 +22,24 @@ inputs:
     description: Maximum number of issues to select.
     required: false
     default: "10"
-  issue_statuses:
+  statuses:
     description: Comma-separated SonarQube issue statuses.
     required: false
     default: "OPEN"
   severities:
     description: Comma-separated SonarQube severities.
     required: false
-  clean_code_attribute_categories:
-    description: Comma-separated clean code attribute categories or equivalent supported filter values.
+  impactSoftwareQualities:
+    description: Comma-separated SonarQube impact software qualities.
+    required: false
+  impactSeverities:
+    description: Comma-separated SonarQube impact severities.
+    required: false
+  cleanCodeAttributeCategories:
+    description: "Comma-separated clean code attribute categories or equivalent supported filter values. Possivle values: ADAPTABLE, CONSISTENT, INTENTIONAL, RESPONSIBLE. Example value: ADAPTABLE,INTENTIONAL"
+    required: false
+  rules:
+    description: "Comma-separated SonarQube rule keys. Example value: java:S1144"
     required: false
   include_rule_details:
     description: Include SonarQube rule details in the prompt.
@@ -89,12 +101,16 @@ runs:
   env:
     INPUT_SONAR_HOST_URL: ${{ inputs.sonar_host_url }}
     INPUT_SONAR_PROJECT_KEY: ${{ inputs.sonar_project_key }}
+    INPUT_COMPONENTS: ${{ inputs.components }}
     INPUT_SONAR_BRANCH: ${{ inputs.sonar_branch }}
     INPUT_SONAR_ORGANIZATION: ${{ inputs.sonar_organization }}
     INPUT_MAX_ISSUES: ${{ inputs.max_issues }}
-    INPUT_ISSUE_STATUSES: ${{ inputs.issue_statuses }}
+    INPUT_STATUSES: ${{ inputs.statuses }}
     INPUT_SEVERITIES: ${{ inputs.severities }}
-    INPUT_CLEAN_CODE_ATTRIBUTE_CATEGORIES: ${{ inputs.clean_code_attribute_categories }}
+    INPUT_IMPACT_SOFTWARE_QUALITIES: ${{ inputs.impactSoftwareQualities }}
+    INPUT_IMPACT_SEVERITIES: ${{ inputs.impactSeverities }}
+    INPUT_CLEAN_CODE_ATTRIBUTE_CATEGORIES: ${{ inputs.cleanCodeAttributeCategories }}
+    INPUT_RULES: ${{ inputs.rules }}
     INPUT_INCLUDE_RULE_DETAILS: ${{ inputs.include_rule_details }}
     INPUT_INCLUDE_CODE_SNIPPETS: ${{ inputs.include_code_snippets }}
     INPUT_CODE_SNIPPET_CONTEXT_LINES: ${{ inputs.code_snippet_context_lines }}

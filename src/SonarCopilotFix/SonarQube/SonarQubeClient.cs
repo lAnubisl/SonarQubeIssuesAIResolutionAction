@@ -90,7 +90,9 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
     {
         var query = new Dictionary<string, string?>
         {
-            ["componentKeys"] = _options.SonarProjectKey,
+            ["components"] = _options.Components.Count > 0
+                ? string.Join(",", _options.Components)
+                : _options.SonarProjectKey,
             ["p"] = page.ToString(),
             ["ps"] = pageSize.ToString()
         };
@@ -105,9 +107,9 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
             query["organization"] = _options.SonarOrganization;
         }
 
-        if (_options.IssueStatuses.Count > 0)
+        if (_options.Statuses.Count > 0)
         {
-            query["statuses"] = string.Join(",", _options.IssueStatuses);
+            query["statuses"] = string.Join(",", _options.Statuses);
         }
 
         if (_options.Severities.Count > 0)
@@ -115,9 +117,24 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
             query["severities"] = string.Join(",", _options.Severities);
         }
 
+        if (_options.ImpactSoftwareQualities.Count > 0)
+        {
+            query["impactSoftwareQualities"] = string.Join(",", _options.ImpactSoftwareQualities);
+        }
+
+        if (_options.ImpactSeverities.Count > 0)
+        {
+            query["impactSeverities"] = string.Join(",", _options.ImpactSeverities);
+        }
+
         if (_options.CleanCodeAttributeCategories.Count > 0)
         {
             query["cleanCodeAttributeCategories"] = string.Join(",", _options.CleanCodeAttributeCategories);
+        }
+
+        if (_options.Rules.Count > 0)
+        {
+            query["rules"] = string.Join(",", _options.Rules);
         }
 
         return "/api/issues/search?" + string.Join("&", query
