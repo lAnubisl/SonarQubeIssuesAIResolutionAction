@@ -33,6 +33,11 @@ public interface IConfigurationHelper
     string GitHubWorkspace { get; }
     string GitHubRepository { get; }
     string? GitHubOutput { get; }
+
+    /// <summary>
+    /// Gets the path to the GitHub Actions step summary file.
+    /// documentation: https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-commands#adding-a-job-summary
+    /// </summary>
     string? GitHubStepSummary { get; }
     string? Path { get; }
     string? Home { get; }

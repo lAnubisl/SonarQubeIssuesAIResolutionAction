@@ -93,7 +93,7 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
     {
         var query = new Dictionary<string, string?>
         {
-            ["components"] = _configurationHelper.InputComponents.Count > 0
+            ["componentKeys"] = _configurationHelper.InputComponents.Count > 0
                 ? string.Join(",", _configurationHelper.InputComponents)
                 : _configurationHelper.GetSonarProjectKey(),
             ["p"] = page.ToString(),

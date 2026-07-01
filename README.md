@@ -138,7 +138,7 @@ The draft PR includes the SonarQube project, branch, base branch, generated bran
 
 ## SonarQube Compatibility
 
-The implementation uses bearer authentication and `/api/issues/search`. Search-filter input names match SonarQube 10.2+ query parameter names: `components`, `statuses`, `severities`, `impactSoftwareQualities`, `impactSeverities`, `cleanCodeAttributeCategories`, and `rules`. `components` defaults to `sonar_project_key`; filter source files with component keys such as `my-project:src/Example.cs`. `statuses` defaults to `OPEN`, so status filtering happens in SonarQube rather than after retrieval. SonarQube Server and SonarQube Cloud can vary by version; unsupported filter combinations produce a clear API error. The client is intentionally small so endpoint parameters can be updated as SonarQube evolves.
+The implementation uses bearer authentication and `/api/issues/search`. The action's `components` input is sent as SonarQube's `componentKeys` query parameter and defaults to `sonar_project_key`; filter source files with component keys such as `my-project:src/Example.cs`. Other search-filter inputs use the SonarQube query parameter names `statuses`, `severities`, `impactSoftwareQualities`, `impactSeverities`, `cleanCodeAttributeCategories`, and `rules`. `statuses` defaults to `OPEN`, so status filtering happens in SonarQube rather than after retrieval. SonarQube Server and SonarQube Cloud can vary by version; unsupported filter combinations produce a clear API error. The client is intentionally small so endpoint parameters can be updated as SonarQube evolves.
 
 ## Security
 

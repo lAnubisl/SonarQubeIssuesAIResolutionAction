@@ -67,7 +67,8 @@ internal sealed class SonarQubeClientTests
         await client.GetIssuesAsync(CancellationToken.None);
 
         var uri = handler.Requests.Single().RequestUri!;
-        Assert.Equal("proj:src/A.cs,proj:src/B.cs", Query(uri, "components"));
+        Assert.Equal("proj:src/A.cs,proj:src/B.cs", Query(uri, "componentKeys"));
+        Assert.Equal(null, Query(uri, "components"));
         Assert.Equal("OPEN,CONFIRMED", Query(uri, "statuses"));
         Assert.Equal("CRITICAL", Query(uri, "severities"));
         Assert.Equal("RELIABILITY,SECURITY", Query(uri, "impactSoftwareQualities"));
@@ -86,7 +87,7 @@ internal sealed class SonarQubeClientTests
         await client.GetIssuesAsync(CancellationToken.None);
 
         logger.Verify(
-            value => value.Info("SonarQube issue search request URL: https://sonar.example/api/issues/search?components=proj&p=1&ps=10&statuses=OPEN"),
+            value => value.Info("SonarQube issue search request URL: https://sonar.example/api/issues/search?componentKeys=proj&p=1&ps=10&statuses=OPEN"),
             Times.Once);
         logger.Verify(
             value => value.Info($"SonarQube issue search response body: {responseBody}"),
