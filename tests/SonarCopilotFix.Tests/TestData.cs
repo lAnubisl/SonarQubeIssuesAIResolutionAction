@@ -18,6 +18,7 @@ internal static class TestData
         string? inputSonarOrganization = null,
         int inputMaxIssues = 10,
         IReadOnlyList<string>? inputStatuses = null,
+        string? inputType = null,
         IReadOnlyList<string>? inputSeverities = null,
         IReadOnlyList<string>? inputImpactSoftwareQualities = null,
         IReadOnlyList<string>? inputImpactSeverities = null,
@@ -47,6 +48,7 @@ internal static class TestData
         configurationHelper.SetupGet(value => value.InputSonarOrganization).Returns(inputSonarOrganization);
         configurationHelper.SetupGet(value => value.InputMaxIssues).Returns(inputMaxIssues);
         configurationHelper.SetupGet(value => value.InputStatuses).Returns(inputStatuses ?? ["OPEN"]);
+        configurationHelper.SetupGet(value => value.InputType).Returns(inputType);
         configurationHelper.SetupGet(value => value.InputSeverities).Returns(inputSeverities ?? []);
         configurationHelper.SetupGet(value => value.InputImpactSoftwareQualities).Returns(inputImpactSoftwareQualities ?? []);
         configurationHelper.SetupGet(value => value.InputImpactSeverities).Returns(inputImpactSeverities ?? []);

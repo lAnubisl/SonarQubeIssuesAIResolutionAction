@@ -51,6 +51,7 @@ jobs:
           sonar_branch: ${{ github.ref_name }}
           max_issues: ${{ inputs.max_issues }}
           statuses: OPEN
+          type: BUG
           severities: CRITICAL,BLOCKER
           impactSoftwareQualities: RELIABILITY,SECURITY
           impactSeverities: HIGH

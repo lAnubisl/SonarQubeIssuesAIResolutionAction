@@ -115,6 +115,11 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
             query["statuses"] = string.Join(",", _configurationHelper.InputStatuses);
         }
 
+        if (!string.IsNullOrWhiteSpace(_configurationHelper.InputType))
+        {
+            query["types"] = _configurationHelper.InputType;
+        }
+
         if (_configurationHelper.InputSeverities.Count > 0)
         {
             query["severities"] = string.Join(",", _configurationHelper.InputSeverities);

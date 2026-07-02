@@ -9,6 +9,7 @@ public sealed class ConfigurationHelper : IConfigurationHelper
     public string? InputSonarOrganization => Trimmed(Get("INPUT_SONAR_ORGANIZATION"));
     public int InputMaxIssues => PositiveInt(Get("INPUT_MAX_ISSUES"), 10);
     public IReadOnlyList<string> InputStatuses => Csv(Trimmed(Get("INPUT_STATUSES")) ?? "OPEN");
+    public string? InputType => Trimmed(Get("INPUT_TYPE"));
     public IReadOnlyList<string> InputSeverities => Csv(Get("INPUT_SEVERITIES"));
     public IReadOnlyList<string> InputImpactSoftwareQualities => Csv(Get("INPUT_IMPACT_SOFTWARE_QUALITIES"));
     public IReadOnlyList<string> InputImpactSeverities => Csv(Get("INPUT_IMPACT_SEVERITIES"));

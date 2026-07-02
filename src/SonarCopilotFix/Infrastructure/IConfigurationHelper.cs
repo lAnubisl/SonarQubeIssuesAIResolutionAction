@@ -9,6 +9,7 @@ public interface IConfigurationHelper
     string? InputSonarOrganization { get; }
     int InputMaxIssues { get; }
     IReadOnlyList<string> InputStatuses { get; }
+    string? InputType { get; }
     IReadOnlyList<string> InputSeverities { get; }
     IReadOnlyList<string> InputImpactSoftwareQualities { get; }
     IReadOnlyList<string> InputImpactSeverities { get; }

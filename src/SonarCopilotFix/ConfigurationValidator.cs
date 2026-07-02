@@ -4,6 +4,9 @@ namespace SonarCopilotFix;
 
 public static class ConfigurationValidator
 {
+    private static readonly string[] ValidIssueTypes =
+        ["CODE_SMELL", "BUG", "VULNERABILITY"];
+
     public static void Validate(IConfigurationHelper configurationHelper)
     {
         var host = configurationHelper.InputSonarHostUrl
@@ -17,6 +20,13 @@ public static class ConfigurationValidator
             ?? throw new ControlledFailureException("Input sonar_project_key is required.", ExitCodes.ConfigurationError);
         _ = configurationHelper.SonarToken
             ?? throw new ControlledFailureException("SONAR_TOKEN is required.", ExitCodes.ConfigurationError);
+
+        if (configurationHelper.InputType is { } issueType && !ValidIssueTypes.Contains(issueType))
+        {
+            throw new ControlledFailureException(
+                $"Input type must be one of: {string.Join(", ", ValidIssueTypes)}.",
+                ExitCodes.ConfigurationError);
+        }
 
         var dryRun = configurationHelper.InputDryRun;
         var ghCliToken = configurationHelper.GhCliToken;

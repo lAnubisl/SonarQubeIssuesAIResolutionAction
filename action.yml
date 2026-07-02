@@ -26,14 +26,17 @@ inputs:
     description: Comma-separated SonarQube issue statuses.
     required: false
     default: "OPEN"
+  type:
+    description: "SonarQube issue type. Must be one of: CODE_SMELL, BUG, VULNERABILITY."
+    required: false
   severities:
-    description: Comma-separated SonarQube severities.
+    description: "Comma-separated SonarQube severities. Example value: BLOCKER,CRITICAL,MAJOR,MINOR,INFO"
     required: false
   impactSoftwareQualities:
     description: Comma-separated SonarQube impact software qualities.
     required: false
   impactSeverities:
-    description: Comma-separated SonarQube impact severities.
+    description: "Comma-separated SonarQube impact severities. Example value: INFO, LOW, MEDIUM, HIGH, BLOCKER"
     required: false
   cleanCodeAttributeCategories:
     description: "Comma-separated clean code attribute categories or equivalent supported filter values. Possivle values: ADAPTABLE, CONSISTENT, INTENTIONAL, RESPONSIBLE. Example value: ADAPTABLE,INTENTIONAL"
@@ -141,6 +144,7 @@ runs:
         INPUT_SONAR_ORGANIZATION: ${{ inputs.sonar_organization }}
         INPUT_MAX_ISSUES: ${{ inputs.max_issues }}
         INPUT_STATUSES: ${{ inputs.statuses }}
+        INPUT_TYPE: ${{ inputs.type }}
         INPUT_SEVERITIES: ${{ inputs.severities }}
         INPUT_IMPACT_SOFTWARE_QUALITIES: ${{ inputs.impactSoftwareQualities }}
         INPUT_IMPACT_SEVERITIES: ${{ inputs.impactSeverities }}

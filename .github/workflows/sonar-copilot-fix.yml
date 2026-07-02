@@ -6,6 +6,39 @@ on:
       max_issues:
         description: Maximum issues to fix
         default: "10"
+      type:
+        description: SonarQube issue type
+        required: false
+        type: choice
+        options:
+          - CODE_SMELL
+          - BUG
+          - VULNERABILITY
+      severity:
+        type: choice
+        required: false
+        options:
+          - BLOCKER
+          - CRITICAL
+          - MAJOR
+          - MINOR
+          - INFO
+      impactSoftwareQualities:
+        type: choice
+        required: false
+        options:
+          - RELIABILITY
+          - SECURITY
+          - MAINTAINABILITY
+      impactSeverities:
+        type: choice
+        required: false
+        options:
+          - BLOCKER
+          - HIGH
+          - MEDIUM
+          - LOW
+          - INFO
 
 permissions:
   contents: write
@@ -27,6 +60,8 @@ jobs:
           sonar_host_url: https://sonarcloud.io
           sonar_project_key: lAnubisl_SonarQubeIssuesAIResolutionAction
           sonar_branch: main
+          statuses: OPEN
+          type: ${{ inputs.type }}
           max_issues: ${{ inputs.max_issues }}
           copilot_allow_all_tools: true
           copilot_extra_instructions: |

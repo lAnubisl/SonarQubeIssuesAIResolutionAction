@@ -57,6 +57,7 @@ internal sealed class SonarQubeClientTests
         var client = NewClient(
             handler,
             statuses: "OPEN,CONFIRMED",
+            type: "BUG",
             severities: "CRITICAL",
             impactSoftwareQualities: "RELIABILITY,SECURITY",
             impactSeverities: "HIGH",
@@ -70,6 +71,7 @@ internal sealed class SonarQubeClientTests
         Assert.Equal("proj:src/A.cs,proj:src/B.cs", Query(uri, "componentKeys"));
         Assert.Equal(null, Query(uri, "components"));
         Assert.Equal("OPEN,CONFIRMED", Query(uri, "statuses"));
+        Assert.Equal("BUG", Query(uri, "types"));
         Assert.Equal("CRITICAL", Query(uri, "severities"));
         Assert.Equal("RELIABILITY,SECURITY", Query(uri, "impactSoftwareQualities"));
         Assert.Equal("HIGH", Query(uri, "impactSeverities"));
@@ -154,6 +156,7 @@ internal sealed class SonarQubeClientTests
         FakeHandler handler,
         int maxIssues = 10,
         string? statuses = null,
+        string? type = null,
         string? severities = null,
         string? impactSoftwareQualities = null,
         string? impactSeverities = null,
@@ -166,6 +169,7 @@ internal sealed class SonarQubeClientTests
             inputComponents: Csv(components),
             inputMaxIssues: maxIssues,
             inputStatuses: Csv(statuses, "OPEN"),
+            inputType: type,
             inputSeverities: Csv(severities),
             inputImpactSoftwareQualities: Csv(impactSoftwareQualities),
             inputImpactSeverities: Csv(impactSeverities),

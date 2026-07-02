@@ -35,6 +35,7 @@ All known token values are masked with `::add-mask::`. Child processes receive m
 | `sonar_organization` | empty | SonarQube Cloud organization |
 | `max_issues` | `10` | Maximum selected issues |
 | `statuses` | `OPEN` | Comma-separated statuses |
+| `type` | empty | Issue type: `CODE_SMELL`, `BUG`, or `VULNERABILITY` |
 | `severities` | empty | Comma-separated severities |
 | `impactSoftwareQualities` | empty | Comma-separated software qualities, such as `RELIABILITY`, `SECURITY`, or `MAINTAINABILITY` |
 | `impactSeverities` | empty | Comma-separated impact severities |
@@ -104,6 +105,7 @@ jobs:
           sonar_project_key: ${{ vars.SONAR_PROJECT_KEY }}
           sonar_branch: ${{ github.ref_name }}
           max_issues: ${{ inputs.max_issues }}
+          type: BUG
           dry_run: ${{ inputs.dry_run }}
           copilot_allowed_tools: "shell(dotnet:*),shell(python:*),shell(java:*)"
         env:
@@ -156,7 +158,7 @@ The draft PR includes the SonarQube project, branch, base branch, generated bran
 
 ## SonarQube Compatibility
 
-The implementation uses bearer authentication and `/api/issues/search`. The action's `components` input is sent as SonarQube's `componentKeys` query parameter and defaults to `sonar_project_key`; filter source files with component keys such as `my-project:src/Example.cs`. Other search-filter inputs use the SonarQube query parameter names `statuses`, `severities`, `impactSoftwareQualities`, `impactSeverities`, `cleanCodeAttributeCategories`, and `rules`. `statuses` defaults to `OPEN`, so status filtering happens in SonarQube rather than after retrieval. SonarQube Server and SonarQube Cloud can vary by version; unsupported filter combinations produce a clear API error. The client is intentionally small so endpoint parameters can be updated as SonarQube evolves.
+The implementation uses bearer authentication and `/api/issues/search`. The action's `components` input is sent as SonarQube's `componentKeys` query parameter and defaults to `sonar_project_key`; filter source files with component keys such as `my-project:src/Example.cs`. The singular `type` input is validated and sent as SonarQube's `types` query parameter. Other search-filter inputs use the SonarQube query parameter names `statuses`, `severities`, `impactSoftwareQualities`, `impactSeverities`, `cleanCodeAttributeCategories`, and `rules`. `statuses` defaults to `OPEN`, so status filtering happens in SonarQube rather than after retrieval. SonarQube Server and SonarQube Cloud can vary by version; unsupported filter combinations produce a clear API error. The client is intentionally small so endpoint parameters can be updated as SonarQube evolves.
 
 ## Security
 
