@@ -99,8 +99,7 @@ public sealed class SonarCopilotFixApp(
         await git.StageFilesAsync(changedFiles, cancellationToken);
         await git.CommitAsync($"Fix SonarQube issues for {configurationHelper.GetSonarProjectKey()}", cancellationToken);
 
-        var githubTokenSource = string.IsNullOrWhiteSpace(configurationHelper.GhCliToken) ? "GITHUB_TOKEN fallback" : "GH_CLI_TOKEN";
-        logger.Info($"Using {githubTokenSource} for GitHub repository operations.");
+        logger.Info("Using GH_CLI_TOKEN for GitHub repository operations.");
         await github.SetupGitAuthenticationAsync(cancellationToken);
         await git.PushBranchAsync(branchName, cancellationToken);
 

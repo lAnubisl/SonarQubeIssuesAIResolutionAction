@@ -25,4 +25,16 @@ internal sealed class ConfigurationValidatorTests
 
         Assert.Contains("COPILOT_CLI_TOKEN", ex.Message);
     }
+
+    [Test]
+    public static void NormalModeRequiresGitHubCliToken()
+    {
+        var configurationHelper = TestData.MockConfigurationHelper(
+            inputDryRun: false,
+            copilotCliToken: "copilot");
+
+        var ex = Assert.Throws<ControlledFailureException>(() => ConfigurationValidator.Validate(configurationHelper.Object));
+
+        Assert.Contains("GH_CLI_TOKEN", ex.Message);
+    }
 }

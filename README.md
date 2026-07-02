@@ -22,8 +22,6 @@ Use three separate secrets:
 | `COPILOT_CLI_TOKEN` | Copilot CLI child process only | SonarQube, GitHub API, git push |
 | `GH_CLI_TOKEN` | GitHub CLI and repository git operations | SonarQube, Copilot CLI |
 
-`GITHUB_TOKEN` is not used by default. It is used only when `allow_github_token_fallback` is `true`, `GH_CLI_TOKEN` is absent, and workflow permissions are sufficient.
-
 All known token values are masked with `::add-mask::`. Child processes receive minimal environment variables; secrets are passed only to the command that needs them.
 
 ## Inputs
@@ -52,7 +50,6 @@ All known token values are masked with `::add-mask::`. Child processes receive m
 | `pull_request_draft` | `true` | Draft PRs by default |
 | `dry_run` | `false` | No Copilot, branch, commit, push, or PR |
 | `fail_if_no_issues` | `false` | Strict empty-result behavior |
-| `allow_github_token_fallback` | `false` | Explicit fallback only |
 | `copilot_allowed_tools` | empty | Comma-separated Copilot permission patterns added alongside file writes, such as `shell(dotnet:*)` |
 | `copilot_allow_all_tools` | `false` | Allows all CLI tools without confirmation; otherwise only file writes are pre-approved |
 
@@ -121,7 +118,7 @@ Dry run requires only `SONAR_TOKEN`. It fetches issues, writes `.sonar-copilot/i
 
 ## Normal Execution
 
-Normal mode requires `SONAR_TOKEN`, `COPILOT_CLI_TOKEN`, and `GH_CLI_TOKEN` unless explicit `GITHUB_TOKEN` fallback is enabled. The action:
+Normal mode requires `SONAR_TOKEN`, `COPILOT_CLI_TOKEN`, and `GH_CLI_TOKEN`. The action:
 
 1. Fetches and paginates open SonarQube issues from `/api/issues/search`.
 2. Optionally fetches rule details from `/api/rules/show`.
@@ -135,7 +132,7 @@ Normal mode requires `SONAR_TOKEN`, `COPILOT_CLI_TOKEN`, and `GH_CLI_TOKEN` unle
 
 If no files changed, the action exits successfully without an empty commit or PR. Build, test, lint, and other validation remain the responsibility of the consuming repository's pull request workflows. When Copilot should run a project tool while preparing the fix, install that tool before this action and grant only its required command pattern with `copilot_allowed_tools`.
 
-Configure those workflows for `pull_request` events such as `opened` and `synchronize`, and enforce their checks with branch protection or rulesets. Prefer a personal access token or GitHub App installation token for `GH_CLI_TOKEN`; pull request workflows initiated through the repository `GITHUB_TOKEN` may require a maintainer to approve the workflow runs before validation starts.
+Configure those workflows for `pull_request` events such as `opened` and `synchronize`, and enforce their checks with branch protection or rulesets. Use a personal access token or GitHub App installation token for `GH_CLI_TOKEN`.
 
 ## Copilot CLI Notes
 
@@ -145,7 +142,7 @@ GitHub Copilot CLI access can differ by subscription and enterprise policy. The 
 copilot --prompt <prompt> --no-ask-user [--model <model>] (--allow-tool=write[,<permission-pattern>...] | --allow-all-tools)
 ```
 
-The command receives `COPILOT_GITHUB_TOKEN`, populated from the `COPILOT_CLI_TOKEN` secret, and disables CLI self-updates. It receives the runner `PATH`, `DOTNET_ROOT`, and `JAVA_HOME` so explicitly installed project tools can run. It never receives `SONAR_TOKEN`, `GH_CLI_TOKEN`, or `GITHUB_TOKEN`. The token must be a supported Copilot CLI token, such as a fine-grained personal access token with the Copilot Requests account permission; classic personal access tokens are not supported.
+The command receives `COPILOT_GITHUB_TOKEN`, populated from the `COPILOT_CLI_TOKEN` secret, and disables CLI self-updates. It receives the runner `PATH`, `DOTNET_ROOT`, and `JAVA_HOME` so explicitly installed project tools can run. It never receives `SONAR_TOKEN` or `GH_CLI_TOKEN`. The token must be a supported Copilot CLI token, such as a fine-grained personal access token with the Copilot Requests account permission; classic personal access tokens are not supported.
 
 `copilot_allowed_tools` accepts comma-separated Copilot CLI permission patterns. Prefer narrow entries such as `shell(dotnet test)` or `shell(dotnet:*)`. The existing `copilot_allow_all_tools` input remains available as an explicit unrestricted override.
 

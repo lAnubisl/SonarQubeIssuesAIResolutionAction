@@ -24,13 +24,11 @@ public interface IConfigurationHelper
     bool InputPullRequestDraft { get; }
     bool InputDryRun { get; }
     bool InputFailIfNoIssues { get; }
-    bool InputAllowGitHubTokenFallback { get; }
     IReadOnlyList<string> InputCopilotAllowedTools { get; }
     bool InputCopilotAllowAllTools { get; }
     string? SonarToken { get; }
     string? CopilotCliToken { get; }
     string? GhCliToken { get; }
-    string? GitHubToken { get; }
     string GitHubWorkspace { get; }
     string GitHubRepository { get; }
     string? GitHubOutput { get; }

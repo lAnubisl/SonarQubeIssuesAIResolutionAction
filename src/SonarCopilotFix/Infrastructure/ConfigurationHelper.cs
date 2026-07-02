@@ -24,13 +24,11 @@ public sealed class ConfigurationHelper : IConfigurationHelper
     public bool InputPullRequestDraft => Bool(Get("INPUT_PULL_REQUEST_DRAFT"), true);
     public bool InputDryRun => Bool(Get("INPUT_DRY_RUN"), false);
     public bool InputFailIfNoIssues => Bool(Get("INPUT_FAIL_IF_NO_ISSUES"), false);
-    public bool InputAllowGitHubTokenFallback => Bool(Get("INPUT_ALLOW_GITHUB_TOKEN_FALLBACK"), false);
     public IReadOnlyList<string> InputCopilotAllowedTools => Csv(Get("INPUT_COPILOT_ALLOWED_TOOLS"));
     public bool InputCopilotAllowAllTools => Bool(Get("INPUT_COPILOT_ALLOW_ALL_TOOLS"), false);
     public string? SonarToken => Trimmed(Get("SONAR_TOKEN"));
     public string? CopilotCliToken => Trimmed(Get("COPILOT_CLI_TOKEN"));
     public string? GhCliToken => Trimmed(Get("GH_CLI_TOKEN"));
-    public string? GitHubToken => Trimmed(Get("GITHUB_TOKEN"));
     public string GitHubWorkspace => Trimmed(Get("GITHUB_WORKSPACE")) ?? Directory.GetCurrentDirectory();
     public string GitHubRepository => Trimmed(Get("GITHUB_REPOSITORY")) ?? "unknown/unknown";
     public string? GitHubOutput => Trimmed(Get("GITHUB_OUTPUT"));

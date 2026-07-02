@@ -33,7 +33,6 @@ internal static class TestData
         string? sonarToken = "sonar",
         string? copilotCliToken = null,
         string? ghCliToken = null,
-        string? gitHubToken = null,
         string? gitHubWorkspace = null,
         string? gitHubOutput = null,
         string? gitHubStepSummary = null,
@@ -63,13 +62,11 @@ internal static class TestData
         configurationHelper.SetupGet(value => value.InputPullRequestDraft).Returns(true);
         configurationHelper.SetupGet(value => value.InputDryRun).Returns(inputDryRun);
         configurationHelper.SetupGet(value => value.InputFailIfNoIssues).Returns(false);
-        configurationHelper.SetupGet(value => value.InputAllowGitHubTokenFallback).Returns(false);
         configurationHelper.SetupGet(value => value.InputCopilotAllowedTools).Returns(inputCopilotAllowedTools ?? []);
         configurationHelper.SetupGet(value => value.InputCopilotAllowAllTools).Returns(inputCopilotAllowAllTools);
         configurationHelper.SetupGet(value => value.SonarToken).Returns(sonarToken);
         configurationHelper.SetupGet(value => value.CopilotCliToken).Returns(copilotCliToken);
         configurationHelper.SetupGet(value => value.GhCliToken).Returns(ghCliToken);
-        configurationHelper.SetupGet(value => value.GitHubToken).Returns(gitHubToken);
         configurationHelper.SetupGet(value => value.GitHubWorkspace).Returns(gitHubWorkspace ?? Directory.GetCurrentDirectory());
         configurationHelper.SetupGet(value => value.GitHubRepository).Returns("owner/repo");
         configurationHelper.SetupGet(value => value.GitHubOutput).Returns(gitHubOutput);

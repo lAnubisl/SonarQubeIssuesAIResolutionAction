@@ -74,7 +74,7 @@ public sealed partial class GitService(ICommandRunner commandRunner, IConfigurat
 
     public async Task PushBranchAsync(string branchName, CancellationToken cancellationToken)
     {
-        var env = new Dictionary<string, string?> { ["GH_TOKEN"] = configurationHelper.GetEffectiveGitHubToken() };
+        var env = new Dictionary<string, string?> { ["GH_TOKEN"] = configurationHelper.GetGitHubToken() };
         await EnsureSuccess("push generated branch", RunGitAsync(["push", "--set-upstream", "origin", branchName], env, cancellationToken), ExitCodes.GitFailure);
     }
 

@@ -78,10 +78,6 @@ inputs:
     description: Fail when no matching SonarQube issues are found.
     required: false
     default: "false"
-  allow_github_token_fallback:
-    description: Allow GITHUB_TOKEN fallback when GH_CLI_TOKEN is absent.
-    required: false
-    default: "false"
   copilot_allowed_tools:
     description: "Comma-separated Copilot CLI permission patterns to add alongside file writes. Example: shell(dotnet:*),shell(python:*)"
     required: false
@@ -106,12 +102,21 @@ runs:
   steps:
     - name: Set up .NET for the action
       uses: actions/setup-dotnet@v5
+      env:
+        SONAR_TOKEN: ""
+        COPILOT_CLI_TOKEN: ""
+        GH_CLI_TOKEN: ""
+        GITHUB_TOKEN: ""
       with:
         dotnet-version: 10.0.x
 
     - name: Install GitHub Copilot CLI
       shell: bash
       env:
+        SONAR_TOKEN: ""
+        COPILOT_CLI_TOKEN: ""
+        GH_CLI_TOKEN: ""
+        GITHUB_TOKEN: ""
         COPILOT_CLI_VERSION: v1.0.65
       run: |
         set -euo pipefail
@@ -151,7 +156,6 @@ runs:
         INPUT_PULL_REQUEST_DRAFT: ${{ inputs.pull_request_draft }}
         INPUT_DRY_RUN: ${{ inputs.dry_run }}
         INPUT_FAIL_IF_NO_ISSUES: ${{ inputs.fail_if_no_issues }}
-        INPUT_ALLOW_GITHUB_TOKEN_FALLBACK: ${{ inputs.allow_github_token_fallback }}
         INPUT_COPILOT_ALLOWED_TOOLS: ${{ inputs.copilot_allowed_tools }}
         INPUT_COPILOT_ALLOW_ALL_TOOLS: ${{ inputs.copilot_allow_all_tools }}
       run: |

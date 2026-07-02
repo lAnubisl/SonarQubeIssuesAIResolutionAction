@@ -67,7 +67,7 @@ public sealed class GitHubCliService(
         // configuration to its child processes without changing global config.
         return new Dictionary<string, string?>
         {
-            ["GH_TOKEN"] = configurationHelper.GetEffectiveGitHubToken(),
+            ["GH_TOKEN"] = configurationHelper.GetGitHubToken(),
             ["GIT_CONFIG_COUNT"] = "1",
             ["GIT_CONFIG_KEY_0"] = "safe.directory",
             ["GIT_CONFIG_VALUE_0"] = Path.GetFullPath(configurationHelper.GitHubWorkspace)
