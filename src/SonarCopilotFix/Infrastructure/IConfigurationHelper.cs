@@ -40,17 +40,5 @@ public interface IConfigurationHelper
     /// documentation: https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-commands#adding-a-job-summary
     /// </summary>
     string? GitHubStepSummary { get; }
-    string? Path { get; }
-    string? Home { get; }
-    string? User { get; }
-    string? UserProfile { get; }
-    string? TmpDir { get; }
-    string? Temp { get; }
-    string? Tmp { get; }
-    string? Ci { get; }
-    string? GitHubActions { get; }
-    string? RunnerTemp { get; }
-    string? DotNetRoot { get; }
-    string? JavaHome { get; }
-    string DotNetCliTelemetryOptOut { get; }
+    IReadOnlyDictionary<string, string?> SafeEnvironmentVariables { get; }
 }

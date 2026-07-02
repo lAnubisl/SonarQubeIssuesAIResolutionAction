@@ -60,25 +60,8 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
 
     public IReadOnlyDictionary<string, string> BuildSafeEnvironment(IReadOnlyDictionary<string, string?>? scopedEnvironment)
     {
-        var safeEnvironment = new Dictionary<string, string?>
-        {
-            ["PATH"] = configurationHelper.Path,
-            ["HOME"] = configurationHelper.Home,
-            ["USER"] = configurationHelper.User,
-            ["USERPROFILE"] = configurationHelper.UserProfile,
-            ["TMPDIR"] = configurationHelper.TmpDir,
-            ["TEMP"] = configurationHelper.Temp,
-            ["TMP"] = configurationHelper.Tmp,
-            ["CI"] = configurationHelper.Ci,
-            ["GITHUB_ACTIONS"] = configurationHelper.GitHubActions,
-            ["GITHUB_WORKSPACE"] = configurationHelper.GitHubWorkspace,
-            ["RUNNER_TEMP"] = configurationHelper.RunnerTemp,
-            ["DOTNET_ROOT"] = configurationHelper.DotNetRoot,
-            ["JAVA_HOME"] = configurationHelper.JavaHome,
-            ["DOTNET_CLI_TELEMETRY_OPTOUT"] = configurationHelper.DotNetCliTelemetryOptOut
-        };
         var result = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var (name, value) in safeEnvironment)
+        foreach (var (name, value) in configurationHelper.SafeEnvironmentVariables)
         {
             if (!string.IsNullOrEmpty(value))
             {

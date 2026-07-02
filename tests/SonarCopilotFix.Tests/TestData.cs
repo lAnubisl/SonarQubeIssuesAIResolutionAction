@@ -36,7 +36,8 @@ internal static class TestData
         string? gitHubToken = null,
         string? gitHubWorkspace = null,
         string? gitHubOutput = null,
-        string? gitHubStepSummary = null)
+        string? gitHubStepSummary = null,
+        IReadOnlyDictionary<string, string?>? safeEnvironmentVariables = null)
     {
         var systemConfiguration = new ConfigurationHelper();
         var configurationHelper = new Mock<IConfigurationHelper>(MockBehavior.Strict);
@@ -73,19 +74,9 @@ internal static class TestData
         configurationHelper.SetupGet(value => value.GitHubRepository).Returns("owner/repo");
         configurationHelper.SetupGet(value => value.GitHubOutput).Returns(gitHubOutput);
         configurationHelper.SetupGet(value => value.GitHubStepSummary).Returns(gitHubStepSummary);
-        configurationHelper.SetupGet(value => value.Path).Returns(systemConfiguration.Path);
-        configurationHelper.SetupGet(value => value.Home).Returns(systemConfiguration.Home);
-        configurationHelper.SetupGet(value => value.User).Returns(systemConfiguration.User);
-        configurationHelper.SetupGet(value => value.UserProfile).Returns(systemConfiguration.UserProfile);
-        configurationHelper.SetupGet(value => value.TmpDir).Returns(systemConfiguration.TmpDir);
-        configurationHelper.SetupGet(value => value.Temp).Returns(systemConfiguration.Temp);
-        configurationHelper.SetupGet(value => value.Tmp).Returns(systemConfiguration.Tmp);
-        configurationHelper.SetupGet(value => value.Ci).Returns(systemConfiguration.Ci);
-        configurationHelper.SetupGet(value => value.GitHubActions).Returns(systemConfiguration.GitHubActions);
-        configurationHelper.SetupGet(value => value.RunnerTemp).Returns(systemConfiguration.RunnerTemp);
-        configurationHelper.SetupGet(value => value.DotNetRoot).Returns(systemConfiguration.DotNetRoot);
-        configurationHelper.SetupGet(value => value.JavaHome).Returns(systemConfiguration.JavaHome);
-        configurationHelper.SetupGet(value => value.DotNetCliTelemetryOptOut).Returns(systemConfiguration.DotNetCliTelemetryOptOut);
+        configurationHelper
+            .SetupGet(value => value.SafeEnvironmentVariables)
+            .Returns(safeEnvironmentVariables ?? systemConfiguration.SafeEnvironmentVariables);
         return configurationHelper;
     }
 

@@ -10,10 +10,14 @@ internal sealed class CommandRunnerTests
     [Test]
     public static void TokenIsolationEnvironment()
     {
-        var configurationHelper = TestData.MockConfigurationHelper(sonarToken: "sonar-secret");
-        configurationHelper.SetupGet(value => value.Path).Returns("test-path");
-        configurationHelper.SetupGet(value => value.DotNetRoot).Returns("/opt/dotnet");
-        configurationHelper.SetupGet(value => value.JavaHome).Returns("/opt/java");
+        var configurationHelper = TestData.MockConfigurationHelper(
+            sonarToken: "sonar-secret",
+            safeEnvironmentVariables: new Dictionary<string, string?>
+            {
+                ["PATH"] = "test-path",
+                ["DOTNET_ROOT"] = "/opt/dotnet",
+                ["JAVA_HOME"] = "/opt/java"
+            });
         var commandRunner = new CommandRunner(TestData.MockLogger().Object, configurationHelper.Object);
 
         var safe = commandRunner.BuildSafeEnvironment(new Dictionary<string, string?> { ["GH_TOKEN"] = "github-secret" });

@@ -35,19 +35,23 @@ public sealed class ConfigurationHelper : IConfigurationHelper
     public string GitHubRepository => Trimmed(Get("GITHUB_REPOSITORY")) ?? "unknown/unknown";
     public string? GitHubOutput => Trimmed(Get("GITHUB_OUTPUT"));
     public string? GitHubStepSummary => Trimmed(Get("GITHUB_STEP_SUMMARY"));
-    public string? Path => Get("PATH");
-    public string? Home => Get("HOME");
-    public string? User => Get("USER");
-    public string? UserProfile => Get("USERPROFILE");
-    public string? TmpDir => Get("TMPDIR");
-    public string? Temp => Get("TEMP");
-    public string? Tmp => Get("TMP");
-    public string? Ci => Get("CI");
-    public string? GitHubActions => Get("GITHUB_ACTIONS");
-    public string? RunnerTemp => Get("RUNNER_TEMP");
-    public string? DotNetRoot => Get("DOTNET_ROOT");
-    public string? JavaHome => Get("JAVA_HOME");
-    public string DotNetCliTelemetryOptOut => Trimmed(Get("DOTNET_CLI_TELEMETRY_OPTOUT")) ?? "1";
+    public IReadOnlyDictionary<string, string?> SafeEnvironmentVariables => new Dictionary<string, string?>
+    {
+        ["PATH"] = Get("PATH"),
+        ["HOME"] = Get("HOME"),
+        ["USER"] = Get("USER"),
+        ["USERPROFILE"] = Get("USERPROFILE"),
+        ["TMPDIR"] = Get("TMPDIR"),
+        ["TEMP"] = Get("TEMP"),
+        ["TMP"] = Get("TMP"),
+        ["CI"] = Get("CI"),
+        ["GITHUB_ACTIONS"] = Get("GITHUB_ACTIONS"),
+        ["GITHUB_WORKSPACE"] = GitHubWorkspace,
+        ["RUNNER_TEMP"] = Get("RUNNER_TEMP"),
+        ["DOTNET_ROOT"] = Get("DOTNET_ROOT"),
+        ["JAVA_HOME"] = Get("JAVA_HOME"),
+        ["DOTNET_CLI_TELEMETRY_OPTOUT"] = Trimmed(Get("DOTNET_CLI_TELEMETRY_OPTOUT")) ?? "1"
+    };
 
     private static string? Get(string name) => Environment.GetEnvironmentVariable(name);
 
