@@ -82,44 +82,82 @@ inputs:
     description: Allow GITHUB_TOKEN fallback when GH_CLI_TOKEN is absent.
     required: false
     default: "false"
+  copilot_allowed_tools:
+    description: "Comma-separated Copilot CLI permission patterns to add alongside file writes. Example: shell(dotnet:*),shell(python:*)"
+    required: false
   copilot_allow_all_tools:
-    description: Allow unrestricted Copilot CLI tool execution. When false, only file writes are pre-approved.
+    description: Allow unrestricted Copilot CLI tool execution, overriding copilot_allowed_tools. When false, file writes and configured patterns are pre-approved.
     required: false
     default: "false"
 
 outputs:
   prompt_file:
     description: Path to the generated Copilot prompt file.
+    value: ${{ steps.run.outputs.prompt_file }}
   pull_request_url:
     description: URL of the created pull request, when one is created.
+    value: ${{ steps.run.outputs.pull_request_url }}
   selected_issue_count:
     description: Number of selected SonarQube issues.
+    value: ${{ steps.run.outputs.selected_issue_count }}
 
 runs:
-  using: docker
-  image: Dockerfile
-  env:
-    INPUT_SONAR_HOST_URL: ${{ inputs.sonar_host_url }}
-    INPUT_SONAR_PROJECT_KEY: ${{ inputs.sonar_project_key }}
-    INPUT_COMPONENTS: ${{ inputs.components }}
-    INPUT_SONAR_BRANCH: ${{ inputs.sonar_branch }}
-    INPUT_SONAR_ORGANIZATION: ${{ inputs.sonar_organization }}
-    INPUT_MAX_ISSUES: ${{ inputs.max_issues }}
-    INPUT_STATUSES: ${{ inputs.statuses }}
-    INPUT_SEVERITIES: ${{ inputs.severities }}
-    INPUT_IMPACT_SOFTWARE_QUALITIES: ${{ inputs.impactSoftwareQualities }}
-    INPUT_IMPACT_SEVERITIES: ${{ inputs.impactSeverities }}
-    INPUT_CLEAN_CODE_ATTRIBUTE_CATEGORIES: ${{ inputs.cleanCodeAttributeCategories }}
-    INPUT_RULES: ${{ inputs.rules }}
-    INPUT_INCLUDE_RULE_DETAILS: ${{ inputs.include_rule_details }}
-    INPUT_INCLUDE_CODE_SNIPPETS: ${{ inputs.include_code_snippets }}
-    INPUT_CODE_SNIPPET_CONTEXT_LINES: ${{ inputs.code_snippet_context_lines }}
-    INPUT_COPILOT_MODEL: ${{ inputs.copilot_model }}
-    INPUT_COPILOT_EXTRA_INSTRUCTIONS: ${{ inputs.copilot_extra_instructions }}
-    INPUT_BRANCH_PREFIX: ${{ inputs.branch_prefix }}
-    INPUT_BASE_BRANCH: ${{ inputs.base_branch }}
-    INPUT_PULL_REQUEST_DRAFT: ${{ inputs.pull_request_draft }}
-    INPUT_DRY_RUN: ${{ inputs.dry_run }}
-    INPUT_FAIL_IF_NO_ISSUES: ${{ inputs.fail_if_no_issues }}
-    INPUT_ALLOW_GITHUB_TOKEN_FALLBACK: ${{ inputs.allow_github_token_fallback }}
-    INPUT_COPILOT_ALLOW_ALL_TOOLS: ${{ inputs.copilot_allow_all_tools }}
+  using: composite
+  steps:
+    - name: Set up .NET for the action
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Install GitHub Copilot CLI
+      shell: bash
+      env:
+        COPILOT_CLI_VERSION: v1.0.65
+      run: |
+        set -euo pipefail
+        install_root="${RUNNER_TEMP}/sonar-copilot-fix/copilot/${COPILOT_CLI_VERSION}"
+        if [[ ! -x "${install_root}/bin/copilot" ]]; then
+          mkdir -p "${install_root}"
+          curl -fsSL https://gh.io/copilot-install \
+            | VERSION="${COPILOT_CLI_VERSION}" PREFIX="${install_root}" bash
+        fi
+        "${install_root}/bin/copilot" version
+        echo "${install_root}/bin" >> "${GITHUB_PATH}"
+
+    - name: Run SonarQube Copilot Fix
+      id: run
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        INPUT_SONAR_HOST_URL: ${{ inputs.sonar_host_url }}
+        INPUT_SONAR_PROJECT_KEY: ${{ inputs.sonar_project_key }}
+        INPUT_COMPONENTS: ${{ inputs.components }}
+        INPUT_SONAR_BRANCH: ${{ inputs.sonar_branch }}
+        INPUT_SONAR_ORGANIZATION: ${{ inputs.sonar_organization }}
+        INPUT_MAX_ISSUES: ${{ inputs.max_issues }}
+        INPUT_STATUSES: ${{ inputs.statuses }}
+        INPUT_SEVERITIES: ${{ inputs.severities }}
+        INPUT_IMPACT_SOFTWARE_QUALITIES: ${{ inputs.impactSoftwareQualities }}
+        INPUT_IMPACT_SEVERITIES: ${{ inputs.impactSeverities }}
+        INPUT_CLEAN_CODE_ATTRIBUTE_CATEGORIES: ${{ inputs.cleanCodeAttributeCategories }}
+        INPUT_RULES: ${{ inputs.rules }}
+        INPUT_INCLUDE_RULE_DETAILS: ${{ inputs.include_rule_details }}
+        INPUT_INCLUDE_CODE_SNIPPETS: ${{ inputs.include_code_snippets }}
+        INPUT_CODE_SNIPPET_CONTEXT_LINES: ${{ inputs.code_snippet_context_lines }}
+        INPUT_COPILOT_MODEL: ${{ inputs.copilot_model }}
+        INPUT_COPILOT_EXTRA_INSTRUCTIONS: ${{ inputs.copilot_extra_instructions }}
+        INPUT_BRANCH_PREFIX: ${{ inputs.branch_prefix }}
+        INPUT_BASE_BRANCH: ${{ inputs.base_branch }}
+        INPUT_PULL_REQUEST_DRAFT: ${{ inputs.pull_request_draft }}
+        INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        INPUT_FAIL_IF_NO_ISSUES: ${{ inputs.fail_if_no_issues }}
+        INPUT_ALLOW_GITHUB_TOKEN_FALLBACK: ${{ inputs.allow_github_token_fallback }}
+        INPUT_COPILOT_ALLOWED_TOOLS: ${{ inputs.copilot_allowed_tools }}
+        INPUT_COPILOT_ALLOW_ALL_TOOLS: ${{ inputs.copilot_allow_all_tools }}
+      run: |
+        set -euo pipefail
+        cd "${ACTION_PATH}"
+        dotnet run \
+          --project src/SonarCopilotFix/SonarCopilotFix.csproj \
+          --configuration Release \
+          --no-launch-profile
