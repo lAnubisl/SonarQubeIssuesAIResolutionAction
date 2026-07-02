@@ -15,8 +15,7 @@ public sealed class GitHubCliService(
             ["auth", "setup-git"],
             configurationHelper.GitHubWorkspace,
             env,
-            cancellationToken,
-            logCommandDetails: true);
+            cancellationToken: cancellationToken);
         if (result.ExitCode != 0)
         {
             throw new ControlledFailureException("GitHub CLI failed to configure git authentication.", ExitCodes.GitHubCliFailure);
@@ -49,8 +48,7 @@ public sealed class GitHubCliService(
             args,
             configurationHelper.GitHubWorkspace,
             env,
-            cancellationToken,
-            logCommandDetails: true);
+            cancellationToken: cancellationToken);
         if (result.ExitCode != 0)
         {
             throw new ControlledFailureException("GitHub CLI failed to create a pull request.", ExitCodes.GitHubCliFailure);

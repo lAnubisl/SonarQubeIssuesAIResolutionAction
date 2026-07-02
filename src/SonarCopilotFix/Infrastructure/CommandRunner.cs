@@ -11,10 +11,9 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
         IEnumerable<string> arguments,
         string workingDirectory,
         IReadOnlyDictionary<string, string?>? scopedEnvironment = null,
-        CancellationToken cancellationToken = default,
         Action<string>? standardOutputReceived = null,
         Action<string>? standardErrorReceived = null,
-        bool logCommandDetails = false)
+        CancellationToken cancellationToken = default)
     {
         var psi = CreateBaseProcess(fileName, workingDirectory, scopedEnvironment);
         foreach (var argument in arguments)
@@ -22,7 +21,7 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
             psi.ArgumentList.Add(argument);
         }
 
-        return await RunProcessAsync(psi, cancellationToken, standardOutputReceived, standardErrorReceived, logCommandDetails);
+        return await RunProcessAsync(psi, standardOutputReceived, standardErrorReceived, cancellationToken);
     }
 
     public async Task<CommandResult> RunShellAsync(
@@ -35,7 +34,7 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
         var shellArgs = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
             ? new[] { "/d", "/s", "/c", command }
             : new[] { "-c", command };
-        return await RunAsync(shell, shellArgs, workingDirectory, scopedEnvironment, cancellationToken);
+        return await RunAsync(shell, shellArgs, workingDirectory, scopedEnvironment, cancellationToken: cancellationToken);
     }
 
     private ProcessStartInfo CreateBaseProcess(string fileName, string workingDirectory, IReadOnlyDictionary<string, string?>? scopedEnvironment)
@@ -85,44 +84,17 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
 
     private async Task<CommandResult> RunProcessAsync(
         ProcessStartInfo psi,
-        CancellationToken cancellationToken,
         Action<string>? standardOutputReceived,
         Action<string>? standardErrorReceived,
-        bool logCommandDetails)
+        CancellationToken cancellationToken)
     {
         using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
         var stdout = new StringBuilder();
         var stderr = new StringBuilder();
-        process.OutputDataReceived += (_, args) =>
-        {
-            if (args.Data is not null)
-            {
-                stdout.AppendLine(args.Data);
-                if (logCommandDetails)
-                {
-                    logger.Info($"[{psi.FileName} stdout] {args.Data}");
-                }
+        process.OutputDataReceived += (_, args) => HandleOutputData(args, stdout, standardOutputReceived);
+        process.ErrorDataReceived += (_, args) => HandleErrorData(args, stderr, standardErrorReceived);
 
-                standardOutputReceived?.Invoke(args.Data);
-            }
-        };
-        process.ErrorDataReceived += (_, args) =>
-        {
-            if (args.Data is not null)
-            {
-                stderr.AppendLine(args.Data);
-                if (logCommandDetails)
-                {
-                    logger.Info($"[{psi.FileName} stderr] {args.Data}");
-                }
-
-                standardErrorReceived?.Invoke(args.Data);
-            }
-        };
-
-        logger.Info(logCommandDetails
-            ? $"Starting command: {FormatCommand(psi)}"
-            : $"Starting command '{psi.FileName}'.");
+        LogStartingCommand(psi);
         if (!process.Start())
         {
             throw new InvalidOperationException($"Failed to start command '{psi.FileName}'.");
@@ -131,22 +103,37 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
         await process.WaitForExitAsync(cancellationToken);
-        if (logCommandDetails)
-        {
-            if (stdout.Length == 0)
-            {
-                logger.Info($"[{psi.FileName} stdout] <empty>");
-            }
-
-            if (stderr.Length == 0)
-            {
-                logger.Info($"[{psi.FileName} stderr] <empty>");
-            }
-
-            logger.Info($"Command '{psi.FileName}' exited with code {process.ExitCode}.");
-        }
+        LogCompletedCommand(psi, process.ExitCode);
 
         return new CommandResult(process.ExitCode, stdout.ToString(), stderr.ToString());
+    }
+
+    private void HandleOutputData(DataReceivedEventArgs args, StringBuilder stdout, Action<string>? standardOutputReceived)
+    {
+        if (args.Data is not null)
+        {
+            stdout.AppendLine(args.Data);
+            standardOutputReceived?.Invoke(args.Data);
+        }
+    }
+
+    private void HandleErrorData(DataReceivedEventArgs args, StringBuilder stderr, Action<string>? standardErrorReceived)
+    {
+        if (args.Data is not null)
+        {
+            stderr.AppendLine(args.Data);
+            standardErrorReceived?.Invoke(args.Data);
+        }
+    }
+
+    private void LogStartingCommand(ProcessStartInfo psi)
+    {
+        logger.Info($"Starting command '{psi.FileName}'.");
+    }
+
+    private void LogCompletedCommand(ProcessStartInfo psi, int exitCode)
+    {
+        logger.Info($"Command '{psi.FileName}' exited with code {exitCode}.");
     }
 
     private static string FormatCommand(ProcessStartInfo psi)

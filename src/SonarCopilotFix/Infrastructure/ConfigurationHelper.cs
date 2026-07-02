@@ -57,14 +57,22 @@ public sealed class ConfigurationHelper : IConfigurationHelper
     private static string? Trimmed(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    private static bool Bool(string? value, bool fallback) =>
-        value is null
-            ? fallback
-            : bool.TryParse(value, out var result)
-                ? result
-                : throw new ControlledFailureException(
-                    $"Invalid boolean value '{value}'.",
-                    ExitCodes.ConfigurationError);
+    private static bool Bool(string? value, bool fallback)
+    {
+        if (value is null)
+        {
+            return fallback;
+        }
+
+        if (bool.TryParse(value, out var result))
+        {
+            return result;
+        }
+
+        throw new ControlledFailureException(
+            $"Invalid boolean value '{value}'.",
+            ExitCodes.ConfigurationError);
+    }
 
     private static int PositiveInt(string? value, int fallback)
     {
@@ -80,7 +88,7 @@ public sealed class ConfigurationHelper : IConfigurationHelper
                 ExitCodes.ConfigurationError);
     }
 
-    private static IReadOnlyList<string> Csv(string? value) =>
+    private static string[] Csv(string? value) =>
         string.IsNullOrWhiteSpace(value)
             ? []
             : value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)

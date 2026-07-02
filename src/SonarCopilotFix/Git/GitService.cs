@@ -20,7 +20,7 @@ public sealed partial class GitService(ICommandRunner commandRunner, IConfigurat
         }
 
         var remote = await RunGitAsync(["remote", "show", "origin"], cancellationToken: cancellationToken);
-        var match = Regex.Match(remote.StandardOutput, @"HEAD branch:\s*(?<branch>\S+)");
+        var match = HeadBranchRegex().Match(remote.StandardOutput);
         return match.Success ? match.Groups["branch"].Value : "main";
     }
 
@@ -90,8 +90,7 @@ public sealed partial class GitService(ICommandRunner commandRunner, IConfigurat
             ["-c", $"safe.directory={Path.GetFullPath(configurationHelper.GitHubWorkspace)}", .. arguments],
             configurationHelper.GitHubWorkspace,
             scopedEnvironment,
-            cancellationToken,
-            logCommandDetails: true);
+            cancellationToken: cancellationToken);
     }
 
     private static string ParseStatusPath(string statusLine)
@@ -128,6 +127,9 @@ public sealed partial class GitService(ICommandRunner commandRunner, IConfigurat
 
         return new ControlledFailureException(message, exitCode);
     }
+
+    [GeneratedRegex(@"HEAD branch:\s*(?<branch>\S+)")]
+    private static partial Regex HeadBranchRegex();
 
     [GeneratedRegex(@"[^A-Za-z0-9._/-]+")]
     private static partial Regex UnsafeBranchChars();
