@@ -1,0 +1,61 @@
+name: 'SonarQube Cloud'
+on:
+  schedule:
+    - cron: '0 0 * * 5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: '10.0.x' # set this to the dotnet version to use
+
+jobs:
+  sonarqube:
+    name: 'SonarQube Cloud'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@v6
+
+      - name: 'Setup DotNet ${{ env.DOTNET_VERSION }} Environment'
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: 'Install dotnet-sonarscanner'
+        run: |
+          dotnet tool install --global dotnet-sonarscanner
+ 
+      - name: 'Install dotnet-coverage'
+        run: |
+          dotnet tool install --global dotnet-coverage
+      
+      - name: 'SonarCloud Begin'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          dotnet sonarscanner begin \
+            /k:"lAnubisl_SonarQubeIssuesAIResolutionAction" \
+            /o:"lanubisl" \
+            /d:sonar.login="$SONAR_TOKEN" \
+            /d:sonar.host.url="https://sonarcloud.io" \
+            /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml \
+            /d:sonar.exclusions=""
+
+      - name: 'Restore Solution Dependencies'
+        run: |
+          dotnet restore
+          
+      - name: 'Build Solution'
+        run: |
+          dotnet build --configuration Release --no-restore
+
+      - name: 'Run Unit Tests'
+        run: |
+          dotnet-coverage collect 'dotnet test --configuration Release --no-build --no-restore' -f xml -o 'coverage.xml'
+
+      - name: 'SonarCloud End'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN"
