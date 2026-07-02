@@ -74,7 +74,7 @@ public sealed partial class GitService(ICommandRunner commandRunner, IConfigurat
 
     public async Task PushBranchAsync(string branchName, CancellationToken cancellationToken)
     {
-        var env = new Dictionary<string, string?> { ["GH_TOKEN"] = configurationHelper.GetEffectiveGitHubToken() };
+        var env = new Dictionary<string, string?> { ["GH_TOKEN"] = configurationHelper.GetGitHubToken() };
         await EnsureSuccess("push generated branch", RunGitAsync(["push", "--set-upstream", "origin", branchName], env, cancellationToken), ExitCodes.GitFailure);
     }
 
@@ -83,8 +83,8 @@ public sealed partial class GitService(ICommandRunner commandRunner, IConfigurat
         IReadOnlyDictionary<string, string?>? scopedEnvironment = null,
         CancellationToken cancellationToken = default)
     {
-        // Docker actions access a host-owned bind mount. Mark only this workspace as
-        // safe for this invocation so Git's ownership check does not reject it.
+        // Scope Git's ownership exception to the checked-out workspace. This also
+        // keeps the action compatible with stricter self-hosted runner setups.
         return commandRunner.RunAsync(
             "git",
             ["-c", $"safe.directory={Path.GetFullPath(configurationHelper.GitHubWorkspace)}", .. arguments],

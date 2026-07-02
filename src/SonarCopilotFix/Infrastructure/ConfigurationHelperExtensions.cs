@@ -21,13 +21,9 @@ public static class ConfigurationHelperExtensions
             "SONAR_TOKEN is required.",
             ExitCodes.ConfigurationError);
 
-    public static string GetEffectiveGitHubToken(this IConfigurationHelper configurationHelper) =>
-        !string.IsNullOrWhiteSpace(configurationHelper.GhCliToken)
-            ? configurationHelper.GhCliToken
-            : configurationHelper.InputAllowGitHubTokenFallback
-                && !string.IsNullOrWhiteSpace(configurationHelper.GitHubToken)
-                    ? configurationHelper.GitHubToken
-                    : throw new ControlledFailureException(
-                        "No GitHub CLI token is available.",
-                        ExitCodes.ConfigurationError);
+    public static string GetGitHubToken(this IConfigurationHelper configurationHelper) =>
+        configurationHelper.GhCliToken
+        ?? throw new ControlledFailureException(
+            "GH_CLI_TOKEN is required.",
+            ExitCodes.ConfigurationError);
 }

@@ -19,9 +19,7 @@ public static class ConfigurationValidator
             ?? throw new ControlledFailureException("SONAR_TOKEN is required.", ExitCodes.ConfigurationError);
 
         var dryRun = configurationHelper.InputDryRun;
-        var allowFallback = configurationHelper.InputAllowGitHubTokenFallback;
         var ghCliToken = configurationHelper.GhCliToken;
-        var githubToken = configurationHelper.GitHubToken;
         var copilotToken = configurationHelper.CopilotCliToken;
 
         if (!dryRun && string.IsNullOrWhiteSpace(copilotToken))
@@ -29,9 +27,9 @@ public static class ConfigurationValidator
             throw new ControlledFailureException("COPILOT_CLI_TOKEN is required outside dry_run mode.", ExitCodes.ConfigurationError);
         }
 
-        if (!dryRun && string.IsNullOrWhiteSpace(ghCliToken) && !(allowFallback && !string.IsNullOrWhiteSpace(githubToken)))
+        if (!dryRun && string.IsNullOrWhiteSpace(ghCliToken))
         {
-            throw new ControlledFailureException("GH_CLI_TOKEN is required outside dry_run mode unless allow_github_token_fallback is true and GITHUB_TOKEN is available.", ExitCodes.ConfigurationError);
+            throw new ControlledFailureException("GH_CLI_TOKEN is required outside dry_run mode.", ExitCodes.ConfigurationError);
         }
     }
 }

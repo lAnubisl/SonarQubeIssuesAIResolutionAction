@@ -27,15 +27,16 @@ internal static class TestData
         bool inputIncludeCodeSnippets = true,
         int inputCodeSnippetContextLines = 20,
         string? inputCopilotModel = null,
+        IReadOnlyList<string>? inputCopilotAllowedTools = null,
         bool inputCopilotAllowAllTools = false,
         bool inputDryRun = true,
         string? sonarToken = "sonar",
         string? copilotCliToken = null,
         string? ghCliToken = null,
-        string? gitHubToken = null,
         string? gitHubWorkspace = null,
         string? gitHubOutput = null,
-        string? gitHubStepSummary = null)
+        string? gitHubStepSummary = null,
+        IReadOnlyDictionary<string, string?>? safeEnvironmentVariables = null)
     {
         var systemConfiguration = new ConfigurationHelper();
         var configurationHelper = new Mock<IConfigurationHelper>(MockBehavior.Strict);
@@ -61,28 +62,18 @@ internal static class TestData
         configurationHelper.SetupGet(value => value.InputPullRequestDraft).Returns(true);
         configurationHelper.SetupGet(value => value.InputDryRun).Returns(inputDryRun);
         configurationHelper.SetupGet(value => value.InputFailIfNoIssues).Returns(false);
-        configurationHelper.SetupGet(value => value.InputAllowGitHubTokenFallback).Returns(false);
+        configurationHelper.SetupGet(value => value.InputCopilotAllowedTools).Returns(inputCopilotAllowedTools ?? []);
         configurationHelper.SetupGet(value => value.InputCopilotAllowAllTools).Returns(inputCopilotAllowAllTools);
         configurationHelper.SetupGet(value => value.SonarToken).Returns(sonarToken);
         configurationHelper.SetupGet(value => value.CopilotCliToken).Returns(copilotCliToken);
         configurationHelper.SetupGet(value => value.GhCliToken).Returns(ghCliToken);
-        configurationHelper.SetupGet(value => value.GitHubToken).Returns(gitHubToken);
         configurationHelper.SetupGet(value => value.GitHubWorkspace).Returns(gitHubWorkspace ?? Directory.GetCurrentDirectory());
         configurationHelper.SetupGet(value => value.GitHubRepository).Returns("owner/repo");
         configurationHelper.SetupGet(value => value.GitHubOutput).Returns(gitHubOutput);
         configurationHelper.SetupGet(value => value.GitHubStepSummary).Returns(gitHubStepSummary);
-        configurationHelper.SetupGet(value => value.Path).Returns(systemConfiguration.Path);
-        configurationHelper.SetupGet(value => value.Home).Returns(systemConfiguration.Home);
-        configurationHelper.SetupGet(value => value.User).Returns(systemConfiguration.User);
-        configurationHelper.SetupGet(value => value.UserProfile).Returns(systemConfiguration.UserProfile);
-        configurationHelper.SetupGet(value => value.TmpDir).Returns(systemConfiguration.TmpDir);
-        configurationHelper.SetupGet(value => value.Temp).Returns(systemConfiguration.Temp);
-        configurationHelper.SetupGet(value => value.Tmp).Returns(systemConfiguration.Tmp);
-        configurationHelper.SetupGet(value => value.Ci).Returns(systemConfiguration.Ci);
-        configurationHelper.SetupGet(value => value.GitHubActions).Returns(systemConfiguration.GitHubActions);
-        configurationHelper.SetupGet(value => value.RunnerTemp).Returns(systemConfiguration.RunnerTemp);
-        configurationHelper.SetupGet(value => value.DotNetRoot).Returns(systemConfiguration.DotNetRoot);
-        configurationHelper.SetupGet(value => value.DotNetCliTelemetryOptOut).Returns(systemConfiguration.DotNetCliTelemetryOptOut);
+        configurationHelper
+            .SetupGet(value => value.SafeEnvironmentVariables)
+            .Returns(safeEnvironmentVariables ?? systemConfiguration.SafeEnvironmentVariables);
         return configurationHelper;
     }
 

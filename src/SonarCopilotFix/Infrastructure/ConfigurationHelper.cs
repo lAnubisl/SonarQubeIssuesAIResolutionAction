@@ -24,28 +24,32 @@ public sealed class ConfigurationHelper : IConfigurationHelper
     public bool InputPullRequestDraft => Bool(Get("INPUT_PULL_REQUEST_DRAFT"), true);
     public bool InputDryRun => Bool(Get("INPUT_DRY_RUN"), false);
     public bool InputFailIfNoIssues => Bool(Get("INPUT_FAIL_IF_NO_ISSUES"), false);
-    public bool InputAllowGitHubTokenFallback => Bool(Get("INPUT_ALLOW_GITHUB_TOKEN_FALLBACK"), false);
+    public IReadOnlyList<string> InputCopilotAllowedTools => Csv(Get("INPUT_COPILOT_ALLOWED_TOOLS"));
     public bool InputCopilotAllowAllTools => Bool(Get("INPUT_COPILOT_ALLOW_ALL_TOOLS"), false);
     public string? SonarToken => Trimmed(Get("SONAR_TOKEN"));
     public string? CopilotCliToken => Trimmed(Get("COPILOT_CLI_TOKEN"));
     public string? GhCliToken => Trimmed(Get("GH_CLI_TOKEN"));
-    public string? GitHubToken => Trimmed(Get("GITHUB_TOKEN"));
     public string GitHubWorkspace => Trimmed(Get("GITHUB_WORKSPACE")) ?? Directory.GetCurrentDirectory();
     public string GitHubRepository => Trimmed(Get("GITHUB_REPOSITORY")) ?? "unknown/unknown";
     public string? GitHubOutput => Trimmed(Get("GITHUB_OUTPUT"));
     public string? GitHubStepSummary => Trimmed(Get("GITHUB_STEP_SUMMARY"));
-    public string? Path => Get("PATH");
-    public string? Home => Get("HOME");
-    public string? User => Get("USER");
-    public string? UserProfile => Get("USERPROFILE");
-    public string? TmpDir => Get("TMPDIR");
-    public string? Temp => Get("TEMP");
-    public string? Tmp => Get("TMP");
-    public string? Ci => Get("CI");
-    public string? GitHubActions => Get("GITHUB_ACTIONS");
-    public string? RunnerTemp => Get("RUNNER_TEMP");
-    public string? DotNetRoot => Get("DOTNET_ROOT");
-    public string DotNetCliTelemetryOptOut => Trimmed(Get("DOTNET_CLI_TELEMETRY_OPTOUT")) ?? "1";
+    public IReadOnlyDictionary<string, string?> SafeEnvironmentVariables => new Dictionary<string, string?>
+    {
+        ["PATH"] = Get("PATH"),
+        ["HOME"] = Get("HOME"),
+        ["USER"] = Get("USER"),
+        ["USERPROFILE"] = Get("USERPROFILE"),
+        ["TMPDIR"] = Get("TMPDIR"),
+        ["TEMP"] = Get("TEMP"),
+        ["TMP"] = Get("TMP"),
+        ["CI"] = Get("CI"),
+        ["GITHUB_ACTIONS"] = Get("GITHUB_ACTIONS"),
+        ["GITHUB_WORKSPACE"] = GitHubWorkspace,
+        ["RUNNER_TEMP"] = Get("RUNNER_TEMP"),
+        ["DOTNET_ROOT"] = Get("DOTNET_ROOT"),
+        ["JAVA_HOME"] = Get("JAVA_HOME"),
+        ["DOTNET_CLI_TELEMETRY_OPTOUT"] = Trimmed(Get("DOTNET_CLI_TELEMETRY_OPTOUT")) ?? "1"
+    };
 
     private static string? Get(string name) => Environment.GetEnvironmentVariable(name);
 

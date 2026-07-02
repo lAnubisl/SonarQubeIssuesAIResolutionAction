@@ -8,8 +8,7 @@ public static class SecretMasker
         {
             configurationHelper.SonarToken,
             configurationHelper.CopilotCliToken,
-            configurationHelper.GhCliToken,
-            configurationHelper.GitHubToken
+            configurationHelper.GhCliToken
         };
         foreach (var value in secrets)
         {

@@ -63,12 +63,11 @@ public sealed class GitHubCliService(
 
     public static IReadOnlyDictionary<string, string?> BuildEnvironment(IConfigurationHelper configurationHelper)
     {
-        // gh invokes git while creating a pull request. Docker actions operate on
-        // a host-owned bind mount, so pass command-scoped Git configuration that
-        // is inherited by gh's child processes without changing global config.
+        // gh invokes git while creating a pull request. Pass command-scoped Git
+        // configuration to its child processes without changing global config.
         return new Dictionary<string, string?>
         {
-            ["GH_TOKEN"] = configurationHelper.GetEffectiveGitHubToken(),
+            ["GH_TOKEN"] = configurationHelper.GetGitHubToken(),
             ["GIT_CONFIG_COUNT"] = "1",
             ["GIT_CONFIG_KEY_0"] = "safe.directory",
             ["GIT_CONFIG_VALUE_0"] = Path.GetFullPath(configurationHelper.GitHubWorkspace)

@@ -10,13 +10,22 @@ internal sealed class CommandRunnerTests
     [Test]
     public static void TokenIsolationEnvironment()
     {
-        var configurationHelper = TestData.MockConfigurationHelper(sonarToken: "sonar-secret");
-        configurationHelper.SetupGet(value => value.Path).Returns("test-path");
+        var configurationHelper = TestData.MockConfigurationHelper(
+            sonarToken: "sonar-secret",
+            safeEnvironmentVariables: new Dictionary<string, string?>
+            {
+                ["PATH"] = "test-path",
+                ["DOTNET_ROOT"] = "/opt/dotnet",
+                ["JAVA_HOME"] = "/opt/java"
+            });
         var commandRunner = new CommandRunner(TestData.MockLogger().Object, configurationHelper.Object);
 
         var safe = commandRunner.BuildSafeEnvironment(new Dictionary<string, string?> { ["GH_TOKEN"] = "github-secret" });
 
         Assert.True(safe.ContainsKey("GH_TOKEN"));
+        Assert.Equal("test-path", safe["PATH"]);
+        Assert.Equal("/opt/dotnet", safe["DOTNET_ROOT"]);
+        Assert.Equal("/opt/java", safe["JAVA_HOME"]);
         Assert.False(safe.ContainsKey("SONAR_TOKEN"));
         Assert.False(safe.ContainsKey("COPILOT_CLI_TOKEN"));
     }
