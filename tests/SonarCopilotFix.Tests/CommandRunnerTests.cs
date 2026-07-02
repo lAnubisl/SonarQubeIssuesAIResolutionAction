@@ -12,11 +12,16 @@ internal sealed class CommandRunnerTests
     {
         var configurationHelper = TestData.MockConfigurationHelper(sonarToken: "sonar-secret");
         configurationHelper.SetupGet(value => value.Path).Returns("test-path");
+        configurationHelper.SetupGet(value => value.DotNetRoot).Returns("/opt/dotnet");
+        configurationHelper.SetupGet(value => value.JavaHome).Returns("/opt/java");
         var commandRunner = new CommandRunner(TestData.MockLogger().Object, configurationHelper.Object);
 
         var safe = commandRunner.BuildSafeEnvironment(new Dictionary<string, string?> { ["GH_TOKEN"] = "github-secret" });
 
         Assert.True(safe.ContainsKey("GH_TOKEN"));
+        Assert.Equal("test-path", safe["PATH"]);
+        Assert.Equal("/opt/dotnet", safe["DOTNET_ROOT"]);
+        Assert.Equal("/opt/java", safe["JAVA_HOME"]);
         Assert.False(safe.ContainsKey("SONAR_TOKEN"));
         Assert.False(safe.ContainsKey("COPILOT_CLI_TOKEN"));
     }

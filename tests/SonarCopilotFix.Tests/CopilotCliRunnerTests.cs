@@ -8,7 +8,7 @@ namespace SonarCopilotFix.Tests;
 internal sealed class CopilotCliRunnerTests
 {
     [Test]
-    public static void CopilotCliArguments()
+    public static void DefaultCopilotCliArguments()
     {
         var restricted = CopilotCliRunner.BuildArguments(
             TestData.MockConfigurationHelper(inputCopilotModel: "gpt-5.2").Object,
@@ -16,11 +16,40 @@ internal sealed class CopilotCliRunnerTests
         CollectionAssert.AreEqual(
             ["--prompt", "Fix the selected issue.", "--no-ask-user", "--no-color", "--model", "gpt-5.2", "--allow-tool=write"],
             restricted);
+    }
 
+    [Test]
+    public static void RestrictedCopilotCliArguments()
+    {
+        var restricted = CopilotCliRunner.BuildArguments(
+            TestData.MockConfigurationHelper(
+                inputCopilotAllowedTools: ["shell(dotnet:*)", "shell(python:*)"]).Object,
+            "Fix it.");
+
+        Assert.True(restricted.Contains("--allow-tool=write,shell(dotnet:*),shell(python:*)"));
+        Assert.False(restricted.Contains("--allow-all-tools"));
+    }
+
+    [Test]
+    public static void AllowAllCopilotCliArguments()
+    {
         var unrestricted = CopilotCliRunner.BuildArguments(
-            TestData.MockConfigurationHelper(inputCopilotAllowAllTools: true).Object,
+            TestData.MockConfigurationHelper(
+                inputCopilotAllowedTools: ["shell(dotnet:*)"],
+                inputCopilotAllowAllTools: true).Object,
             "Fix it.");
         Assert.True(unrestricted.Contains("--allow-all-tools"));
-        Assert.False(unrestricted.Contains("--allow-tool=write"));
+        Assert.False(unrestricted.Any(argument => argument.StartsWith("--allow-tool=", StringComparison.Ordinal)));
+    }
+
+    [Test]
+    public static void MalformedCopilotToolPattern()
+    {
+        var exception = Assert.Throws<ControlledFailureException>(() =>
+            CopilotCliRunner.BuildArguments(
+                TestData.MockConfigurationHelper(inputCopilotAllowedTools: ["shell(dotnet:*"]).Object,
+                "Fix it."));
+
+        Assert.Equal(ExitCodes.ConfigurationError, exception.ExitCode);
     }
 }

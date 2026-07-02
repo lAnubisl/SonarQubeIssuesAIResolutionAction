@@ -27,6 +27,7 @@ internal static class TestData
         bool inputIncludeCodeSnippets = true,
         int inputCodeSnippetContextLines = 20,
         string? inputCopilotModel = null,
+        IReadOnlyList<string>? inputCopilotAllowedTools = null,
         bool inputCopilotAllowAllTools = false,
         bool inputDryRun = true,
         string? sonarToken = "sonar",
@@ -62,6 +63,7 @@ internal static class TestData
         configurationHelper.SetupGet(value => value.InputDryRun).Returns(inputDryRun);
         configurationHelper.SetupGet(value => value.InputFailIfNoIssues).Returns(false);
         configurationHelper.SetupGet(value => value.InputAllowGitHubTokenFallback).Returns(false);
+        configurationHelper.SetupGet(value => value.InputCopilotAllowedTools).Returns(inputCopilotAllowedTools ?? []);
         configurationHelper.SetupGet(value => value.InputCopilotAllowAllTools).Returns(inputCopilotAllowAllTools);
         configurationHelper.SetupGet(value => value.SonarToken).Returns(sonarToken);
         configurationHelper.SetupGet(value => value.CopilotCliToken).Returns(copilotCliToken);
@@ -82,6 +84,7 @@ internal static class TestData
         configurationHelper.SetupGet(value => value.GitHubActions).Returns(systemConfiguration.GitHubActions);
         configurationHelper.SetupGet(value => value.RunnerTemp).Returns(systemConfiguration.RunnerTemp);
         configurationHelper.SetupGet(value => value.DotNetRoot).Returns(systemConfiguration.DotNetRoot);
+        configurationHelper.SetupGet(value => value.JavaHome).Returns(systemConfiguration.JavaHome);
         configurationHelper.SetupGet(value => value.DotNetCliTelemetryOptOut).Returns(systemConfiguration.DotNetCliTelemetryOptOut);
         return configurationHelper;
     }

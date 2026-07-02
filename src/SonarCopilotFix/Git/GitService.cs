@@ -83,8 +83,8 @@ public sealed partial class GitService(ICommandRunner commandRunner, IConfigurat
         IReadOnlyDictionary<string, string?>? scopedEnvironment = null,
         CancellationToken cancellationToken = default)
     {
-        // Docker actions access a host-owned bind mount. Mark only this workspace as
-        // safe for this invocation so Git's ownership check does not reject it.
+        // Scope Git's ownership exception to the checked-out workspace. This also
+        // keeps the action compatible with stricter self-hosted runner setups.
         return commandRunner.RunAsync(
             "git",
             ["-c", $"safe.directory={Path.GetFullPath(configurationHelper.GitHubWorkspace)}", .. arguments],

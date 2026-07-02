@@ -25,6 +25,7 @@ public sealed class ConfigurationHelper : IConfigurationHelper
     public bool InputDryRun => Bool(Get("INPUT_DRY_RUN"), false);
     public bool InputFailIfNoIssues => Bool(Get("INPUT_FAIL_IF_NO_ISSUES"), false);
     public bool InputAllowGitHubTokenFallback => Bool(Get("INPUT_ALLOW_GITHUB_TOKEN_FALLBACK"), false);
+    public IReadOnlyList<string> InputCopilotAllowedTools => Csv(Get("INPUT_COPILOT_ALLOWED_TOOLS"));
     public bool InputCopilotAllowAllTools => Bool(Get("INPUT_COPILOT_ALLOW_ALL_TOOLS"), false);
     public string? SonarToken => Trimmed(Get("SONAR_TOKEN"));
     public string? CopilotCliToken => Trimmed(Get("COPILOT_CLI_TOKEN"));
@@ -45,6 +46,7 @@ public sealed class ConfigurationHelper : IConfigurationHelper
     public string? GitHubActions => Get("GITHUB_ACTIONS");
     public string? RunnerTemp => Get("RUNNER_TEMP");
     public string? DotNetRoot => Get("DOTNET_ROOT");
+    public string? JavaHome => Get("JAVA_HOME");
     public string DotNetCliTelemetryOptOut => Trimmed(Get("DOTNET_CLI_TELEMETRY_OPTOUT")) ?? "1";
 
     private static string? Get(string name) => Environment.GetEnvironmentVariable(name);

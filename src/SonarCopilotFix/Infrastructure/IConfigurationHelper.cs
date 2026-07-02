@@ -25,6 +25,7 @@ public interface IConfigurationHelper
     bool InputDryRun { get; }
     bool InputFailIfNoIssues { get; }
     bool InputAllowGitHubTokenFallback { get; }
+    IReadOnlyList<string> InputCopilotAllowedTools { get; }
     bool InputCopilotAllowAllTools { get; }
     string? SonarToken { get; }
     string? CopilotCliToken { get; }
@@ -50,5 +51,6 @@ public interface IConfigurationHelper
     string? GitHubActions { get; }
     string? RunnerTemp { get; }
     string? DotNetRoot { get; }
+    string? JavaHome { get; }
     string DotNetCliTelemetryOptOut { get; }
 }

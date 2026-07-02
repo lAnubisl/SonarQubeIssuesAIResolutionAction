@@ -74,6 +74,7 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
             ["GITHUB_WORKSPACE"] = configurationHelper.GitHubWorkspace,
             ["RUNNER_TEMP"] = configurationHelper.RunnerTemp,
             ["DOTNET_ROOT"] = configurationHelper.DotNetRoot,
+            ["JAVA_HOME"] = configurationHelper.JavaHome,
             ["DOTNET_CLI_TELEMETRY_OPTOUT"] = configurationHelper.DotNetCliTelemetryOptOut
         };
         var result = new Dictionary<string, string>(StringComparer.Ordinal);

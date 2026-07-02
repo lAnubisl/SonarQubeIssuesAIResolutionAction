@@ -116,9 +116,35 @@ public sealed class CopilotCliRunner(
         }
         else
         {
-            args.Add("--allow-tool=write");
+            var allowedTools = configurationHelper.InputCopilotAllowedTools;
+            foreach (var pattern in allowedTools)
+            {
+                ValidateToolPattern(pattern);
+            }
+
+            args.Add($"--allow-tool={string.Join(',', new[] { "write" }.Concat(allowedTools))}");
         }
 
         return args;
+    }
+
+    private static void ValidateToolPattern(string pattern)
+    {
+        var openParenthesis = pattern.IndexOf('(');
+        var kind = openParenthesis < 0 ? pattern : pattern[..openParenthesis];
+        var validKind = kind.Length > 0
+            && kind.All(character => char.IsLetterOrDigit(character) || character is '_' or '-' or '.');
+        var validArgument = openParenthesis < 0
+            || openParenthesis < pattern.Length - 2
+            && pattern.EndsWith(')')
+            && pattern.AsSpan(openParenthesis + 1, pattern.Length - openParenthesis - 2)
+                .IndexOfAny("()\r\n") < 0;
+
+        if (!validKind || !validArgument)
+        {
+            throw new ControlledFailureException(
+                $"Invalid Copilot tool permission pattern '{pattern}'. Expected a tool kind or Kind(argument), such as 'shell(dotnet:*)'.",
+                ExitCodes.ConfigurationError);
+        }
     }
 }
