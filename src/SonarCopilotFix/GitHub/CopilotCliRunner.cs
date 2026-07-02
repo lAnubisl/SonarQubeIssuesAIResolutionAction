@@ -8,6 +8,8 @@ public sealed class CopilotCliRunner(
     IConfigurationHelper configurationHelper,
     ILogger logger)
 {
+    private static readonly string[] DefaultWriteTools = ["write"];
+
     public async Task<string> RunAsync(string promptPath, CancellationToken cancellationToken)
     {
         var prompt = await File.ReadAllTextAsync(promptPath, cancellationToken);
@@ -122,7 +124,7 @@ public sealed class CopilotCliRunner(
                 ValidateToolPattern(pattern);
             }
 
-            args.Add($"--allow-tool={string.Join(',', new[] { "write" }.Concat(allowedTools))}");
+            args.Add($"--allow-tool={string.Join(',', DefaultWriteTools.Concat(allowedTools))}");
         }
 
         return args;
