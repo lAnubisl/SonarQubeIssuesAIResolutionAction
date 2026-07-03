@@ -330,24 +330,26 @@ public sealed class SonarCopilotFixApp
 
     private void WriteCollectionOutputs(JobSummary summary)
     {
-        if (summary.PromptFiles.Count > 0)
+        var promptFiles = summary.GetPromptFiles();
+        if (promptFiles.Count > 0)
         {
-            WriteOutput("prompt_file", summary.PromptFiles[^1]);
-            WriteOutput("prompt_files", System.Text.Json.JsonSerializer.Serialize(summary.PromptFiles));
+            WriteOutput("prompt_file", promptFiles[^1]);
+            WriteOutput("prompt_files", System.Text.Json.JsonSerializer.Serialize(promptFiles));
         }
 
-        if (summary.PullRequestUrls.Count > 0)
+        var pullRequestUrls = summary.GetPullRequestUrls();
+        if (pullRequestUrls.Count > 0)
         {
-            WriteOutput("pull_request_url", summary.PullRequestUrls[^1]);
-            WriteOutput("pull_request_urls", System.Text.Json.JsonSerializer.Serialize(summary.PullRequestUrls));
+            WriteOutput("pull_request_url", pullRequestUrls[^1]);
+            WriteOutput("pull_request_urls", System.Text.Json.JsonSerializer.Serialize(pullRequestUrls));
         }
     }
 
     private static string SafeFileSegment(string value)
     {
-        var invalidCharacters = Path.GetInvalidFileNameChars().ToHashSet();
+        // Replace any character that is not letter, digit, '-' or '_' with '-'.
         var characters = value
-            .Select(character => invalidCharacters.Contains(character) || character is '/' or '\\' ? '-' : character)
+            .Select(character => (char.IsLetterOrDigit(character) || character == '-' || character == '_') ? character : '-')
             .ToArray();
         return new string(characters);
     }
