@@ -3,37 +3,48 @@ name: Fix SonarQube issues with Copilot
 on:
   workflow_dispatch:
     inputs:
-      max_issues:
+      Issues_to_fix:
         description: Maximum issues to fix
         default: "10"
-      type:
+      Type:
         description: SonarQube issue type
         required: false
         type: choice
+        default: ALL
         options:
+          - ALL
           - CODE_SMELL
           - BUG
           - VULNERABILITY
-      severity:
+      Type_Severity:
+        description: SonarQube issue severity
         type: choice
         required: false
+        default: ALL
         options:
+          - ALL
           - BLOCKER
           - CRITICAL
           - MAJOR
           - MINOR
           - INFO
-      impactSoftwareQualities:
+      Software_quality:
+        description: SonarQube impact software quality
         type: choice
         required: false
+        default: ALL
         options:
+          - ALL
           - RELIABILITY
           - SECURITY
           - MAINTAINABILITY
-      impactSeverities:
+      Severity:
+        description: SonarQube impact severity
         type: choice
         required: false
+        default: ALL
         options:
+          - ALL
           - BLOCKER
           - HIGH
           - MEDIUM
@@ -61,8 +72,11 @@ jobs:
           sonar_project_key: lAnubisl_SonarQubeIssuesAIResolutionAction
           sonar_branch: main
           statuses: OPEN
-          type: ${{ inputs.type }}
-          max_issues: ${{ inputs.max_issues }}
+          type: ${{ inputs.Type != 'ALL' && inputs.Type || '' }}
+          severities: ${{ inputs.Type_Severity != 'ALL' && inputs.Type_Severity || '' }}
+          impactSoftwareQualities: ${{ inputs.Software_quality != 'ALL' && inputs.Software_quality || '' }}
+          impactSeverities: ${{ inputs.Severity != 'ALL' && inputs.Severity || '' }}
+          max_issues: ${{ inputs.Issues_to_fix }}
           copilot_allow_all_tools: true
           copilot_extra_instructions: |
             Make sure `dotnet build` command reports no errors or failures after the fixes (otherwise fix them).
