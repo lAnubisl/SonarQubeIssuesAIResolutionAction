@@ -135,4 +135,20 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
     {
         logger.Info($"Command '{psi.FileName}' exited with code {exitCode}.");
     }
+
+
+    private static string FormatCommand(ProcessStartInfo psi)
+    {
+        return string.Join(" ", new[] { QuoteArgument(psi.FileName) }.Concat(psi.ArgumentList.Select(QuoteArgument)));
+    }
+
+    private static string QuoteArgument(string argument)
+    {
+        if (argument.Length > 0 && argument.All(character => !char.IsWhiteSpace(character) && character is not '"' and not '\''))
+        {
+            return argument;
+        }
+
+        return $"'{argument.Replace("'", "'\\''", StringComparison.Ordinal)}'";
+    }
 }
