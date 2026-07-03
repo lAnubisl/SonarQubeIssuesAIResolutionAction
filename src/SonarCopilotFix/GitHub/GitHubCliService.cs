@@ -3,7 +3,7 @@ using SonarCopilotFix.Infrastructure;
 namespace SonarCopilotFix.GitHub;
 
 public sealed class GitHubCliService(
-    CommandRunner commandRunner,
+    ICommandRunner commandRunner,
     IConfigurationHelper configurationHelper,
     ILogger logger)
 {
@@ -51,7 +51,14 @@ public sealed class GitHubCliService(
             cancellationToken: cancellationToken);
         if (result.ExitCode != 0)
         {
-            throw new ControlledFailureException("GitHub CLI failed to create a pull request.", ExitCodes.GitHubCliFailure);
+            var detail = result.Summary;
+            var message = "GitHub CLI failed to create a pull request.";
+            if (!string.IsNullOrWhiteSpace(detail))
+            {
+                message += $" {detail}";
+            }
+
+            throw new ControlledFailureException(message, ExitCodes.GitHubCliFailure);
         }
 
         var url = result.StandardOutput.Trim().Split('\n', StringSplitOptions.RemoveEmptyEntries).LastOrDefault()?.Trim() ?? "";
