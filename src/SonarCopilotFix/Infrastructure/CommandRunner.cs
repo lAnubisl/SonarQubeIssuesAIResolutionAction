@@ -108,7 +108,7 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
         return new CommandResult(process.ExitCode, stdout.ToString(), stderr.ToString());
     }
 
-    private void HandleOutputData(DataReceivedEventArgs args, StringBuilder stdout, Action<string>? standardOutputReceived)
+    private static void HandleOutputData(DataReceivedEventArgs args, StringBuilder stdout, Action<string>? standardOutputReceived)
     {
         if (args.Data is not null)
         {
@@ -117,7 +117,7 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
         }
     }
 
-    private void HandleErrorData(DataReceivedEventArgs args, StringBuilder stderr, Action<string>? standardErrorReceived)
+    private static void HandleErrorData(DataReceivedEventArgs args, StringBuilder stderr, Action<string>? standardErrorReceived)
     {
         if (args.Data is not null)
         {
