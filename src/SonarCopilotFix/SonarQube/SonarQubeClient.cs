@@ -162,7 +162,7 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
         return new SonarIssue(
             dto.Key ?? "unknown",
             dto.Rule ?? "unknown",
-            dto.Severity ?? dto.Impacts?.FirstOrDefault()?.Severity,
+            dto.Severity ?? dto.Impacts?[0]?.Severity,
             dto.Status,
             dto.Type,
             dto.CleanCodeAttributeCategory,
