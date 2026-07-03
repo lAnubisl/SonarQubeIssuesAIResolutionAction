@@ -6,8 +6,11 @@ namespace SonarCopilotFix.Tests;
 
 [TestFixture]
 [NonParallelizable]
-internal sealed class TextLoggerTests
+internal sealed partial class TextLoggerTests
 {
+    [GeneratedRegex(@"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z \| info \| hello$")]
+    private static partial Regex LogPattern();
+
     [Test]
     public static void TextLoggerFormat()
     {
@@ -23,8 +26,6 @@ internal sealed class TextLoggerTests
             Console.SetOut(originalOut);
         }
 
-        Assert.True(Regex.IsMatch(
-            output.ToString().Trim(),
-            @"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z \| info \| hello$"));
+        Assert.True(LogPattern().IsMatch(output.ToString().Trim()));
     }
 }
