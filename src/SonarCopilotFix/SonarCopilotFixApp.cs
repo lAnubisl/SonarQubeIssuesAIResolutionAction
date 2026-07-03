@@ -93,7 +93,7 @@ public sealed class SonarCopilotFixApp
         }
 
         summary.IssuesFound = issues.TotalFound;
-        summary.IssuesSelected = issues.Issues.Count;
+        summary.SetSelectedIssues(issues.Issues);
         WriteOutput("selected_issue_count", issues.Issues.Count.ToString());
         return issues;
     }

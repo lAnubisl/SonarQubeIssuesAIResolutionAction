@@ -154,7 +154,7 @@ After Copilot finishes, the action uses the stderr captured from that same proce
 
 ## Pull Request Body
 
-The draft PR includes the SonarQube project, branch, base branch, generated branch, selected issue links, changed files, the Copilot session summary captured from stderr, a note that validation is delegated to PR checks, a Copilot generation note, and a human-review requirement. The same stderr session summary is included in the GitHub Actions job summary.
+The draft PR includes the SonarQube project, branch, base branch, generated branch, total estimated effort saved from the selected SonarQube issues, selected issue links, changed files, the Copilot session summary captured from stderr, a note that validation is delegated to PR checks, a Copilot generation note, and a human-review requirement. The total effort and same stderr session summary are included in the GitHub Actions job summary.
 
 ## SonarQube Compatibility
 

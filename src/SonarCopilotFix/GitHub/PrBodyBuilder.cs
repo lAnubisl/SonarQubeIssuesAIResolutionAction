@@ -19,6 +19,7 @@ public sealed class PrBodyBuilder(IConfigurationHelper configurationHelper)
         builder.AppendLine($"| Generated branch | `{summary.GeneratedBranch ?? "not created"}` |");
         builder.AppendLine($"| Issues selected | `{issues.Count}` |");
         builder.AppendLine($"| Issues attempted | `{issues.Count}` |");
+        builder.AppendLine($"| Total effort saved | `{summary.TotalEffortSaved}` |");
         builder.AppendLine();
         builder.AppendLine("## Copilot Session Summary");
         builder.AppendLine();

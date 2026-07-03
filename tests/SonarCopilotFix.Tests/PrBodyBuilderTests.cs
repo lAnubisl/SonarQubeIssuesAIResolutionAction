@@ -18,6 +18,7 @@ internal sealed class PrBodyBuilderTests
             ChangedFiles = ["src/A.cs"],
             CopilotSessionSummary = "Total usage est: 29.3k tokens\nTotal duration: 42s"
         };
+        summary.SetSelectedIssues([TestData.SampleIssue()]);
 
         var body = new PrBodyBuilder(configurationHelper).Build([TestData.SampleIssue()], summary);
 
@@ -28,5 +29,6 @@ internal sealed class PrBodyBuilderTests
         Assert.Contains("Copilot Session Summary", body);
         Assert.Contains("29.3k", body);
         Assert.Contains("42s", body);
+        Assert.Contains("Total effort saved | `5min`", body);
     }
 }

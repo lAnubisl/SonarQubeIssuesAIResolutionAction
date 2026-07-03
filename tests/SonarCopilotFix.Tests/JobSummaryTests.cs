@@ -17,6 +17,12 @@ internal sealed class JobSummaryTests
             CopilotExecuted = true,
             CopilotSessionSummary = "Total usage est: 1k tokens\nTotal duration: 5s"
         };
+        summary.SetSelectedIssues(
+        [
+            TestData.SampleIssue() with { Effort = "1d 2h" },
+            TestData.SampleIssue() with { Effort = "45min" },
+            TestData.SampleIssue() with { Effort = null }
+        ]);
 
         summary.Write();
 
@@ -24,5 +30,29 @@ internal sealed class JobSummaryTests
         Assert.Contains("Copilot Session Summary", contents);
         Assert.Contains("1k tokens", contents);
         Assert.Contains("5s", contents);
+        Assert.Contains("Issues selected: `3`", contents);
+        Assert.Contains("Total effort saved: `1d 2h 45min`", contents);
+    }
+
+    [Test]
+    public static void UnavailableEffort()
+    {
+        var summary = new JobSummary(TestData.Configuration());
+        summary.SetSelectedIssues(
+        [
+            TestData.SampleIssue() with { Effort = null },
+            TestData.SampleIssue() with { Effort = "unknown" }
+        ]);
+
+        Assert.Equal("not available", summary.TotalEffortSaved);
+    }
+
+    [Test]
+    public static void ZeroEffort()
+    {
+        var summary = new JobSummary(TestData.Configuration());
+        summary.SetSelectedIssues([TestData.SampleIssue() with { Effort = "0min" }]);
+
+        Assert.Equal("0min", summary.TotalEffortSaved);
     }
 }

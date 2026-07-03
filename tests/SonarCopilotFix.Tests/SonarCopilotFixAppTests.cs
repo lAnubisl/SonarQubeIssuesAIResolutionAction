@@ -33,6 +33,9 @@ internal sealed class SonarCopilotFixAppTests
         Assert.Equal(0, exitCode);
         Assert.True(File.Exists(Path.Combine(temp.FullName, ".sonar-copilot", "issues-prompt.md")));
         Assert.False(Directory.Exists(Path.Combine(temp.FullName, ".git", "refs", "heads", "copilot")));
+        Assert.Contains(
+            "Total effort saved: `5min`",
+            File.ReadAllText(Path.Combine(temp.FullName, "summary.md")));
     }
 
     [Test]
@@ -63,5 +66,7 @@ internal sealed class SonarCopilotFixAppTests
     }
 
     private static Mock<IConfigurationHelper> CreateConfigurationHelper(string workspace) =>
-        TestData.MockConfigurationHelper(gitHubWorkspace: workspace);
+        TestData.MockConfigurationHelper(
+            gitHubWorkspace: workspace,
+            gitHubStepSummary: Path.Combine(workspace, "summary.md"));
 }
