@@ -5,12 +5,14 @@ using SonarCopilotFix.SonarQube;
 
 namespace SonarCopilotFix;
 
-public sealed class JobSummary(IConfigurationHelper configurationHelper)
+public sealed partial class JobSummary(IConfigurationHelper configurationHelper)
 {
     private const long MinutesPerSonarDay = 8 * 60;
-    private static readonly Regex EffortPattern = new(
+
+    [GeneratedRegex(
         @"^\s*(?:(?<days>\d+)d)?\s*(?:(?<hours>\d+)h)?\s*(?:(?<minutes>\d+)min)?\s*$",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        RegexOptions.Compiled | RegexOptions.CultureInvariant)]
+    private static partial Regex GetEffortPattern();
 
     public int IssuesFound { get; set; }
     public int IssuesSelected { get; set; }
@@ -145,7 +147,7 @@ public sealed class JobSummary(IConfigurationHelper configurationHelper)
             return null;
         }
 
-        var match = EffortPattern.Match(effort);
+        var match = GetEffortPattern().Match(effort);
         if (!match.Success
             || (!match.Groups["days"].Success
                 && !match.Groups["hours"].Success
