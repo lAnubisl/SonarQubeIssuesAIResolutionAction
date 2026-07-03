@@ -347,7 +347,7 @@ public sealed class SonarCopilotFixApp
     {
         var invalidCharacters = Path.GetInvalidFileNameChars().ToHashSet();
         var characters = value
-            .Select(character => invalidCharacters.Contains(character) || character is '/' or '\\' ? '-' : character)
+            .Select(character => invalidCharacters.Contains(character) || character is '/' or '\\' or ':' ? '-' : character)
             .ToArray();
         return new string(characters);
     }
