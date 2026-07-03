@@ -3,11 +3,11 @@ name: Fix SonarQube issues with Copilot
 on:
   workflow_dispatch:
     inputs:
-      Issues_to_fix:
+      max_issues:
         description: Maximum issues to fix
         default: "10"
-      Type:
-        description: SonarQube issue type
+      type:
+        description: Type
         required: false
         type: choice
         default: ALL
@@ -16,8 +16,8 @@ on:
           - CODE_SMELL
           - BUG
           - VULNERABILITY
-      Type_Severity:
-        description: SonarQube issue severity
+      severities:
+        description: Type Severity
         type: choice
         required: false
         default: ALL
@@ -28,8 +28,8 @@ on:
           - MAJOR
           - MINOR
           - INFO
-      Software_quality:
-        description: SonarQube impact software quality
+      impactSoftwareQualities:
+        description: Software Quality
         type: choice
         required: false
         default: ALL
@@ -38,8 +38,8 @@ on:
           - RELIABILITY
           - SECURITY
           - MAINTAINABILITY
-      Severity:
-        description: SonarQube impact severity
+      impactSeverities:
+        description: Impact Severity
         type: choice
         required: false
         default: ALL
@@ -72,11 +72,11 @@ jobs:
           sonar_project_key: lAnubisl_SonarQubeIssuesAIResolutionAction
           sonar_branch: main
           statuses: OPEN
-          type: ${{ inputs.Type != 'ALL' && inputs.Type || '' }}
-          severities: ${{ inputs.Type_Severity != 'ALL' && inputs.Type_Severity || '' }}
-          impactSoftwareQualities: ${{ inputs.Software_quality != 'ALL' && inputs.Software_quality || '' }}
-          impactSeverities: ${{ inputs.Severity != 'ALL' && inputs.Severity || '' }}
-          max_issues: ${{ inputs.Issues_to_fix }}
+          type: ${{ inputs.type != 'ALL' && inputs.type || '' }}
+          severities: ${{ inputs.severities != 'ALL' && inputs.severities || '' }}
+          impactSoftwareQualities: ${{ inputs.impactSoftwareQualities != 'ALL' && inputs.impactSoftwareQualities || '' }}
+          impactSeverities: ${{ inputs.impactSeverities != 'ALL' && inputs.impactSeverities || '' }}
+          max_issues: ${{ inputs.max_issues }}
           copilot_allow_all_tools: true
           copilot_extra_instructions: |
             Make sure `dotnet build` command reports no errors or failures after the fixes (otherwise fix them).
