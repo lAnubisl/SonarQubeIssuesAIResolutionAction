@@ -188,7 +188,7 @@ internal sealed class SonarQubeClientTests
         Content = new StringContent(json, Encoding.UTF8, "application/json")
     };
 
-    private static IReadOnlyList<string> Csv(string? value, string? fallback = null) =>
+    private static string[] Csv(string? value, string? fallback = null) =>
         (value ?? fallback)?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
 
     private static string? Query(Uri uri, string name)
