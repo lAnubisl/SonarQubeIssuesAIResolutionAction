@@ -128,7 +128,7 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
 
     private void LogStartingCommand(ProcessStartInfo psi)
     {
-        logger.Info($"Starting command '{psi.FileName}'.");
+        logger.Info($"Starting command '{FormatCommand(psi)}'.");
     }
 
     private void LogCompletedCommand(ProcessStartInfo psi, int exitCode)

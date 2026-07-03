@@ -63,7 +63,7 @@ internal sealed class CommandRunnerTests
             cancellationToken: CancellationToken.None);
 
         Assert.Equal(0, result.ExitCode);
-        logger.Verify(value => value.Info("Starting command 'dotnet'."), Times.Once);
+        logger.Verify(value => value.Info("Starting command 'dotnet --version'."), Times.Once);
         logger.Verify(value => value.Info("Command 'dotnet' exited with code 0."), Times.Once);
     }
 }
