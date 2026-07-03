@@ -3,7 +3,7 @@ using SonarCopilotFix.Infrastructure;
 namespace SonarCopilotFix.GitHub;
 
 public sealed class GitHubCliService(
-    CommandRunner commandRunner,
+    ICommandRunner commandRunner,
     IConfigurationHelper configurationHelper,
     ILogger logger)
 {
@@ -15,8 +15,7 @@ public sealed class GitHubCliService(
             ["auth", "setup-git"],
             configurationHelper.GitHubWorkspace,
             env,
-            cancellationToken,
-            logCommandDetails: true);
+            cancellationToken: cancellationToken);
         if (result.ExitCode != 0)
         {
             throw new ControlledFailureException("GitHub CLI failed to configure git authentication.", ExitCodes.GitHubCliFailure);
@@ -49,11 +48,17 @@ public sealed class GitHubCliService(
             args,
             configurationHelper.GitHubWorkspace,
             env,
-            cancellationToken,
-            logCommandDetails: true);
+            cancellationToken: cancellationToken);
         if (result.ExitCode != 0)
         {
-            throw new ControlledFailureException("GitHub CLI failed to create a pull request.", ExitCodes.GitHubCliFailure);
+            var detail = result.Summary;
+            var message = "GitHub CLI failed to create a pull request.";
+            if (!string.IsNullOrWhiteSpace(detail))
+            {
+                message += $" {detail}";
+            }
+
+            throw new ControlledFailureException(message, ExitCodes.GitHubCliFailure);
         }
 
         var url = result.StandardOutput.Trim().Split('\n', StringSplitOptions.RemoveEmptyEntries).LastOrDefault()?.Trim() ?? "";

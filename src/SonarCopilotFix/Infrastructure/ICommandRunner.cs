@@ -7,8 +7,7 @@ public interface ICommandRunner
         IEnumerable<string> arguments,
         string workingDirectory,
         IReadOnlyDictionary<string, string?>? scopedEnvironment = null,
-        CancellationToken cancellationToken = default,
         Action<string>? standardOutputReceived = null,
         Action<string>? standardErrorReceived = null,
-        bool logCommandDetails = false);
+        CancellationToken cancellationToken = default);
 }

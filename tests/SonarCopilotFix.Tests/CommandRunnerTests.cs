@@ -60,13 +60,10 @@ internal sealed class CommandRunnerTests
             "dotnet",
             ["--version"],
             Directory.GetCurrentDirectory(),
-            cancellationToken: CancellationToken.None,
-            logCommandDetails: true);
+            cancellationToken: CancellationToken.None);
 
         Assert.Equal(0, result.ExitCode);
-        logger.Verify(value => value.Info("Starting command: dotnet --version"), Times.Once);
-        logger.Verify(value => value.Info(It.Is<string>(message => message.StartsWith("[dotnet stdout]"))), Times.AtLeastOnce);
-        logger.Verify(value => value.Info(It.Is<string>(message => message.StartsWith("[dotnet stderr]"))), Times.AtLeastOnce);
+        logger.Verify(value => value.Info("Starting command 'dotnet'."), Times.Once);
         logger.Verify(value => value.Info("Command 'dotnet' exited with code 0."), Times.Once);
     }
 }

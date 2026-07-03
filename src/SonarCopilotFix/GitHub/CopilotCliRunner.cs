@@ -65,11 +65,11 @@ public sealed class CopilotCliRunner(
             arguments,
             configurationHelper.GitHubWorkspace,
             environment,
-            cancellationToken,
             line => logger.Info($"[{logPrefix} stdout] {line}"),
-            line => logger.Info($"[{logPrefix} stderr] {line}"));
+            line => logger.Info($"[{logPrefix} stderr] {line}"),
+            cancellationToken);
 
-    private static IReadOnlyDictionary<string, string?> BuildEnvironment(IConfigurationHelper configurationHelper) =>
+    private static Dictionary<string, string?> BuildEnvironment(IConfigurationHelper configurationHelper) =>
         new Dictionary<string, string?>
         {
             ["COPILOT_GITHUB_TOKEN"] = configurationHelper.CopilotCliToken,

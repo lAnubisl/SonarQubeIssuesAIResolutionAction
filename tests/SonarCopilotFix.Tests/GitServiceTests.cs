@@ -26,10 +26,9 @@ internal sealed class GitServiceTests
                 })),
                 workspace,
                 null,
-                CancellationToken.None,
                 null,
                 null,
-                true))
+                CancellationToken.None))
             .ReturnsAsync(new CommandResult(
                 0,
                 " M HostFilmMonitoring.cs\n?? untracked.txt\n?? .sonar-copilot/issues-prompt.md\n",
