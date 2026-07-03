@@ -42,4 +42,54 @@ internal sealed class GitServiceTests
         CollectionAssert.AreEqual(["HostFilmMonitoring.cs", "untracked.txt"], changedFiles);
         commandRunner.VerifyAll();
     }
+
+    [Test]
+    public static async Task HeadCommitAndCommittedChangedFiles()
+    {
+        var workspace = Path.Combine(Path.GetTempPath(), "workspace");
+        var safeDirectoryArguments = new[]
+        {
+            "-c",
+            $"safe.directory={Path.GetFullPath(workspace)}"
+        };
+        var commandRunner = new Mock<ICommandRunner>(MockBehavior.Strict);
+        commandRunner
+            .Setup(value => value.RunAsync(
+                "git",
+                It.Is<IEnumerable<string>>(arguments => arguments.SequenceEqual(
+                    safeDirectoryArguments.Concat(new[] { "rev-parse", "HEAD" }))),
+                workspace,
+                null,
+                null,
+                null,
+                CancellationToken.None))
+            .ReturnsAsync(new CommandResult(0, "abc123\n", ""));
+        commandRunner
+            .Setup(value => value.RunAsync(
+                "git",
+                It.Is<IEnumerable<string>>(arguments => arguments.SequenceEqual(
+                    safeDirectoryArguments.Concat(
+                        new[] { "diff", "--name-only", "--diff-filter=ACDMRTUXB", "base123", "HEAD", "--" }))),
+                workspace,
+                null,
+                null,
+                null,
+                CancellationToken.None))
+            .ReturnsAsync(new CommandResult(
+                0,
+                "src/Changed.cs\n.sonar-copilot/issues-prompt.md\ntests/ChangedTests.cs\n",
+                ""));
+        var configurationHelper = TestData.MockConfigurationHelper(gitHubWorkspace: workspace);
+        var git = new GitService(commandRunner.Object, configurationHelper.Object);
+
+        var head = await git.GetHeadCommitAsync(CancellationToken.None);
+        var changedFiles = await git.GetChangedFilesSinceAsync(
+            "base123",
+            excludeGenerated: true,
+            CancellationToken.None);
+
+        Assert.Equal("abc123", head);
+        CollectionAssert.AreEqual(["src/Changed.cs", "tests/ChangedTests.cs"], changedFiles);
+        commandRunner.VerifyAll();
+    }
 }

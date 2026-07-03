@@ -9,6 +9,7 @@ public sealed class CopilotCliRunner(
     ILogger logger)
 {
     private static readonly string[] DefaultWriteTools = ["write"];
+    private const string DenyGitCommitTool = "shell(git commit)";
 
     public async Task<string> RunAsync(string promptPath, CancellationToken cancellationToken)
     {
@@ -16,7 +17,8 @@ public sealed class CopilotCliRunner(
         LogPrompt(prompt);
 
         var sessionId = Guid.NewGuid().ToString();
-        var environment = BuildEnvironment(configurationHelper);
+        var gitHookDirectory = await CreateGitCommitGuardAsync(cancellationToken);
+        var environment = BuildEnvironment(configurationHelper, gitHookDirectory);
 
         var result = await ExecutePromptAsync(prompt, sessionId, environment, cancellationToken);
         return result.StandardError.Trim();
@@ -69,12 +71,42 @@ public sealed class CopilotCliRunner(
             line => logger.Info($"[{logPrefix} stderr] {line}"),
             cancellationToken);
 
-    private static Dictionary<string, string?> BuildEnvironment(IConfigurationHelper configurationHelper) =>
+    private static Dictionary<string, string?> BuildEnvironment(
+        IConfigurationHelper configurationHelper,
+        string gitHookDirectory) =>
         new Dictionary<string, string?>
         {
             ["COPILOT_GITHUB_TOKEN"] = configurationHelper.CopilotCliToken,
-            ["COPILOT_AUTO_UPDATE"] = "false"
+            ["COPILOT_AUTO_UPDATE"] = "false",
+            ["GIT_CONFIG_COUNT"] = "1",
+            ["GIT_CONFIG_KEY_0"] = "core.hooksPath",
+            ["GIT_CONFIG_VALUE_0"] = gitHookDirectory
         };
+
+    private async Task<string> CreateGitCommitGuardAsync(CancellationToken cancellationToken)
+    {
+        var hookDirectory = Path.GetFullPath(
+            Path.Combine(configurationHelper.GitHubWorkspace, ".sonar-copilot", "copilot-git-hooks"));
+        Directory.CreateDirectory(hookDirectory);
+        var hookPath = Path.Combine(hookDirectory, "pre-commit");
+        await File.WriteAllTextAsync(
+            hookPath,
+            "#!/bin/sh\n"
+            + "echo \"git commit is disabled during the Copilot session; leave changes uncommitted for the outer workflow.\" >&2\n"
+            + "exit 1\n",
+            cancellationToken);
+
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(
+                hookPath,
+                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
+                | UnixFileMode.GroupRead | UnixFileMode.GroupExecute
+                | UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
+        }
+
+        return hookDirectory;
+    }
 
     private void LogPrompt(string prompt)
     {
@@ -127,6 +159,8 @@ public sealed class CopilotCliRunner(
             args.Add($"--allow-tool={string.Join(',', DefaultWriteTools.Concat(allowedTools))}");
         }
 
+        // Denials take precedence over allow-all and any broad shell permission.
+        args.Add($"--deny-tool={DenyGitCommitTool}");
         return args;
     }
 

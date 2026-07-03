@@ -79,25 +79,44 @@ public sealed class SonarCopilotFixApp(
             throw new ControlledFailureException("The worktree has pre-existing changes outside .sonar-copilot. Refusing to continue so unrelated files are not committed.", ExitCodes.GitFailure);
         }
 
+        var headBeforeCopilot = await git.GetHeadCommitAsync(cancellationToken);
         logger.Info("Running GitHub Copilot CLI.");
         summary.CopilotSessionSummary = await copilot.RunAsync(promptPath, cancellationToken);
         summary.CopilotExecuted = true;
 
-        var changedFiles = await git.GetChangedFilesAsync(excludeGenerated: true, cancellationToken);
+        var uncommittedFiles = await git.GetChangedFilesAsync(excludeGenerated: true, cancellationToken);
+        var headAfterCopilot = await git.GetHeadCommitAsync(cancellationToken);
+        var copilotCreatedCommits = !string.Equals(headBeforeCopilot, headAfterCopilot, StringComparison.Ordinal);
+        var committedFiles = copilotCreatedCommits
+            ? await git.GetChangedFilesSinceAsync(headBeforeCopilot, excludeGenerated: true, cancellationToken)
+            : [];
+        var changedFiles = uncommittedFiles
+            .Concat(committedFiles)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
         summary.ChangedFiles = changedFiles;
-        if (changedFiles.Count == 0)
+        if (changedFiles.Length == 0 && !copilotCreatedCommits)
         {
             logger.Info("Copilot completed without repository file changes.");
             summary.Write();
             return ExitCodes.Success;
         }
 
+        if (copilotCreatedCommits)
+        {
+            logger.Info("Copilot created one or more local commits. The outer workflow will preserve and push them on the generated branch.");
+        }
+
         var branchName = git.BuildBranchName(DateTimeOffset.UtcNow);
         summary.GeneratedBranch = branchName;
         await git.CreateBranchAsync(branchName, cancellationToken);
-        await git.ConfigureBotUserAsync(cancellationToken);
-        await git.StageFilesAsync(changedFiles, cancellationToken);
-        await git.CommitAsync($"Fix SonarQube issues for {configurationHelper.GetSonarProjectKey()}", cancellationToken);
+        if (uncommittedFiles.Count > 0)
+        {
+            await git.ConfigureBotUserAsync(cancellationToken);
+            await git.StageFilesAsync(uncommittedFiles, cancellationToken);
+            await git.CommitAsync($"Fix SonarQube issues for {configurationHelper.GetSonarProjectKey()}", cancellationToken);
+        }
 
         logger.Info("Using GH_CLI_TOKEN for GitHub repository operations.");
         await github.SetupGitAuthenticationAsync(cancellationToken);

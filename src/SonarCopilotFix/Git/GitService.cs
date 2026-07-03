@@ -42,6 +42,40 @@ public sealed partial class GitService(ICommandRunner commandRunner, IConfigurat
             .ToArray();
     }
 
+    public async Task<string> GetHeadCommitAsync(CancellationToken cancellationToken)
+    {
+        var result = await RunGitAsync(["rev-parse", "HEAD"], cancellationToken: cancellationToken);
+        if (result.ExitCode != 0)
+        {
+            throw GitFailure("resolve the current HEAD commit", result);
+        }
+
+        return result.StandardOutput.Trim();
+    }
+
+    public async Task<IReadOnlyList<string>> GetChangedFilesSinceAsync(
+        string baseCommit,
+        bool excludeGenerated,
+        CancellationToken cancellationToken)
+    {
+        var result = await RunGitAsync(
+            ["diff", "--name-only", "--diff-filter=ACDMRTUXB", baseCommit, "HEAD", "--"],
+            cancellationToken: cancellationToken);
+        if (result.ExitCode != 0)
+        {
+            throw GitFailure($"inspect files changed since commit {baseCommit}", result);
+        }
+
+        return result.StandardOutput
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(path => path.Replace('\\', '/').Trim())
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Where(path => !excludeGenerated || !path.StartsWith(".sonar-copilot/", StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+    }
+
     public string BuildBranchName(DateTimeOffset timestamp)
     {
         var safeProject = UnsafeBranchChars().Replace(configurationHelper.GetSonarProjectKey(), "-").Trim('-');

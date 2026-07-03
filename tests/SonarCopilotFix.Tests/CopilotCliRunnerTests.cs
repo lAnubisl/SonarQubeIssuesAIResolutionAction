@@ -14,7 +14,10 @@ internal sealed class CopilotCliRunnerTests
             TestData.MockConfigurationHelper(inputCopilotModel: "gpt-5.2").Object,
             "Fix the selected issue.");
         CollectionAssert.AreEqual(
-            ["--prompt", "Fix the selected issue.", "--no-ask-user", "--no-color", "--model", "gpt-5.2", "--allow-tool=write"],
+            [
+                "--prompt", "Fix the selected issue.", "--no-ask-user", "--no-color",
+                "--model", "gpt-5.2", "--allow-tool=write", "--deny-tool=shell(git commit)"
+            ],
             restricted);
     }
 
@@ -27,6 +30,7 @@ internal sealed class CopilotCliRunnerTests
             "Fix it.");
 
         Assert.True(restricted.Contains("--allow-tool=write,shell(dotnet:*),shell(python:*)"));
+        Assert.True(restricted.Contains("--deny-tool=shell(git commit)"));
         Assert.False(restricted.Contains("--allow-all-tools"));
     }
 
@@ -39,6 +43,7 @@ internal sealed class CopilotCliRunnerTests
                 inputCopilotAllowAllTools: true).Object,
             "Fix it.");
         Assert.True(unrestricted.Contains("--allow-all-tools"));
+        Assert.True(unrestricted.Contains("--deny-tool=shell(git commit)"));
         Assert.False(unrestricted.Any(argument => argument.StartsWith("--allow-tool=", StringComparison.Ordinal)));
     }
 

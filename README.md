@@ -127,12 +127,12 @@ Normal mode requires `SONAR_TOKEN`, `COPILOT_CLI_TOKEN`, and `GH_CLI_TOKEN`. The
 3. Reads local snippets around affected lines.
 4. Generates `.sonar-copilot/issues-prompt.md`.
 5. Requires a clean worktree outside `.sonar-copilot`.
-6. Runs Copilot CLI with only the Copilot token and a small allowlist of runner environment variables.
-7. Detects changed repository files, excluding generated prompt files.
+6. Snapshots the current Git `HEAD`, then runs Copilot CLI with only the Copilot token and a small allowlist of runner environment variables.
+7. Detects both uncommitted files and commits created after the snapshot, excluding generated prompt files from the changed-file list.
 8. Creates a branch named `<branch_prefix>/<sonar_project_key>/<timestamp>`.
-9. Commits, pushes, and creates a draft PR with `gh pr create`.
+9. Commits any remaining worktree changes, pushes the branch (including any local Copilot commit), and creates a draft PR with `gh pr create`.
 
-If no files changed, the action exits successfully without an empty commit or PR. Build, test, lint, and other validation remain the responsibility of the consuming repository's pull request workflows. When Copilot should run a project tool while preparing the fix, install that tool before this action and grant only its required command pattern with `copilot_allowed_tools`.
+If neither files nor `HEAD` changed, the action exits successfully without an empty commit or PR. Build, test, lint, and other validation remain the responsibility of the consuming repository's pull request workflows. When Copilot should run a project tool while preparing the fix, install that tool before this action and grant only its required command pattern with `copilot_allowed_tools`.
 
 Configure those workflows for `pull_request` events such as `opened` and `synchronize`, and enforce their checks with branch protection or rulesets. Use a personal access token or GitHub App installation token for `GH_CLI_TOKEN`.
 
@@ -141,12 +141,12 @@ Configure those workflows for `pull_request` events such as `opened` and `synchr
 GitHub Copilot CLI access can differ by subscription and enterprise policy. The action intentionally does not accept arbitrary Copilot command input. It invokes the standalone CLI from the repository workspace with a fixed argument shape:
 
 ```text
-copilot --prompt <prompt> --no-ask-user [--model <model>] (--allow-tool=write[,<permission-pattern>...] | --allow-all-tools)
+copilot --prompt <prompt> --no-ask-user [--model <model>] (--allow-tool=write[,<permission-pattern>...] | --allow-all-tools) --deny-tool="shell(git commit)"
 ```
 
 The command receives `COPILOT_GITHUB_TOKEN`, populated from the `COPILOT_CLI_TOKEN` secret, and disables CLI self-updates. It receives the runner `PATH`, `DOTNET_ROOT`, and `JAVA_HOME` so explicitly installed project tools can run. It never receives `SONAR_TOKEN` or `GH_CLI_TOKEN`. The token must be a supported Copilot CLI token, such as a fine-grained personal access token with the Copilot Requests account permission; classic personal access tokens are not supported.
 
-`copilot_allowed_tools` accepts comma-separated Copilot CLI permission patterns. Prefer narrow entries such as `shell(dotnet test)` or `shell(dotnet:*)`. The existing `copilot_allow_all_tools` input remains available as an explicit unrestricted override.
+`copilot_allowed_tools` accepts comma-separated Copilot CLI permission patterns. Prefer narrow entries such as `shell(dotnet test)` or `shell(dotnet:*)`. The existing `copilot_allow_all_tools` input remains available as an explicit unrestricted override. The action always denies Copilot's `shell(git commit)` tool, even with `copilot_allow_all_tools`, and supplies a process-scoped Git `pre-commit` hook as a second guard. The generated prompt also tells Copilot to leave changes uncommitted.
 
 Before Copilot starts, the action writes the complete generated prompt to the job log with a `[copilot prompt]` prefix. While Copilot runs, each stdout and stderr line is forwarded immediately with `[copilot stdout]` or `[copilot stderr]`, so progress and generated output are visible without waiting for the process to finish.
 

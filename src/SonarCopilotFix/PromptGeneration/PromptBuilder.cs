@@ -12,6 +12,10 @@ public sealed class PromptBuilder(IConfigurationHelper configurationHelper)
         var builder = new StringBuilder();
         builder.AppendLine("# SonarQube Issue Fix Request");
         builder.AppendLine();
+        builder.AppendLine("You are a expert software enginner with deep knowledge of code maintenance and code quality.");
+        builder.AppendLine("Your job is to fix the listed SonarQube issues in the repository.");
+        builder.AppendLine("You are not allowed to switch git branches, create commits, amend commits, or bypass Git hooks. Leave all file changes uncommitted; the external process will create and push the branch and commit.");
+        builder.AppendLine();
         builder.AppendLine("## Repository Context");
         builder.AppendLine($"- Repository: `{configurationHelper.GitHubRepository}`");
         builder.AppendLine($"- Current branch: `{currentBranch}`");
@@ -29,6 +33,7 @@ public sealed class PromptBuilder(IConfigurationHelper configurationHelper)
         builder.AppendLine("- Do not suppress SonarQube rules unless there is a strong justification.");
         builder.AppendLine("- Document suspected false positives instead of blindly changing code.");
         builder.AppendLine("- Keep changes reviewable.");
+        builder.AppendLine("- Do not run `git commit`, use `git commit --no-verify`, or change Git hook configuration.");
         builder.AppendLine("- Do not read, print, or write token values or authentication headers.");
         builder.AppendLine();
 

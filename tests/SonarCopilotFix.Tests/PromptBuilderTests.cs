@@ -16,6 +16,8 @@ internal sealed class PromptBuilderTests
         var prompt = new PromptBuilder(TestData.Configuration()).Build([issue], "feature", "main");
 
         Assert.Contains("Fix only the listed SonarQube issues", prompt);
+        Assert.Contains("Leave all file changes uncommitted", prompt);
+        Assert.Contains("Do not run `git commit`", prompt);
         Assert.Contains("ISSUE-1", prompt);
         Assert.Contains("src/A.cs", prompt);
     }
