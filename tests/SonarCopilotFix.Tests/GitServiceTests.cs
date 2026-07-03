@@ -9,6 +9,11 @@ namespace SonarCopilotFix.Tests;
 [NonParallelizable]
 internal sealed class GitServiceTests
 {
+    private static readonly string[] GitStatusArguments =
+    [
+        "status",
+        "--porcelain"
+    ];
     [Test]
     public static void BranchNameIncludesIssueKey()
     {
@@ -59,13 +64,8 @@ internal sealed class GitServiceTests
         commandRunner
             .Setup(value => value.RunAsync(
                 "git",
-                It.Is<IEnumerable<string>>(arguments => arguments.SequenceEqual(new[]
-                {
-                    "-c",
-                    $"safe.directory={Path.GetFullPath(workspace)}",
-                    "status",
-                    "--porcelain"
-                })),
+                It.Is<IEnumerable<string>>(arguments => arguments.SequenceEqual(
+                    new[] { "-c", $"safe.directory={Path.GetFullPath(workspace)}" }.Concat(GitStatusArguments))),
                 workspace,
                 null,
                 null,
