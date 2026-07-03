@@ -9,11 +9,9 @@ namespace SonarCopilotFix.Tests;
 [NonParallelizable]
 internal sealed class GitServiceTests
 {
-    private static readonly string[] GitStatusArguments =
-    [
-        "status",
-        "--porcelain"
-    ];
+    private static readonly string[] GitStatusArguments = new[] { "status", "--porcelain" };
+    private static readonly string[] GitSafeDirectoryRevParseSuffix = new[] { "rev-parse", "HEAD" };
+    private static readonly string[] GitSafeDirectoryDiffSuffix = new[] { "diff", "--name-only", "--diff-filter=ACDMRTUXB", "base123", "HEAD", "--" };
     [Test]
     public static void BranchNameIncludesRuleKey()
     {
@@ -99,7 +97,7 @@ internal sealed class GitServiceTests
             .Setup(value => value.RunAsync(
                 "git",
                 It.Is<IEnumerable<string>>(arguments => arguments.SequenceEqual(
-                    safeDirectoryArguments.Concat(new[] { "rev-parse", "HEAD" }))),
+                    safeDirectoryArguments.Concat(GitSafeDirectoryRevParseSuffix))),
                 workspace,
                 null,
                 null,
@@ -110,8 +108,7 @@ internal sealed class GitServiceTests
             .Setup(value => value.RunAsync(
                 "git",
                 It.Is<IEnumerable<string>>(arguments => arguments.SequenceEqual(
-                    safeDirectoryArguments.Concat(
-                        new[] { "diff", "--name-only", "--diff-filter=ACDMRTUXB", "base123", "HEAD", "--" }))),
+                    safeDirectoryArguments.Concat(GitSafeDirectoryDiffSuffix))),
                 workspace,
                 null,
                 null,

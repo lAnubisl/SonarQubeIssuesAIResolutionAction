@@ -9,6 +9,7 @@ namespace SonarCopilotFix.Tests;
 [NonParallelizable]
 internal sealed class GitHubCliServiceTests
 {
+    private static readonly string[] PrCreateArguments = new[] { "pr", "create", "--title", "Fix issues", "--body-file", "body.md", "--base", "main", "--head", "fix/issues", "--draft" };
     [Test]
     public static void GitHubCliEnvironment()
     {
@@ -33,20 +34,7 @@ internal sealed class GitHubCliServiceTests
         commandRunner
             .Setup(value => value.RunAsync(
                 "gh",
-                It.Is<IEnumerable<string>>(arguments => arguments.SequenceEqual(new[]
-                {
-                    "pr",
-                    "create",
-                    "--title",
-                    "Fix issues",
-                    "--body-file",
-                    "body.md",
-                    "--base",
-                    "main",
-                    "--head",
-                    "fix/issues",
-                    "--draft"
-                })),
+                It.Is<IEnumerable<string>>(arguments => arguments.SequenceEqual(PrCreateArguments)),
                 workspace,
                 It.IsAny<IReadOnlyDictionary<string, string?>>(),
                 null,
