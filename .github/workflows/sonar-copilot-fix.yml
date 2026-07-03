@@ -39,7 +39,7 @@ on:
           - SECURITY
           - MAINTAINABILITY
       impactSeverities:
-        description: Impact Severity
+        description: Severity
         type: choice
         required: false
         default: ALL
