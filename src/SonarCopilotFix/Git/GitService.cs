@@ -76,15 +76,21 @@ public sealed partial class GitService(ICommandRunner commandRunner, IConfigurat
             .ToArray();
     }
 
-    public string BuildBranchName(DateTimeOffset timestamp)
+    public string BuildBranchName(string issueKey, DateTimeOffset timestamp)
     {
         var safeProject = UnsafeBranchChars().Replace(configurationHelper.GetSonarProjectKey(), "-").Trim('-');
-        return $"{configurationHelper.InputBranchPrefix.TrimEnd('/')}/{safeProject}/{timestamp:yyyyMMddHHmmss}";
+        var safeIssueKey = UnsafeBranchChars().Replace(issueKey, "-").Trim('-');
+        return $"{configurationHelper.InputBranchPrefix.TrimEnd('/')}/{safeProject}/{safeIssueKey}/{timestamp:yyyyMMddHHmmssfff}";
     }
 
     public async Task CreateBranchAsync(string branchName, CancellationToken cancellationToken)
     {
         await EnsureSuccess("create git branch", RunGitAsync(["switch", "-c", branchName], cancellationToken: cancellationToken), ExitCodes.GitFailure);
+    }
+
+    public async Task SwitchBranchAsync(string branchName, CancellationToken cancellationToken)
+    {
+        await EnsureSuccess($"switch to git branch {branchName}", RunGitAsync(["switch", branchName], cancellationToken: cancellationToken), ExitCodes.GitFailure);
     }
 
     public async Task ConfigureBotUserAsync(CancellationToken cancellationToken)

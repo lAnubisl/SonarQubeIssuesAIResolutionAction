@@ -4,7 +4,7 @@ using SonarCopilotFix.Infrastructure;
 namespace SonarCopilotFix.GitHub;
 
 public sealed class CopilotCliRunner(
-    CommandRunner commandRunner,
+    ICommandRunner commandRunner,
     IConfigurationHelper configurationHelper,
     ILogger logger)
 {

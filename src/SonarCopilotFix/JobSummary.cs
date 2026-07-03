@@ -22,6 +22,14 @@ public sealed class JobSummary(IConfigurationHelper configurationHelper)
     public IReadOnlyList<string> ChangedFiles { get; set; } = [];
     public string? PullRequestUrl { get; set; }
     public string? CopilotSessionSummary { get; set; }
+    public List<IssueRunResult> IssueResults { get; } = [];
+    public IReadOnlyList<string> PromptFiles =>
+        IssueResults.Select(result => result.PromptFile).ToArray();
+    public IReadOnlyList<string> PullRequestUrls =>
+        IssueResults
+            .Where(result => !string.IsNullOrWhiteSpace(result.PullRequestUrl))
+            .Select(result => result.PullRequestUrl!)
+            .ToArray();
 
     public void SetSelectedIssues(IReadOnlyList<SonarIssue> issues)
     {
@@ -35,6 +43,21 @@ public sealed class JobSummary(IConfigurationHelper configurationHelper)
         TotalEffortSaved = efforts.Length == 0
             ? "not available"
             : FormatEffort(efforts.Sum());
+    }
+
+    public void AddIssueResult(IssueRunResult result)
+    {
+        IssueResults.Add(result);
+        PromptFile = result.PromptFile;
+        GeneratedBranch = result.BranchName;
+        PullRequestUrl = result.PullRequestUrl;
+        CopilotSessionSummary = result.CopilotSessionSummary;
+        CopilotExecuted |= !string.Equals(result.Outcome, "dry run", StringComparison.Ordinal);
+        ChangedFiles = ChangedFiles
+            .Concat(result.ChangedFiles)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
     }
 
     public void Write()
@@ -57,20 +80,60 @@ public sealed class JobSummary(IConfigurationHelper configurationHelper)
             $"* Dry run: `{configurationHelper.InputDryRun}`",
             $"* Copilot CLI executed: `{CopilotExecuted}`",
             "",
-            "## Copilot Session Summary",
+            "## Issue Results",
             "",
-            "```text",
-            string.IsNullOrWhiteSpace(CopilotSessionSummary)
+            "| Issue | Branch | Outcome | Pull request |",
+            "| --- | --- | --- | --- |"
+        };
+        if (IssueResults.Count == 0)
+        {
+            lines.Add("| n/a | n/a | no issues processed | n/a |");
+        }
+        else
+        {
+            lines.AddRange(IssueResults.Select(result =>
+                $"| `{result.IssueKey}` | `{result.BranchName ?? "not created"}` | {result.Outcome} | {result.PullRequestUrl ?? "not created"} |"));
+        }
+
+        lines.AddRange(
+        [
+            "",
+            "## Copilot Session Summary",
+            ""
+        ]);
+        var sessions = IssueResults
+            .Where(result => !string.IsNullOrWhiteSpace(result.CopilotSessionSummary))
+            .ToArray();
+        if (sessions.Length == 0)
+        {
+            lines.Add("```text");
+            lines.Add(string.IsNullOrWhiteSpace(CopilotSessionSummary)
                 ? "Not available because Copilot CLI did not write session information to stderr."
-                : CopilotSessionSummary,
-            "```",
+                : CopilotSessionSummary);
+            lines.Add("```");
+        }
+        else
+        {
+            foreach (var session in sessions)
+            {
+                lines.Add($"### {session.IssueKey}");
+                lines.Add("");
+                lines.Add("```text");
+                lines.Add(session.CopilotSessionSummary!);
+                lines.Add("```");
+                lines.Add("");
+            }
+        }
+
+        lines.AddRange(
+        [
             "",
             "## Result",
             "",
             $"* Files changed: `{ChangedFiles.Count}`",
-            $"* Pull request: `{PullRequestUrl ?? "not created"}`",
-            $"* Prompt file: `{PromptFile ?? "not generated"}`"
-        };
+            $"* Pull requests created: `{PullRequestUrls.Count}`",
+            $"* Prompt files generated: `{PromptFiles.Count}`"
+        ]);
 
         File.AppendAllText(path, string.Join(Environment.NewLine, lines) + Environment.NewLine);
     }
@@ -128,3 +191,12 @@ public sealed class JobSummary(IConfigurationHelper configurationHelper)
         return string.Join(" ", parts);
     }
 }
+
+public sealed record IssueRunResult(
+    string IssueKey,
+    string? BranchName,
+    string PromptFile,
+    IReadOnlyList<string> ChangedFiles,
+    string? PullRequestUrl,
+    string? CopilotSessionSummary,
+    string Outcome);

@@ -10,6 +10,48 @@ namespace SonarCopilotFix.Tests;
 internal sealed class GitServiceTests
 {
     [Test]
+    public static void BranchNameIncludesIssueKey()
+    {
+        var configurationHelper = TestData.MockConfigurationHelper(inputSonarProjectKey: "my project");
+        var git = new GitService(Mock.Of<ICommandRunner>(), configurationHelper.Object);
+
+        var branchName = git.BuildBranchName(
+            "AX/unsafe issue",
+            new DateTimeOffset(2026, 7, 3, 12, 34, 56, 789, TimeSpan.Zero));
+
+        Assert.Equal("copilot/sonar-fixes/my-project/AX/unsafe-issue/20260703123456789", branchName);
+    }
+
+    [Test]
+    public static async Task SwitchBranch()
+    {
+        var workspace = Path.Combine(Path.GetTempPath(), "workspace");
+        var commandRunner = new Mock<ICommandRunner>(MockBehavior.Strict);
+        commandRunner
+            .Setup(value => value.RunAsync(
+                "git",
+                It.Is<IEnumerable<string>>(arguments => arguments.SequenceEqual(new[]
+                {
+                    "-c",
+                    $"safe.directory={Path.GetFullPath(workspace)}",
+                    "switch",
+                    "main"
+                })),
+                workspace,
+                null,
+                null,
+                null,
+                CancellationToken.None))
+            .ReturnsAsync(new CommandResult(0, "", ""));
+        var configurationHelper = TestData.MockConfigurationHelper(gitHubWorkspace: workspace);
+        var git = new GitService(commandRunner.Object, configurationHelper.Object);
+
+        await git.SwitchBranchAsync("main", CancellationToken.None);
+
+        commandRunner.VerifyAll();
+    }
+
+    [Test]
     public static async Task GitChangedFiles()
     {
         var workspace = Path.Combine(Path.GetTempPath(), "workspace");

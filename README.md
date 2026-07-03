@@ -1,6 +1,6 @@
 # SonarQube Copilot Fix Action
 
-Reusable Ubuntu composite GitHub Action that fetches selected SonarQube issues, builds a deterministic repair prompt, runs GitHub Copilot CLI against the checked-out repository, and opens a draft pull request.
+Reusable Ubuntu composite GitHub Action that fetches selected SonarQube issues and handles each one in an isolated branch and GitHub Copilot CLI session, producing one draft pull request per successful fix.
 
 Use this for supervised, workflow-dispatched remediation of known SonarQube issues. Do not use it on untrusted pull request code, forked pull requests, or repositories where AI-generated edits cannot receive human review.
 
@@ -116,7 +116,7 @@ jobs:
 
 ## Dry Run
 
-Dry run requires only `SONAR_TOKEN`. It fetches issues, writes `.sonar-copilot/issues-prompt.md`, emits action outputs, and writes the job summary. It does not run Copilot CLI, create a branch, commit, push, or create a pull request.
+Dry run requires only `SONAR_TOKEN`. It fetches issues, writes one `.sonar-copilot/issue-<issue-key>-prompt.md` file per issue, emits action outputs, and writes the job summary. It does not run Copilot CLI, create a branch, commit, push, or create a pull request.
 
 ## Normal Execution
 
@@ -126,13 +126,14 @@ Normal mode requires `SONAR_TOKEN`, `COPILOT_CLI_TOKEN`, and `GH_CLI_TOKEN`. The
 2. Optionally fetches rule details from `/api/rules/show`.
 3. Reads local snippets around affected lines.
 4. Requires a clean worktree outside `.sonar-copilot`.
-5. Creates and checks out a branch named `<branch_prefix>/<sonar_project_key>/<timestamp>`.
-6. Generates `.sonar-copilot/issues-prompt.md` with that fix branch as the current branch.
-7. Snapshots Git `HEAD`, then runs Copilot CLI with only the Copilot token and a small allowlist of runner environment variables.
-8. Detects both uncommitted files and commits created after the snapshot, excluding generated prompt files from the changed-file list.
-9. Commits any remaining worktree changes, pushes the already checked-out branch (including any local Copilot commit), and creates a draft PR with `gh pr create`.
+5. Switches to the resolved base branch.
+6. For each selected issue, creates and checks out a branch named `<branch_prefix>/<sonar_project_key>/<issue_key>/<timestamp>`.
+7. Generates a prompt containing only that issue and starts a fresh Copilot CLI session with a unique session ID.
+8. Detects both uncommitted files and commits created after the per-issue snapshot, excluding generated prompt files from the changed-file list.
+9. Commits any remaining worktree changes, pushes the issue branch, and creates a draft PR with `gh pr create`.
+10. Switches back to the base branch before starting the next issue.
 
-If neither files nor `HEAD` changed, the action exits successfully without an empty commit or PR. Build, test, lint, and other validation remain the responsibility of the consuming repository's pull request workflows. When Copilot should run a project tool while preparing the fix, install that tool before this action and grant only its required command pattern with `copilot_allowed_tools`.
+If neither files nor `HEAD` changed for an issue, the action skips its empty commit and PR, switches back to the base branch, and continues with the next issue. Build, test, lint, and other validation remain the responsibility of the consuming repository's pull request workflows. When Copilot should run a project tool while preparing the fix, install that tool before this action and grant only its required command pattern with `copilot_allowed_tools`.
 
 Configure those workflows for `pull_request` events such as `opened` and `synchronize`, and enforce their checks with branch protection or rulesets. Use a personal access token or GitHub App installation token for `GH_CLI_TOKEN`.
 
@@ -154,7 +155,7 @@ After Copilot finishes, the action uses the stderr captured from that same proce
 
 ## Pull Request Body
 
-The draft PR includes the SonarQube project, branch, base branch, generated branch, total estimated effort saved from the selected SonarQube issues, selected issue links, changed files, the Copilot session summary captured from stderr, a note that validation is delegated to PR checks, a Copilot generation note, and a human-review requirement. The total effort and same stderr session summary are included in the GitHub Actions job summary.
+Each draft PR includes its SonarQube issue, project, base branch, generated branch, changed files, and isolated Copilot session summary captured from stderr. The GitHub Actions job summary lists every issue outcome and created pull request.
 
 ## SonarQube Compatibility
 
