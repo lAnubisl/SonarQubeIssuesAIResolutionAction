@@ -15,16 +15,16 @@ internal sealed class GitServiceTests
         "--porcelain"
     ];
     [Test]
-    public static void BranchNameIncludesIssueKey()
+    public static void BranchNameIncludesRuleKey()
     {
         var configurationHelper = TestData.MockConfigurationHelper(inputSonarProjectKey: "my project");
         var git = new GitService(Mock.Of<ICommandRunner>(), configurationHelper.Object);
 
         var branchName = git.BuildBranchName(
-            "AX/unsafe issue",
+            "csharpsquid:unsafe rule",
             new DateTimeOffset(2026, 7, 3, 12, 34, 56, 789, TimeSpan.Zero));
 
-        Assert.Equal("copilot/sonar-fixes/my-project/AX/unsafe-issue/20260703123456789", branchName);
+        Assert.Equal("copilot/sonar-fixes/my-project/csharpsquid-unsafe-rule/20260703123456789", branchName);
     }
 
     [Test]

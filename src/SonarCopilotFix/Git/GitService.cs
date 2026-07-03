@@ -76,11 +76,11 @@ public sealed partial class GitService(ICommandRunner commandRunner, IConfigurat
             .ToArray();
     }
 
-    public string BuildBranchName(string issueKey, DateTimeOffset timestamp)
+    public string BuildBranchName(string ruleKey, DateTimeOffset timestamp)
     {
         var safeProject = UnsafeBranchChars().Replace(configurationHelper.GetSonarProjectKey(), "-").Trim('-');
-        var safeIssueKey = UnsafeBranchChars().Replace(issueKey, "-").Trim('-');
-        return $"{configurationHelper.InputBranchPrefix.TrimEnd('/')}/{safeProject}/{safeIssueKey}/{timestamp:yyyyMMddHHmmssfff}";
+        var safeRuleKey = UnsafeBranchChars().Replace(ruleKey, "-").Trim('-');
+        return $"{configurationHelper.InputBranchPrefix.TrimEnd('/')}/{safeProject}/{safeRuleKey}/{timestamp:yyyyMMddHHmmssfff}";
     }
 
     public async Task CreateBranchAsync(string branchName, CancellationToken cancellationToken)

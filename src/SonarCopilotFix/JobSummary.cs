@@ -16,6 +16,7 @@ public sealed partial class JobSummary(IConfigurationHelper configurationHelper)
 
     public int IssuesFound { get; set; }
     public int IssuesSelected { get; set; }
+    public int RuleGroupsSelected { get; private set; }
     public string TotalEffortSaved { get; private set; } = "not available";
     public bool CopilotExecuted { get; set; }
     public string? PromptFile { get; set; }
@@ -24,11 +25,11 @@ public sealed partial class JobSummary(IConfigurationHelper configurationHelper)
     public IReadOnlyList<string> ChangedFiles { get; set; } = [];
     public string? PullRequestUrl { get; set; }
     public string? CopilotSessionSummary { get; set; }
-    public List<IssueRunResult> IssueResults { get; } = [];
+    public List<GroupRunResult> GroupResults { get; } = [];
     public IReadOnlyList<string> PromptFiles =>
-        IssueResults.Select(result => result.PromptFile).ToArray();
+        GroupResults.Select(result => result.PromptFile).ToArray();
     public IReadOnlyList<string> PullRequestUrls =>
-        IssueResults
+        GroupResults
             .Where(result => !string.IsNullOrWhiteSpace(result.PullRequestUrl))
             .Select(result => result.PullRequestUrl!)
             .ToArray();
@@ -36,6 +37,10 @@ public sealed partial class JobSummary(IConfigurationHelper configurationHelper)
     public void SetSelectedIssues(IReadOnlyList<SonarIssue> issues)
     {
         IssuesSelected = issues.Count;
+        RuleGroupsSelected = issues
+            .Select(issue => issue.RuleKey)
+            .Distinct(StringComparer.Ordinal)
+            .Count();
         var efforts = issues
             .Select(issue => ParseEffortMinutes(issue.Effort))
             .Where(minutes => minutes.HasValue)
@@ -47,9 +52,9 @@ public sealed partial class JobSummary(IConfigurationHelper configurationHelper)
             : FormatEffort(efforts.Sum());
     }
 
-    public void AddIssueResult(IssueRunResult result)
+    public void AddGroupResult(GroupRunResult result)
     {
-        IssueResults.Add(result);
+        GroupResults.Add(result);
         PromptFile = result.PromptFile;
         GeneratedBranch = result.BranchName;
         PullRequestUrl = result.PullRequestUrl;
@@ -78,23 +83,24 @@ public sealed partial class JobSummary(IConfigurationHelper configurationHelper)
             $"* SonarQube branch: `{configurationHelper.InputSonarBranch ?? "not specified"}`",
             $"* Issues found: `{IssuesFound}`",
             $"* Issues selected: `{IssuesSelected}`",
+            $"* Rule groups selected: `{RuleGroupsSelected}`",
             $"* Total effort saved: `{TotalEffortSaved}`",
             $"* Dry run: `{configurationHelper.InputDryRun}`",
             $"* Copilot CLI executed: `{CopilotExecuted}`",
             "",
-            "## Issue Results",
+            "## Rule Group Results",
             "",
-            "| Issue | Branch | Outcome | Pull request |",
-            "| --- | --- | --- | --- |"
+            "| Rule | Issues | Branch | Outcome | Pull request |",
+            "| --- | --- | --- | --- | --- |"
         };
-        if (IssueResults.Count == 0)
+        if (GroupResults.Count == 0)
         {
-            lines.Add("| n/a | n/a | no issues processed | n/a |");
+            lines.Add("| n/a | n/a | n/a | no rule groups processed | n/a |");
         }
         else
         {
-            lines.AddRange(IssueResults.Select(result =>
-                $"| `{result.IssueKey}` | `{result.BranchName ?? "not created"}` | {result.Outcome} | {result.PullRequestUrl ?? "not created"} |"));
+            lines.AddRange(GroupResults.Select(result =>
+                $"| `{result.RuleKey}` | {string.Join(", ", result.IssueKeys.Select(key => $"`{key}`"))} | `{result.BranchName ?? "not created"}` | {result.Outcome} | {result.PullRequestUrl ?? "not created"} |"));
         }
 
         lines.AddRange(
@@ -103,7 +109,7 @@ public sealed partial class JobSummary(IConfigurationHelper configurationHelper)
             "## Copilot Session Summary",
             ""
         ]);
-        var sessions = IssueResults
+        var sessions = GroupResults
             .Where(result => !string.IsNullOrWhiteSpace(result.CopilotSessionSummary))
             .ToArray();
         if (sessions.Length == 0)
@@ -118,7 +124,7 @@ public sealed partial class JobSummary(IConfigurationHelper configurationHelper)
         {
             foreach (var session in sessions)
             {
-                lines.Add($"### {session.IssueKey}");
+                lines.Add($"### {session.RuleKey}");
                 lines.Add("");
                 lines.Add("```text");
                 lines.Add(session.CopilotSessionSummary!);
@@ -194,8 +200,9 @@ public sealed partial class JobSummary(IConfigurationHelper configurationHelper)
     }
 }
 
-public sealed record IssueRunResult(
-    string IssueKey,
+public sealed record GroupRunResult(
+    string RuleKey,
+    IReadOnlyList<string> IssueKeys,
     string? BranchName,
     string PromptFile,
     IReadOnlyList<string> ChangedFiles,

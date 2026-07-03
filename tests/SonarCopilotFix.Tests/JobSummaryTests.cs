@@ -31,6 +31,7 @@ internal sealed class JobSummaryTests
         Assert.Contains("1k tokens", contents);
         Assert.Contains("5s", contents);
         Assert.Contains("Issues selected: `3`", contents);
+        Assert.Contains("Rule groups selected: `1`", contents);
         Assert.Contains("Total effort saved: `1d 2h 45min`", contents);
     }
 

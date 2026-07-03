@@ -52,10 +52,13 @@ public sealed class SonarCopilotFixApp
         var baseBranch = await ResolveBaseBranchAsync(cancellationToken);
         summary.BaseBranch = baseBranch;
         var enrichedIssues = EnrichIssues(issues.Issues);
+        var issueGroups = GroupIssuesByRule(enrichedIssues);
+        WriteOutput("selected_rule_group_count", issueGroups.Count.ToString());
+        _logger.Info($"Grouped {enrichedIssues.Count} selected issue(s) into {issueGroups.Count} rule group(s).");
 
         if (_configurationHelper.InputDryRun)
         {
-            await WriteDryRunPromptsAsync(enrichedIssues, baseBranch, summary, cancellationToken);
+            await WriteDryRunPromptsAsync(issueGroups, baseBranch, summary, cancellationToken);
             return CompleteDryRun(summary);
         }
 
@@ -63,9 +66,9 @@ public sealed class SonarCopilotFixApp
         _logger.Info("Using GH_CLI_TOKEN for GitHub repository operations.");
         await _github.SetupGitAuthenticationAsync(cancellationToken);
 
-        foreach (var issue in enrichedIssues)
+        foreach (var issueGroup in issueGroups)
         {
-            await ProcessIssueAsync(issue, baseBranch, summary, cancellationToken);
+            await ProcessIssueGroupAsync(issueGroup, baseBranch, summary, cancellationToken);
         }
 
         WriteCollectionOutputs(summary);
@@ -93,6 +96,7 @@ public sealed class SonarCopilotFixApp
 
     private int CompleteWithoutIssues(JobSummary summary)
     {
+        WriteOutput("selected_rule_group_count", "0");
         summary.Write();
         if (_configurationHelper.InputFailIfNoIssues)
         {
@@ -113,6 +117,12 @@ public sealed class SonarCopilotFixApp
             ? _snippetReader.AddSnippets(issues)
             : issues;
 
+    private static IReadOnlyList<IssueGroup> GroupIssuesByRule(IReadOnlyList<SonarIssue> issues) =>
+        issues
+            .GroupBy(issue => issue.RuleKey, StringComparer.Ordinal)
+            .Select(group => new IssueGroup(group.Key, group.ToArray()))
+            .ToArray();
+
     private async Task PrepareRepositoryAsync(
         string baseBranch,
         CancellationToken cancellationToken)
@@ -127,17 +137,18 @@ public sealed class SonarCopilotFixApp
     }
 
     private async Task WriteDryRunPromptsAsync(
-        IReadOnlyList<SonarIssue> issues,
+        IReadOnlyList<IssueGroup> issueGroups,
         string baseBranch,
         JobSummary summary,
         CancellationToken cancellationToken)
     {
         var currentBranch = await _git.CurrentBranchAsync(cancellationToken);
-        foreach (var issue in issues)
+        foreach (var issueGroup in issueGroups)
         {
-            var promptPath = await WritePromptAsync(issue, currentBranch, baseBranch, cancellationToken);
-            summary.AddIssueResult(new IssueRunResult(
-                issue.Key,
+            var promptPath = await WritePromptAsync(issueGroup, currentBranch, baseBranch, cancellationToken);
+            summary.AddGroupResult(new GroupRunResult(
+                issueGroup.RuleKey,
+                issueGroup.Issues.Select(issue => issue.Key).ToArray(),
                 null,
                 promptPath,
                 [],
@@ -149,28 +160,29 @@ public sealed class SonarCopilotFixApp
         WriteCollectionOutputs(summary);
     }
 
-    private async Task ProcessIssueAsync(
-        SonarIssue issue,
+    private async Task ProcessIssueGroupAsync(
+        IssueGroup issueGroup,
         string baseBranch,
         JobSummary summary,
         CancellationToken cancellationToken)
     {
-        var branchName = _git.BuildBranchName(issue.Key, DateTimeOffset.UtcNow);
-        _logger.Info($"Starting isolated fix attempt for SonarQube issue {issue.Key} on branch {branchName}.");
+        var branchName = _git.BuildBranchName(issueGroup.RuleKey, DateTimeOffset.UtcNow);
+        _logger.Info($"Starting isolated fix attempt for rule {issueGroup.RuleKey} with {issueGroup.Issues.Count} issue(s) on branch {branchName}.");
         await _git.CreateBranchAsync(branchName, cancellationToken);
 
         try
         {
-            var promptPath = await WritePromptAsync(issue, branchName, baseBranch, cancellationToken);
+            var promptPath = await WritePromptAsync(issueGroup, branchName, baseBranch, cancellationToken);
             var headBeforeCopilot = await _git.GetHeadCommitAsync(cancellationToken);
             var sessionSummary = await RunCopilotAsync(promptPath, cancellationToken);
             var changes = await DetectCopilotChangesAsync(headBeforeCopilot, cancellationToken);
 
             if (!changes.HasRepositoryChanges)
             {
-                _logger.Info($"Copilot completed issue {issue.Key} without repository file changes.");
-                summary.AddIssueResult(new IssueRunResult(
-                    issue.Key,
+                _logger.Info($"Copilot completed rule group {issueGroup.RuleKey} without repository file changes.");
+                summary.AddGroupResult(new GroupRunResult(
+                    issueGroup.RuleKey,
+                    issueGroup.Issues.Select(issue => issue.Key).ToArray(),
                     branchName,
                     promptPath,
                     [],
@@ -180,17 +192,18 @@ public sealed class SonarCopilotFixApp
                 return;
             }
 
-            await CommitUncommittedChangesAsync(issue, changes.UncommittedFiles, cancellationToken);
+            await CommitUncommittedChangesAsync(issueGroup, changes.UncommittedFiles, cancellationToken);
             var pullRequestUrl = await PublishPullRequestAsync(
-                issue,
+                issueGroup,
                 branchName,
                 promptPath,
                 changes.ChangedFiles,
                 sessionSummary,
                 baseBranch,
                 cancellationToken);
-            summary.AddIssueResult(new IssueRunResult(
-                issue.Key,
+            summary.AddGroupResult(new GroupRunResult(
+                issueGroup.RuleKey,
+                issueGroup.Issues.Select(issue => issue.Key).ToArray(),
                 branchName,
                 promptPath,
                 changes.ChangedFiles,
@@ -200,13 +213,13 @@ public sealed class SonarCopilotFixApp
         }
         finally
         {
-            _logger.Info($"Switching back to base branch {baseBranch} after issue {issue.Key}.");
+            _logger.Info($"Switching back to base branch {baseBranch} after rule group {issueGroup.RuleKey}.");
             await _git.SwitchBranchAsync(baseBranch, cancellationToken);
         }
     }
 
     private async Task<string> WritePromptAsync(
-        SonarIssue issue,
+        IssueGroup issueGroup,
         string currentBranch,
         string baseBranch,
         CancellationToken cancellationToken)
@@ -214,11 +227,11 @@ public sealed class SonarCopilotFixApp
         var promptPath = Path.Combine(
             _configurationHelper.GitHubWorkspace,
             ".sonar-copilot",
-            $"issue-{SafeFileSegment(issue.Key)}-prompt.md");
+            $"rule-{SafeFileSegment(issueGroup.RuleKey)}-prompt.md");
         Directory.CreateDirectory(Path.GetDirectoryName(promptPath)!);
         await File.WriteAllTextAsync(
             promptPath,
-            _promptBuilder.Build([issue], currentBranch, baseBranch),
+            _promptBuilder.Build(issueGroup.Issues, currentBranch, baseBranch),
             cancellationToken);
         return promptPath;
     }
@@ -262,7 +275,7 @@ public sealed class SonarCopilotFixApp
     }
 
     private async Task CommitUncommittedChangesAsync(
-        SonarIssue issue,
+        IssueGroup issueGroup,
         IReadOnlyList<string> uncommittedFiles,
         CancellationToken cancellationToken)
     {
@@ -273,11 +286,11 @@ public sealed class SonarCopilotFixApp
 
         await _git.ConfigureBotUserAsync(cancellationToken);
         await _git.StageFilesAsync(uncommittedFiles, cancellationToken);
-        await _git.CommitAsync($"Fix SonarQube issue {issue.Key}", cancellationToken);
+        await _git.CommitAsync($"Fix SonarQube rule {issueGroup.RuleKey}", cancellationToken);
     }
 
     private async Task<string> PublishPullRequestAsync(
-        SonarIssue issue,
+        IssueGroup issueGroup,
         string branchName,
         string promptPath,
         IReadOnlyList<string> changedFiles,
@@ -296,17 +309,17 @@ public sealed class SonarCopilotFixApp
             CopilotExecuted = true,
             CopilotSessionSummary = sessionSummary
         };
-        issueSummary.SetSelectedIssues([issue]);
+        issueSummary.SetSelectedIssues(issueGroup.Issues);
         var prBodyPath = Path.Combine(
             _configurationHelper.GitHubWorkspace,
             ".sonar-copilot",
-            $"issue-{SafeFileSegment(issue.Key)}-pull-request-body.md");
+            $"rule-{SafeFileSegment(issueGroup.RuleKey)}-pull-request-body.md");
         await File.WriteAllTextAsync(
             prBodyPath,
-            _prBodyBuilder.Build([issue], issueSummary),
+            _prBodyBuilder.Build(issueGroup.Issues, issueSummary),
             cancellationToken);
         var prUrl = await _github.CreatePullRequestAsync(
-            $"Fix SonarQube issue {issue.Key}",
+            $"Fix SonarQube rule {issueGroup.RuleKey} ({issueGroup.Issues.Count} issue(s))",
             prBodyPath,
             baseBranch,
             branchName,
@@ -357,4 +370,6 @@ public sealed class SonarCopilotFixApp
     {
         public bool HasRepositoryChanges => ChangedFiles.Count > 0 || CopilotCreatedCommits;
     }
+
+    private sealed record IssueGroup(string RuleKey, IReadOnlyList<SonarIssue> Issues);
 }

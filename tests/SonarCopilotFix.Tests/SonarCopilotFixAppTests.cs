@@ -31,7 +31,7 @@ internal sealed class SonarCopilotFixAppTests
         var exitCode = await app.RunAsync();
 
         Assert.Equal(0, exitCode);
-        Assert.True(File.Exists(Path.Combine(temp.FullName, ".sonar-copilot", "issue-ISSUE-1-prompt.md")));
+        Assert.True(File.Exists(Path.Combine(temp.FullName, ".sonar-copilot", "rule-csharpsquid-S1-prompt.md")));
         Assert.False(Directory.Exists(Path.Combine(temp.FullName, ".git", "refs", "heads", "copilot")));
         Assert.Contains(
             "Total effort saved: `5min`",
@@ -66,7 +66,7 @@ internal sealed class SonarCopilotFixAppTests
     }
 
     [Test]
-    public static async Task DryRunWritesOnePromptPerIssue()
+    public static async Task DryRunWritesOnePromptPerRuleGroup()
     {
         var temp = Directory.CreateTempSubdirectory();
         var logger = TestData.MockLogger();
@@ -80,10 +80,17 @@ internal sealed class SonarCopilotFixAppTests
             Message = "Fix that too",
             IssueUrl = new Uri("https://sonar.example/project/issues?id=proj&issues=ISSUE-2&open=ISSUE-2")
         };
+        var thirdIssue = TestData.SampleIssue() with
+        {
+            Key = "ISSUE-3",
+            RuleKey = "csharpsquid:S2",
+            Message = "Fix a different rule",
+            IssueUrl = new Uri("https://sonar.example/project/issues?id=proj&issues=ISSUE-3&open=ISSUE-3")
+        };
         var app = new SonarCopilotFixApp(
             configurationHelper.Object,
             logger.Object,
-            TestData.MockSonarQubeClient([TestData.SampleIssue(), secondIssue]),
+            TestData.MockSonarQubeClient([TestData.SampleIssue(), secondIssue, thirdIssue]),
             new CodeSnippetReader(configurationHelper.Object),
             new PromptBuilder(configurationHelper.Object),
             commandRunner,
@@ -92,16 +99,22 @@ internal sealed class SonarCopilotFixAppTests
         var exitCode = await app.RunAsync();
 
         Assert.Equal(0, exitCode);
-        var firstPrompt = File.ReadAllText(Path.Combine(temp.FullName, ".sonar-copilot", "issue-ISSUE-1-prompt.md"));
-        var secondPrompt = File.ReadAllText(Path.Combine(temp.FullName, ".sonar-copilot", "issue-ISSUE-2-prompt.md"));
+        var firstPrompt = File.ReadAllText(Path.Combine(temp.FullName, ".sonar-copilot", "rule-csharpsquid-S1-prompt.md"));
+        var secondPrompt = File.ReadAllText(Path.Combine(temp.FullName, ".sonar-copilot", "rule-csharpsquid-S2-prompt.md"));
         Assert.Contains("ISSUE-1", firstPrompt);
-        Assert.False(firstPrompt.Contains("ISSUE-2", StringComparison.Ordinal));
-        Assert.Contains("ISSUE-2", secondPrompt);
+        Assert.Contains("ISSUE-2", firstPrompt);
+        Assert.False(firstPrompt.Contains("ISSUE-3", StringComparison.Ordinal));
+        Assert.Contains("ISSUE-3", secondPrompt);
         Assert.False(secondPrompt.Contains("ISSUE-1", StringComparison.Ordinal));
+        Assert.False(secondPrompt.Contains("ISSUE-2", StringComparison.Ordinal));
+
+        var output = File.ReadAllText(Path.Combine(temp.FullName, "output.txt"));
+        Assert.Contains("selected_issue_count=3", output);
+        Assert.Contains("selected_rule_group_count=2", output);
     }
 
     [Test]
-    public static async Task NormalRunCompletesAnIsolatedWorkflowPerIssue()
+    public static async Task NormalRunCompletesAnIsolatedWorkflowPerRuleGroup()
     {
         var temp = Directory.CreateTempSubdirectory();
         var logger = TestData.MockLogger();
@@ -119,10 +132,17 @@ internal sealed class SonarCopilotFixAppTests
             Message = "Fix that too",
             IssueUrl = new Uri("https://sonar.example/project/issues?id=proj&issues=ISSUE-2&open=ISSUE-2")
         };
+        var thirdIssue = TestData.SampleIssue() with
+        {
+            Key = "ISSUE-3",
+            RuleKey = "csharpsquid:S2",
+            Message = "Fix a different rule",
+            IssueUrl = new Uri("https://sonar.example/project/issues?id=proj&issues=ISSUE-3&open=ISSUE-3")
+        };
         var app = new SonarCopilotFixApp(
             configurationHelper.Object,
             logger.Object,
-            TestData.MockSonarQubeClient([TestData.SampleIssue(), secondIssue]),
+            TestData.MockSonarQubeClient([TestData.SampleIssue(), secondIssue, thirdIssue]),
             new CodeSnippetReader(configurationHelper.Object),
             new PromptBuilder(configurationHelper.Object),
             commandRunner,
@@ -132,8 +152,8 @@ internal sealed class SonarCopilotFixAppTests
 
         Assert.Equal(0, exitCode);
         Assert.Equal(2, commandRunner.CreatedBranches.Count);
-        Assert.Contains("/ISSUE-1/", commandRunner.CreatedBranches[0]);
-        Assert.Contains("/ISSUE-2/", commandRunner.CreatedBranches[1]);
+        Assert.Contains("/csharpsquid-S1/", commandRunner.CreatedBranches[0]);
+        Assert.Contains("/csharpsquid-S2/", commandRunner.CreatedBranches[1]);
         Assert.Equal(2, commandRunner.CopilotSessionIds.Count);
         Assert.False(string.Equals(
             commandRunner.CopilotSessionIds[0],
@@ -147,11 +167,19 @@ internal sealed class SonarCopilotFixAppTests
         var output = File.ReadAllText(Path.Combine(temp.FullName, "output.txt"));
         Assert.Contains("\"https://github.example/pr/1\"", output);
         Assert.Contains("\"https://github.example/pr/2\"", output);
+        var firstPrBody = File.ReadAllText(Path.Combine(
+            temp.FullName,
+            ".sonar-copilot",
+            "rule-csharpsquid-S1-pull-request-body.md"));
+        Assert.Contains("ISSUE-1", firstPrBody);
+        Assert.Contains("ISSUE-2", firstPrBody);
+        Assert.False(firstPrBody.Contains("ISSUE-3", StringComparison.Ordinal));
     }
 
     private static Mock<IConfigurationHelper> CreateConfigurationHelper(string workspace) =>
         TestData.MockConfigurationHelper(
             gitHubWorkspace: workspace,
+            gitHubOutput: Path.Combine(workspace, "output.txt"),
             gitHubStepSummary: Path.Combine(workspace, "summary.md"));
 
     private sealed class WorkflowCommandRunner : ICommandRunner
