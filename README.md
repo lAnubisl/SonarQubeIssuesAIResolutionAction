@@ -125,12 +125,12 @@ Normal mode requires `SONAR_TOKEN`, `COPILOT_CLI_TOKEN`, and `GH_CLI_TOKEN`. The
 1. Fetches and paginates open SonarQube issues from `/api/issues/search`.
 2. Optionally fetches rule details from `/api/rules/show`.
 3. Reads local snippets around affected lines.
-4. Generates `.sonar-copilot/issues-prompt.md`.
-5. Requires a clean worktree outside `.sonar-copilot`.
-6. Snapshots the current Git `HEAD`, then runs Copilot CLI with only the Copilot token and a small allowlist of runner environment variables.
-7. Detects both uncommitted files and commits created after the snapshot, excluding generated prompt files from the changed-file list.
-8. Creates a branch named `<branch_prefix>/<sonar_project_key>/<timestamp>`.
-9. Commits any remaining worktree changes, pushes the branch (including any local Copilot commit), and creates a draft PR with `gh pr create`.
+4. Requires a clean worktree outside `.sonar-copilot`.
+5. Creates and checks out a branch named `<branch_prefix>/<sonar_project_key>/<timestamp>`.
+6. Generates `.sonar-copilot/issues-prompt.md` with that fix branch as the current branch.
+7. Snapshots Git `HEAD`, then runs Copilot CLI with only the Copilot token and a small allowlist of runner environment variables.
+8. Detects both uncommitted files and commits created after the snapshot, excluding generated prompt files from the changed-file list.
+9. Commits any remaining worktree changes, pushes the already checked-out branch (including any local Copilot commit), and creates a draft PR with `gh pr create`.
 
 If neither files nor `HEAD` changed, the action exits successfully without an empty commit or PR. Build, test, lint, and other validation remain the responsibility of the consuming repository's pull request workflows. When Copilot should run a project tool while preparing the fix, install that tool before this action and grant only its required command pattern with `copilot_allowed_tools`.
 

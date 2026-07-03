@@ -14,7 +14,7 @@ public sealed class PromptBuilder(IConfigurationHelper configurationHelper)
         builder.AppendLine();
         builder.AppendLine("You are a expert software enginner with deep knowledge of code maintenance and code quality.");
         builder.AppendLine("Your job is to fix the listed SonarQube issues in the repository.");
-        builder.AppendLine("You are not allowed to switch git branches, create commits, amend commits, or bypass Git hooks. Leave all file changes uncommitted; the external process will create and push the branch and commit.");
+        builder.AppendLine("You are not allowed to switch git branches, create commits, amend commits, or bypass Git hooks. The fix branch is already checked out. Leave all file changes uncommitted; the external process will commit and push them.");
         builder.AppendLine();
         builder.AppendLine("## Repository Context");
         builder.AppendLine($"- Repository: `{configurationHelper.GitHubRepository}`");

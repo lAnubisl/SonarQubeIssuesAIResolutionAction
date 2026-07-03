@@ -52,10 +52,29 @@ public sealed class SonarCopilotFixApp(
             : configurationHelper.InputBaseBranch;
         summary.BaseBranch = baseBranch;
 
-        var currentBranch = await git.CurrentBranchAsync(cancellationToken);
         var enrichedIssues = configurationHelper.InputIncludeCodeSnippets
             ? snippetReader.AddSnippets(issues.Issues)
             : issues.Issues;
+
+        string currentBranch;
+        string? branchName = null;
+        if (configurationHelper.InputDryRun)
+        {
+            currentBranch = await git.CurrentBranchAsync(cancellationToken);
+        }
+        else
+        {
+            var initialChanges = await git.GetChangedFilesAsync(excludeGenerated: true, cancellationToken);
+            if (initialChanges.Count > 0)
+            {
+                throw new ControlledFailureException("The worktree has pre-existing changes outside .sonar-copilot. Refusing to continue so unrelated files are not committed.", ExitCodes.GitFailure);
+            }
+
+            branchName = git.BuildBranchName(DateTimeOffset.UtcNow);
+            summary.GeneratedBranch = branchName;
+            await git.CreateBranchAsync(branchName, cancellationToken);
+            currentBranch = branchName;
+        }
 
         var promptPath = Path.Combine(configurationHelper.GitHubWorkspace, ".sonar-copilot", "issues-prompt.md");
         Directory.CreateDirectory(Path.GetDirectoryName(promptPath)!);
@@ -73,10 +92,9 @@ public sealed class SonarCopilotFixApp(
             return ExitCodes.Success;
         }
 
-        var initialChanges = await git.GetChangedFilesAsync(excludeGenerated: true, cancellationToken);
-        if (initialChanges.Count > 0)
+        if (branchName is null)
         {
-            throw new ControlledFailureException("The worktree has pre-existing changes outside .sonar-copilot. Refusing to continue so unrelated files are not committed.", ExitCodes.GitFailure);
+            throw new InvalidOperationException("A fix branch must be created before Copilot runs.");
         }
 
         var headBeforeCopilot = await git.GetHeadCommitAsync(cancellationToken);
@@ -108,9 +126,6 @@ public sealed class SonarCopilotFixApp(
             logger.Info("Copilot created one or more local commits. The outer workflow will preserve and push them on the generated branch.");
         }
 
-        var branchName = git.BuildBranchName(DateTimeOffset.UtcNow);
-        summary.GeneratedBranch = branchName;
-        await git.CreateBranchAsync(branchName, cancellationToken);
         if (uncommittedFiles.Count > 0)
         {
             await git.ConfigureBotUserAsync(cancellationToken);
