@@ -7,6 +7,8 @@ namespace SonarCopilotFix.PromptGeneration;
 
 public sealed class PromptBuilder(IConfigurationHelper configurationHelper)
 {
+    private const string NotSpecified = "not specified";
+
     public string Build(IReadOnlyList<SonarIssue> issues, string currentBranch, string baseBranch)
     {
         var builder = new StringBuilder();
@@ -21,7 +23,7 @@ public sealed class PromptBuilder(IConfigurationHelper configurationHelper)
         builder.AppendLine($"- Current branch: `{currentBranch}`");
         builder.AppendLine($"- Base branch: `{baseBranch}`");
         builder.AppendLine($"- SonarQube project key: `{configurationHelper.GetSonarProjectKey()}`");
-        builder.AppendLine($"- SonarQube branch: `{configurationHelper.InputSonarBranch ?? "not specified"}`");
+        builder.AppendLine($"- SonarQube branch: `{configurationHelper.InputSonarBranch ?? NotSpecified}`");
         builder.AppendLine($"- Selected issue count: `{issues.Count}`");
         builder.AppendLine();
         builder.AppendLine("## Safety Rules");
@@ -47,7 +49,7 @@ public sealed class PromptBuilder(IConfigurationHelper configurationHelper)
         builder.AppendLine("## Prioritized Issues");
         foreach (var issue in issues)
         {
-            builder.AppendLine($"- `{issue.Key}` `{issue.RuleKey}` `{issue.FilePath}` line `{issue.Line?.ToString() ?? "not specified"}`: {issue.Message}");
+            builder.AppendLine($"- `{issue.Key}` `{issue.RuleKey}` `{issue.FilePath}` line `{issue.Line?.ToString() ?? NotSpecified}`: {issue.Message}");
         }
 
         builder.AppendLine();
@@ -70,7 +72,7 @@ public sealed class PromptBuilder(IConfigurationHelper configurationHelper)
         builder.AppendLine($"### {index}. {issue.Key}");
         builder.AppendLine($"- SonarQube URL: {issue.IssueUrl}");
         builder.AppendLine($"- File path: `{issue.FilePath}`");
-        builder.AppendLine($"- Line: `{issue.Line?.ToString() ?? "not specified"}`");
+        builder.AppendLine($"- Line: `{issue.Line?.ToString() ?? NotSpecified}`");
         if (issue.TextRange is not null)
         {
             builder.AppendLine($"- Text range: `{issue.TextRange.StartLine}:{issue.TextRange.StartOffset}-{issue.TextRange.EndLine}:{issue.TextRange.EndOffset}`");
@@ -78,9 +80,9 @@ public sealed class PromptBuilder(IConfigurationHelper configurationHelper)
 
         builder.AppendLine($"- Message: {issue.Message}");
         builder.AppendLine($"- Rule key: `{issue.RuleKey}`");
-        builder.AppendLine($"- Severity or impact: `{issue.Severity ?? "not specified"}`");
-        builder.AppendLine($"- Type or category: `{issue.Type ?? issue.CleanCodeAttributeCategory ?? "not specified"}`");
-        builder.AppendLine($"- Effort: `{issue.Effort ?? "not specified"}`");
+        builder.AppendLine($"- Severity or impact: `{issue.Severity ?? NotSpecified}`");
+        builder.AppendLine($"- Type or category: `{issue.Type ?? issue.CleanCodeAttributeCategory ?? NotSpecified}`");
+        builder.AppendLine($"- Effort: `{issue.Effort ?? NotSpecified}`");
         builder.AppendLine("```text");
         var codeSnippetText = GetCodeSnippetText(issue);
         builder.AppendLine(codeSnippetText);
