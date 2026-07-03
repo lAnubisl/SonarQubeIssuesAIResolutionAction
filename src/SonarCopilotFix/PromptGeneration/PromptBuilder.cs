@@ -82,23 +82,13 @@ public sealed class PromptBuilder(IConfigurationHelper configurationHelper)
         builder.AppendLine($"- Type or category: `{issue.Type ?? issue.CleanCodeAttributeCategory ?? "not specified"}`");
         builder.AppendLine($"- Effort: `{issue.Effort ?? "not specified"}`");
         builder.AppendLine("```text");
-        builder.AppendLine(issue.CodeSnippet is null
+        var codeSnippetText = issue.CodeSnippet is null
             ? "Code snippet was not requested."
             : issue.CodeSnippet.FileFound
                 ? issue.CodeSnippet.Content
-                : $"Local file not found: {issue.CodeSnippet.Content}");
+                : $"Local file not found: {issue.CodeSnippet.Content}";
+        builder.AppendLine(codeSnippetText);
         builder.AppendLine("```");
         builder.AppendLine();
-    }
-
-    private static string CleanDescription(string? description)
-    {
-        if (string.IsNullOrWhiteSpace(description))
-        {
-            return "not available";
-        }
-
-        var decoded = WebUtility.HtmlDecode(description.Replace("<p>", " ", StringComparison.OrdinalIgnoreCase).Replace("</p>", " ", StringComparison.OrdinalIgnoreCase));
-        return decoded.Length > 1200 ? decoded[..1200] + "..." : decoded.Trim();
     }
 }
