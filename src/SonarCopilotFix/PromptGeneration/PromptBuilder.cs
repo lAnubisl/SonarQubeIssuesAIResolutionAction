@@ -82,13 +82,21 @@ public sealed class PromptBuilder(IConfigurationHelper configurationHelper)
         builder.AppendLine($"- Type or category: `{issue.Type ?? issue.CleanCodeAttributeCategory ?? "not specified"}`");
         builder.AppendLine($"- Effort: `{issue.Effort ?? "not specified"}`");
         builder.AppendLine("```text");
-        var codeSnippetText = issue.CodeSnippet is null
-            ? "Code snippet was not requested."
-            : issue.CodeSnippet.FileFound
-                ? issue.CodeSnippet.Content
-                : $"Local file not found: {issue.CodeSnippet.Content}";
+        var codeSnippetText = GetCodeSnippetText(issue);
         builder.AppendLine(codeSnippetText);
         builder.AppendLine("```");
         builder.AppendLine();
+    }
+
+    private static string GetCodeSnippetText(SonarIssue issue)
+    {
+        if (issue.CodeSnippet is null)
+        {
+            return "Code snippet was not requested.";
+        }
+
+        return issue.CodeSnippet.FileFound
+            ? issue.CodeSnippet.Content
+            : $"Local file not found: {issue.CodeSnippet.Content}";
     }
 }
