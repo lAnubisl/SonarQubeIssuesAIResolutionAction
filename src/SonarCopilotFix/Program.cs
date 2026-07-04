@@ -27,9 +27,10 @@ try
         sonarQubeClient,
         new PromptBuilder(configurationHelper),
         new StepSummaryWriter(configurationHelper),
-        new GitService(commandRunner, configurationHelper),
-        new GitHubCliService(commandRunner, configurationHelper, logger, prBodyBuilder),
-        new CopilotCliRunner(commandRunner, configurationHelper, logger));
+        new AppDependencies(
+            new GitService(commandRunner, configurationHelper),
+            new GitHubCliService(commandRunner, configurationHelper, logger, prBodyBuilder),
+            new CopilotCliRunner(commandRunner, configurationHelper, logger)));
 
     return await app.RunAsync();
 }

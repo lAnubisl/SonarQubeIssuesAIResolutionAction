@@ -24,18 +24,16 @@ public sealed class SonarCopilotFixApp
         ISonarQubeClient sonarQube,
         IPromptBuilder promptBuilder,
         IStepSummaryWriter stepSummaryWriter,
-        IGitService git,
-        IGitHubCliService github,
-        ICopilotCliRunner copilot)
+        AppDependencies deps)
     {
         _configurationHelper = configurationHelper;
         _logger = logger;
         _sonarQube = sonarQube;
         _promptBuilder = promptBuilder;
         _stepSummaryWriter = stepSummaryWriter;
-        _git = git;
-        _github = github;
-        _copilot = copilot;
+        _git = deps.Git;
+        _github = deps.Github;
+        _copilot = deps.Copilot;
     }
 
     public async Task<int> RunAsync(CancellationToken cancellationToken = default)

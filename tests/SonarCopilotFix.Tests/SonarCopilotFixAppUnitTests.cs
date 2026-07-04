@@ -127,9 +127,7 @@ internal sealed class SonarCopilotFixAppUnitTests
             sonar.Object,
             prompts.Object,
             summaryWriter.Object,
-            git.Object,
-            github.Object,
-            copilot.Object);
+            new AppDependencies(git.Object, github.Object, copilot.Object));
 
         int exitCode = await app.RunAsync();
 
@@ -153,7 +151,8 @@ internal sealed class SonarCopilotFixAppUnitTests
             sonar,
             Mock.Of<IPromptBuilder>(),
             summaryWriter,
-            git ?? Mock.Of<IGitService>(),
-            github ?? Mock.Of<IGitHubCliService>(),
-            copilot ?? Mock.Of<ICopilotCliRunner>());
+            new AppDependencies(
+                git ?? Mock.Of<IGitService>(),
+                github ?? Mock.Of<IGitHubCliService>(),
+                copilot ?? Mock.Of<ICopilotCliRunner>()));
 }

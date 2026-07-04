@@ -27,9 +27,11 @@ internal sealed class SonarCopilotFixAppTests
             TestData.MockSonarQubeClient([TestData.SampleIssue()]),
             new PromptBuilder(configurationHelper.Object),
             new StepSummaryWriter(configurationHelper.Object),
-            new GitService(commandRunner, configurationHelper.Object),
-            new GitHubCliService(commandRunner, configurationHelper.Object, logger.Object, prBodyBuilder),
-            new CopilotCliRunner(commandRunner, configurationHelper.Object, logger.Object));
+            new AppDependencies(
+                new GitService(commandRunner, configurationHelper.Object),
+                new GitHubCliService(commandRunner, configurationHelper.Object, logger.Object, prBodyBuilder),
+                new CopilotCliRunner(commandRunner, configurationHelper.Object, logger.Object)));
+
         await app.RunAsync();
 
         logger.Verify(
@@ -72,9 +74,11 @@ internal sealed class SonarCopilotFixAppTests
             TestData.MockSonarQubeClient([TestData.SampleIssue(), secondIssue, thirdIssue]),
             new PromptBuilder(configurationHelper.Object),
             new StepSummaryWriter(configurationHelper.Object),
-            new GitService(commandRunner, configurationHelper.Object),
-            new GitHubCliService(commandRunner, configurationHelper.Object, logger.Object, prBodyBuilder),
-            new CopilotCliRunner(commandRunner, configurationHelper.Object, logger.Object));
+            new AppDependencies(
+                new GitService(commandRunner, configurationHelper.Object),
+                new GitHubCliService(commandRunner, configurationHelper.Object, logger.Object, prBodyBuilder),
+                new CopilotCliRunner(commandRunner, configurationHelper.Object, logger.Object)));
+
 
         int exitCode = await app.RunAsync();
 
