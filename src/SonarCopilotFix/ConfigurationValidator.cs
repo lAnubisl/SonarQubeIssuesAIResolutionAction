@@ -9,7 +9,7 @@ public static class ConfigurationValidator
 
     public static void Validate(IConfigurationHelper configurationHelper)
     {
-        var host = configurationHelper.InputSonarHostUrl
+        string host = configurationHelper.InputSonarHostUrl
             ?? throw new ControlledFailureException("Input sonar_host_url is required.", ExitCodes.ConfigurationError);
         if (!Uri.TryCreate(host.TrimEnd('/'), UriKind.Absolute, out _))
         {
@@ -28,8 +28,8 @@ public static class ConfigurationValidator
                 ExitCodes.ConfigurationError);
         }
 
-        var ghCliToken = configurationHelper.GhCliToken;
-        var copilotToken = configurationHelper.CopilotCliToken;
+        string? ghCliToken = configurationHelper.GhCliToken;
+        string? copilotToken = configurationHelper.CopilotCliToken;
 
         if (string.IsNullOrWhiteSpace(copilotToken))
         {

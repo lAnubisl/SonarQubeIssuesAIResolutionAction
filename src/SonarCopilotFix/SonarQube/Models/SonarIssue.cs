@@ -78,7 +78,7 @@ public sealed record SonarIssue(
     }
 
     private static DateTimeOffset? ParseSonarDate(string? value) =>
-        DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var result)
+        DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTimeOffset result)
             ? result
             : null;
 

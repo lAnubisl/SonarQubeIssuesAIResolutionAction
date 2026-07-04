@@ -14,10 +14,10 @@ public sealed class CopilotCliRunner(
 
     public async Task<string> RunAsync(string prompt, CancellationToken cancellationToken)
     {
-        var sessionId = Guid.NewGuid().ToString();
-        var gitHookDirectory = await CreateGitCommitGuardAsync(cancellationToken);
-        var environment = BuildEnvironment(configurationHelper, gitHookDirectory);
-        var result = await ExecutePromptAsync(prompt, sessionId, environment, cancellationToken);
+        string sessionId = Guid.NewGuid().ToString();
+        string gitHookDirectory = await CreateGitCommitGuardAsync(cancellationToken);
+        Dictionary<string, string?> environment = BuildEnvironment(configurationHelper, gitHookDirectory);
+        CommandResult result = await ExecutePromptAsync(prompt, sessionId, environment, cancellationToken);
         return result.StandardError.Trim();
     }
 
@@ -71,7 +71,7 @@ public sealed class CopilotCliRunner(
     private static Dictionary<string, string?> BuildEnvironment(
         IConfigurationHelper configurationHelper,
         string gitHookDirectory) =>
-        new Dictionary<string, string?>
+        new()
         {
             ["COPILOT_GITHUB_TOKEN"] = configurationHelper.CopilotCliToken,
             ["COPILOT_AUTO_UPDATE"] = "false",
@@ -82,10 +82,10 @@ public sealed class CopilotCliRunner(
 
     private async Task<string> CreateGitCommitGuardAsync(CancellationToken cancellationToken)
     {
-        var hookDirectory = Path.GetFullPath(
+        string hookDirectory = Path.GetFullPath(
             Path.Combine(configurationHelper.GitHubWorkspace, ".sonar-copilot", "copilot-git-hooks"));
         Directory.CreateDirectory(hookDirectory);
-        var hookPath = Path.Combine(hookDirectory, "pre-commit");
+        string hookPath = Path.Combine(hookDirectory, "pre-commit");
         await File.WriteAllTextAsync(
             hookPath,
             "#!/bin/sh\n"
@@ -110,13 +110,13 @@ public sealed class CopilotCliRunner(
         string prompt,
         string? sessionId = null)
     {
-        var args = new List<string>
-        {
+        List<string> args =
+        [
             "--prompt",
             prompt,
             "--no-ask-user",
             "--no-color"
-        };
+        ];
 
         if (!string.IsNullOrWhiteSpace(sessionId))
         {
@@ -136,8 +136,8 @@ public sealed class CopilotCliRunner(
         }
         else
         {
-            var allowedTools = configurationHelper.InputCopilotAllowedTools;
-            foreach (var pattern in allowedTools)
+            IReadOnlyList<string> allowedTools = configurationHelper.InputCopilotAllowedTools;
+            foreach (string pattern in allowedTools)
             {
                 ValidateToolPattern(pattern);
             }
@@ -152,11 +152,11 @@ public sealed class CopilotCliRunner(
 
     private static void ValidateToolPattern(string pattern)
     {
-        var openParenthesis = pattern.IndexOf('(');
-        var kind = openParenthesis < 0 ? pattern : pattern[..openParenthesis];
-        var validKind = kind.Length > 0
+        int openParenthesis = pattern.IndexOf('(');
+        string kind = openParenthesis < 0 ? pattern : pattern[..openParenthesis];
+        bool validKind = kind.Length > 0
             && kind.All(character => char.IsLetterOrDigit(character) || character is '_' or '-' or '.');
-        var validArgument = openParenthesis < 0
+        bool validArgument = openParenthesis < 0
             || openParenthesis < pattern.Length - 2
             && pattern.EndsWith(')')
             && pattern.AsSpan(openParenthesis + 1, pattern.Length - openParenthesis - 2)

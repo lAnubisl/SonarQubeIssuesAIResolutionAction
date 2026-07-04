@@ -16,17 +16,17 @@ internal sealed class SonarQubeClientTests
     [Test]
     public static async Task Pagination()
     {
-        var handler = new FakeHandler(request =>
+        FakeHandler handler = new(request =>
         {
-            var page = Query(request.RequestUri!, "p");
-            var json = page == "1"
+            string? page = Query(request.RequestUri!, "p");
+            string json = page == "1"
                 ? """{"total":3,"issues":[{"key":"A","rule":"csharpsquid:S1","component":"proj:src/A.cs","line":1,"message":"one"},{"key":"B","rule":"csharpsquid:S2","component":"proj:src/B.cs","line":2,"message":"two"}]}"""
                 : """{"total":3,"issues":[{"key":"C","rule":"csharpsquid:S3","component":"proj:src/C.cs","line":3,"message":"three"}]}""";
             return Json(json);
         });
-        var client = NewClient(handler, maxIssues: 3);
+        SonarQubeClient client = NewClient(handler, maxIssues: 3);
 
-        var result = await client.GetIssuesAsync(CancellationToken.None);
+        SonarIssueSearchResult result = await client.GetIssuesAsync(CancellationToken.None);
 
         Assert.Equal(3, result.Issues.Count);
         Assert.Equal(2, handler.Requests.Count(request => request.RequestUri!.AbsolutePath == "/api/issues/search"));
@@ -35,12 +35,12 @@ internal sealed class SonarQubeClientTests
     [Test]
     public static void IssuesAreGroupedByRuleInFirstSeenOrder()
     {
-        var client = NewClient(new FakeHandler(_ => Json("""{"total":0,"issues":[]}""")));
-        var first = TestData.SampleIssue();
-        var second = first with { Key = "ISSUE-2", RuleKey = "csharpsquid:S2" };
-        var third = first with { Key = "ISSUE-3" };
+        SonarQubeClient client = NewClient(new FakeHandler(_ => Json("""{"total":0,"issues":[]}""")));
+        SonarIssue first = TestData.SampleIssue();
+        SonarIssue second = first with { Key = "ISSUE-2", RuleKey = "csharpsquid:S2" };
+        SonarIssue third = first with { Key = "ISSUE-3" };
 
-        var groups = client.GroupIssuesByRule([first, second, third]);
+        IReadOnlyList<IssueGroup> groups = client.GroupIssuesByRule([first, second, third]);
 
         Assert.Equal(2, groups.Count);
         Assert.Equal("csharpsquid:S1", groups[0].RuleKey);
@@ -51,12 +51,12 @@ internal sealed class SonarQubeClientTests
     [Test]
     public static void EnrichmentCanBeDisabled()
     {
-        var client = NewClient(
+        SonarQubeClient client = NewClient(
             new FakeHandler(_ => Json("""{"total":0,"issues":[]}""")),
             includeCodeSnippets: false);
         IReadOnlyList<SonarIssue> issues = [TestData.SampleIssue()];
 
-        var enriched = client.EnrichIssues(issues);
+        IReadOnlyList<SonarIssue> enriched = client.EnrichIssues(issues);
 
         Assert.True(ReferenceEquals(issues, enriched));
     }
@@ -64,9 +64,9 @@ internal sealed class SonarQubeClientTests
     [Test]
     public static async Task AuthenticationError()
     {
-        var client = NewClient(new FakeHandler(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized)));
+        SonarQubeClient client = NewClient(new FakeHandler(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized)));
 
-        var ex = await Assert.ThrowsAsync<ControlledFailureException>(() => client.GetIssuesAsync(CancellationToken.None));
+        ControlledFailureException ex = await Assert.ThrowsAsync<ControlledFailureException>(() => client.GetIssuesAsync(CancellationToken.None));
 
         Assert.Contains("Invalid or missing SonarQube token", ex.Message);
     }
@@ -74,9 +74,9 @@ internal sealed class SonarQubeClientTests
     [Test]
     public static async Task MalformedResponse()
     {
-        var client = NewClient(new FakeHandler(_ => Json("{")));
+        SonarQubeClient client = NewClient(new FakeHandler(_ => Json("{")));
 
-        var ex = await Assert.ThrowsAsync<ControlledFailureException>(() => client.GetIssuesAsync(CancellationToken.None));
+        ControlledFailureException ex = await Assert.ThrowsAsync<ControlledFailureException>(() => client.GetIssuesAsync(CancellationToken.None));
 
         Assert.Contains("malformed JSON", ex.Message);
     }
@@ -84,8 +84,8 @@ internal sealed class SonarQubeClientTests
     [Test]
     public static async Task Filtering()
     {
-        var handler = new FakeHandler(_ => Json("""{"total":0,"issues":[]}"""));
-        var client = NewClient(
+        FakeHandler handler = new(_ => Json("""{"total":0,"issues":[]}"""));
+        SonarQubeClient client = NewClient(
             handler,
             statuses: "OPEN,CONFIRMED",
             type: "BUG",
@@ -98,7 +98,7 @@ internal sealed class SonarQubeClientTests
 
         await client.GetIssuesAsync(CancellationToken.None);
 
-        var uri = handler.Requests.Single().RequestUri!;
+        Uri uri = handler.Requests.Single().RequestUri!;
         Assert.Equal("proj:src/A.cs,proj:src/B.cs", Query(uri, "componentKeys"));
         Assert.Equal(null, Query(uri, "components"));
         Assert.Equal("OPEN,CONFIRMED", Query(uri, "statuses"));
@@ -114,8 +114,8 @@ internal sealed class SonarQubeClientTests
     public static async Task IssueSearchLogging()
     {
         const string responseBody = """{"total":0,"issues":[]}""";
-        var logger = TestData.MockLogger();
-        var client = NewClient(new FakeHandler(_ => Json(responseBody)), logger: logger.Object);
+        Mock<ILogger> logger = TestData.MockLogger();
+        SonarQubeClient client = NewClient(new FakeHandler(_ => Json(responseBody)), logger: logger.Object);
 
         await client.GetIssuesAsync(CancellationToken.None);
 
@@ -163,17 +163,17 @@ internal sealed class SonarQubeClientTests
               }]
             }
             """;
-        var client = NewClient(new FakeHandler(_ => Json(responseBody)));
+        SonarQubeClient client = NewClient(new FakeHandler(_ => Json(responseBody)));
 
-        var result = await client.GetIssuesAsync(CancellationToken.None);
-        var issue = result.Issues.Single();
+        SonarIssueSearchResult result = await client.GetIssuesAsync(CancellationToken.None);
+        SonarIssue issue = result.Issues.Single();
 
         Assert.Equal("lAnubisl_LostFilmTorrentsFeed", issue.Project);
         Assert.Equal("fa48cd0d9a81b24cc78b6ab0b8efd12a", issue.Hash);
         Assert.Equal(55, issue.Line);
         Assert.Equal("CONVENTIONAL", issue.CleanCodeAttribute);
         Assert.Equal("CONSISTENT", issue.CleanCodeAttributeCategory);
-        var impact = issue.Impacts!.Single();
+        SonarImpact impact = issue.Impacts!.Single();
         Assert.Equal("MAINTAINABILITY", impact.SoftwareQuality);
         Assert.Equal("MEDIUM", impact.Severity);
         Assert.Equal("OPEN", issue.IssueStatus);
@@ -197,7 +197,7 @@ internal sealed class SonarQubeClientTests
         ILogger? logger = null,
         bool includeCodeSnippets = true)
     {
-        var configurationHelper = TestData.MockConfigurationHelper(
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
             inputComponents: Csv(components),
             inputMaxIssues: maxIssues,
             inputStatuses: Csv(statuses, "OPEN"),
@@ -227,10 +227,10 @@ internal sealed class SonarQubeClientTests
 
     private static string? Query(Uri uri, string name)
     {
-        var pairs = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries);
-        foreach (var pair in pairs)
+        string[] pairs = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries);
+        foreach (string pair in pairs)
         {
-            var split = pair.Split('=', 2);
+            string[] split = pair.Split('=', 2);
             if (Uri.UnescapeDataString(split[0]) == name)
             {
                 return split.Length == 2 ? Uri.UnescapeDataString(split[1]) : "";

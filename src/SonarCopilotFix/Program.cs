@@ -5,23 +5,23 @@ using SonarCopilotFix.Infrastructure;
 using SonarCopilotFix.PromptGeneration;
 using SonarCopilotFix.SonarQube;
 
-var logger = new TextLogger();
+TextLogger logger = new();
 
 try
 {
-    var configurationHelper = new ConfigurationHelper();
+    ConfigurationHelper configurationHelper = new();
     ConfigurationValidator.Validate(configurationHelper);
     SecretMasker.MaskKnownSecrets(configurationHelper, logger);
-    var commandRunner = new CommandRunner(logger, configurationHelper);
-    var prBodyBuilder = new PrBodyBuilder(configurationHelper);
-    using var sonarQubeClient = new SonarQubeClient(
+    CommandRunner commandRunner = new(logger, configurationHelper);
+    PrBodyBuilder prBodyBuilder = new(configurationHelper);
+    using SonarQubeClient sonarQubeClient = new(
         configurationHelper,
         logger,
         new SonarQubeHttpClient(configurationHelper),
         new CodeSnippetReader(configurationHelper),
         disposeClient: true);
 
-    var app = new SonarCopilotFixApp(
+    SonarCopilotFixApp app = new(
         configurationHelper,
         logger,
         sonarQubeClient,

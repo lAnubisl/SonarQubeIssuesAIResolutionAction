@@ -1,6 +1,7 @@
 using Moq;
 using NUnit.Framework;
 using SonarCopilotFix.Infrastructure;
+using SonarCopilotFix.Infrastructure.Models;
 
 namespace SonarCopilotFix.Tests;
 
@@ -10,7 +11,7 @@ internal sealed class CommandRunnerTests
     [Test]
     public static void TokenIsolationEnvironment()
     {
-        var configurationHelper = TestData.MockConfigurationHelper(
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
             sonarToken: "sonar-secret",
             safeEnvironmentVariables: new Dictionary<string, string?>
             {
@@ -18,9 +19,9 @@ internal sealed class CommandRunnerTests
                 ["DOTNET_ROOT"] = "/opt/dotnet",
                 ["JAVA_HOME"] = "/opt/java"
             });
-        var commandRunner = new CommandRunner(TestData.MockLogger().Object, configurationHelper.Object);
+        CommandRunner commandRunner = new(TestData.MockLogger().Object, configurationHelper.Object);
 
-        var safe = commandRunner.BuildSafeEnvironment(new Dictionary<string, string?> { ["GH_TOKEN"] = "github-secret" });
+        IReadOnlyDictionary<string, string> safe = commandRunner.BuildSafeEnvironment(new Dictionary<string, string?> { ["GH_TOKEN"] = "github-secret" });
 
         Assert.True(safe.ContainsKey("GH_TOKEN"));
         Assert.Equal("test-path", safe["PATH"]);
@@ -33,11 +34,11 @@ internal sealed class CommandRunnerTests
     [Test]
     public static async Task CommandOutputForwarding()
     {
-        var received = new List<string>();
-        var configurationHelper = TestData.MockSystemConfigurationHelper();
-        var commandRunner = new CommandRunner(TestData.MockLogger().Object, configurationHelper.Object);
+        List<string> received = [];
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockSystemConfigurationHelper();
+        CommandRunner commandRunner = new(TestData.MockLogger().Object, configurationHelper.Object);
 
-        var result = await commandRunner.RunAsync(
+        CommandResult result = await commandRunner.RunAsync(
             "dotnet",
             ["--version"],
             Directory.GetCurrentDirectory(),
@@ -52,11 +53,11 @@ internal sealed class CommandRunnerTests
     [Test]
     public static async Task CommandDetailLogging()
     {
-        var logger = TestData.MockLogger();
-        var configurationHelper = TestData.MockSystemConfigurationHelper();
-        var commandRunner = new CommandRunner(logger.Object, configurationHelper.Object);
+        Mock<ILogger> logger = TestData.MockLogger();
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockSystemConfigurationHelper();
+        CommandRunner commandRunner = new(logger.Object, configurationHelper.Object);
 
-        var result = await commandRunner.RunAsync(
+        CommandResult result = await commandRunner.RunAsync(
             "dotnet",
             ["--version"],
             Directory.GetCurrentDirectory(),

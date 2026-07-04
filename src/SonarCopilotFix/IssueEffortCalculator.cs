@@ -15,7 +15,7 @@ internal static partial class IssueEffortCalculator
 
     public static string CalculateTotal(IReadOnlyList<SonarIssue> issues)
     {
-        var efforts = issues
+        long[] efforts = issues
             .Select(issue => ParseMinutes(issue.Effort))
             .Where(minutes => minutes.HasValue)
             .Select(minutes => minutes!.Value)
@@ -33,7 +33,7 @@ internal static partial class IssueEffortCalculator
             return null;
         }
 
-        var match = GetEffortPattern().Match(effort);
+        Match match = GetEffortPattern().Match(effort);
         if (!match.Success
             || (!match.Groups["days"].Success
                 && !match.Groups["hours"].Success
@@ -55,11 +55,11 @@ internal static partial class IssueEffortCalculator
 
     private static string Format(long totalMinutes)
     {
-        var parts = new List<string>();
-        var days = totalMinutes / MinutesPerSonarDay;
-        var remainingMinutes = totalMinutes % MinutesPerSonarDay;
-        var hours = remainingMinutes / 60;
-        var minutes = remainingMinutes % 60;
+        List<string> parts = [];
+        long days = totalMinutes / MinutesPerSonarDay;
+        long remainingMinutes = totalMinutes % MinutesPerSonarDay;
+        long hours = remainingMinutes / 60;
+        long minutes = remainingMinutes % 60;
 
         if (days > 0)
         {

@@ -1,5 +1,6 @@
 using System.Text;
 using SonarCopilotFix.Infrastructure;
+using SonarCopilotFix.SonarQube.Models;
 
 namespace SonarCopilotFix.GitHub;
 
@@ -7,7 +8,7 @@ public sealed class PrBodyBuilder(IConfigurationHelper configurationHelper) : IP
 {
     public string Build(PullRequestSummary summary)
     {
-        var builder = new StringBuilder();
+        StringBuilder builder = new();
         builder.AppendLine($"## Fix SonarQube issues for `{configurationHelper.GetSonarProjectKey()}`");
         builder.AppendLine();
         builder.AppendLine("| Field | Value |");
@@ -29,7 +30,7 @@ public sealed class PrBodyBuilder(IConfigurationHelper configurationHelper) : IP
         builder.AppendLine("```");
         builder.AppendLine();
         builder.AppendLine("## Issue List");
-        foreach (var issue in summary.IssueGroup.Issues)
+        foreach (SonarIssue issue in summary.IssueGroup.Issues)
         {
             builder.AppendLine($"- [{issue.Key}]({issue.IssueUrl}) `{issue.RuleKey}` `{issue.FilePath}` line `{issue.Line?.ToString() ?? "not specified"}`");
         }
@@ -42,7 +43,7 @@ public sealed class PrBodyBuilder(IConfigurationHelper configurationHelper) : IP
         }
         else
         {
-            foreach (var file in summary.ChangedFiles)
+            foreach (string file in summary.ChangedFiles)
             {
                 builder.AppendLine($"- `{file}`");
             }

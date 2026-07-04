@@ -11,7 +11,7 @@ public sealed class PromptBuilder(IConfigurationHelper configurationHelper) : IP
 
     public string Build(IReadOnlyList<SonarIssue> issues, string currentBranch, string baseBranch)
     {
-        var builder = new StringBuilder();
+        StringBuilder builder = new();
         builder.AppendLine("# SonarQube Issue Fix Request");
         builder.AppendLine();
         builder.AppendLine("You are a expert software enginner with deep knowledge of code maintenance and code quality.");
@@ -47,14 +47,14 @@ public sealed class PromptBuilder(IConfigurationHelper configurationHelper) : IP
         }
 
         builder.AppendLine("## Prioritized Issues");
-        foreach (var issue in issues)
+        foreach (SonarIssue issue in issues)
         {
             builder.AppendLine($"- `{issue.Key}` `{issue.RuleKey}` `{issue.FilePath}` line `{issue.Line?.ToString() ?? NotSpecified}`: {issue.Message}");
         }
 
         builder.AppendLine();
         builder.AppendLine("## Issue Details");
-        foreach (var (issue, index) in issues.Select((issue, index) => (issue, index + 1)))
+        foreach ((SonarIssue? issue, int index) in issues.Select((issue, index) => (issue, index + 1)))
         {
             AppendIssue(builder, issue, index);
         }
@@ -84,7 +84,7 @@ public sealed class PromptBuilder(IConfigurationHelper configurationHelper) : IP
         builder.AppendLine($"- Type or category: `{issue.Type ?? issue.CleanCodeAttributeCategory ?? NotSpecified}`");
         builder.AppendLine($"- Effort: `{issue.Effort ?? NotSpecified}`");
         builder.AppendLine("```text");
-        var codeSnippetText = GetCodeSnippetText(issue);
+        string codeSnippetText = GetCodeSnippetText(issue);
         builder.AppendLine(codeSnippetText);
         builder.AppendLine("```");
         builder.AppendLine();

@@ -16,10 +16,10 @@ internal sealed class GitServiceTests
     [Test]
     public static void BranchNameIncludesRuleKey()
     {
-        var configurationHelper = TestData.MockConfigurationHelper(inputSonarProjectKey: "my project");
-        var git = new GitService(Mock.Of<ICommandRunner>(), configurationHelper.Object);
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(inputSonarProjectKey: "my project");
+        GitService git = new(Mock.Of<ICommandRunner>(), configurationHelper.Object);
 
-        var branchName = git.BuildBranchName(
+        string branchName = git.BuildBranchName(
             "csharpsquid:unsafe rule",
             new DateTimeOffset(2026, 7, 3, 12, 34, 56, 789, TimeSpan.Zero));
 
@@ -29,11 +29,11 @@ internal sealed class GitServiceTests
     [Test]
     public static async Task ResolveBaseBranchUsesConfiguredBranchWithoutCallingGit()
     {
-        var configurationHelper = TestData.MockConfigurationHelper(inputBaseBranch: "release");
-        var commandRunner = new Mock<ICommandRunner>(MockBehavior.Strict);
-        var git = new GitService(commandRunner.Object, configurationHelper.Object);
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(inputBaseBranch: "release");
+        Mock<ICommandRunner> commandRunner = new(MockBehavior.Strict);
+        GitService git = new(commandRunner.Object, configurationHelper.Object);
 
-        var baseBranch = await git.ResolveBaseBranchAsync(CancellationToken.None);
+        string baseBranch = await git.ResolveBaseBranchAsync(CancellationToken.None);
 
         Assert.Equal("release", baseBranch);
         commandRunner.VerifyNoOtherCalls();
@@ -42,8 +42,8 @@ internal sealed class GitServiceTests
     [Test]
     public static async Task SwitchBranch()
     {
-        var workspace = Path.Combine(Path.GetTempPath(), "workspace");
-        var commandRunner = new Mock<ICommandRunner>(MockBehavior.Strict);
+        string workspace = Path.Combine(Path.GetTempPath(), "workspace");
+        Mock<ICommandRunner> commandRunner = new(MockBehavior.Strict);
         commandRunner
             .Setup(value => value.RunAsync(
                 "git",
@@ -60,8 +60,8 @@ internal sealed class GitServiceTests
                 null,
                 CancellationToken.None))
             .ReturnsAsync(new CommandResult(0, "", ""));
-        var configurationHelper = TestData.MockConfigurationHelper(gitHubWorkspace: workspace);
-        var git = new GitService(commandRunner.Object, configurationHelper.Object);
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(gitHubWorkspace: workspace);
+        GitService git = new(commandRunner.Object, configurationHelper.Object);
 
         await git.SwitchBranchAsync("main", CancellationToken.None);
 
@@ -71,8 +71,8 @@ internal sealed class GitServiceTests
     [Test]
     public static async Task GitChangedFiles()
     {
-        var workspace = Path.Combine(Path.GetTempPath(), "workspace");
-        var commandRunner = new Mock<ICommandRunner>(MockBehavior.Strict);
+        string workspace = Path.Combine(Path.GetTempPath(), "workspace");
+        Mock<ICommandRunner> commandRunner = new(MockBehavior.Strict);
         commandRunner
             .Setup(value => value.RunAsync(
                 "git",
@@ -87,10 +87,10 @@ internal sealed class GitServiceTests
                 0,
                 " M HostFilmMonitoring.cs\n?? untracked.txt\n?? .sonar-copilot/issues-prompt.md\n",
                 ""));
-        var configurationHelper = TestData.MockConfigurationHelper(gitHubWorkspace: workspace);
-        var git = new GitService(commandRunner.Object, configurationHelper.Object);
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(gitHubWorkspace: workspace);
+        GitService git = new(commandRunner.Object, configurationHelper.Object);
 
-        var changedFiles = await git.GetChangedFilesAsync(excludeGenerated: true, CancellationToken.None);
+        IReadOnlyList<string> changedFiles = await git.GetChangedFilesAsync(excludeGenerated: true, CancellationToken.None);
 
         Assert.Equal(2, changedFiles.Count);
         CollectionAssert.AreEqual(["HostFilmMonitoring.cs", "untracked.txt"], changedFiles);
@@ -100,13 +100,13 @@ internal sealed class GitServiceTests
     [Test]
     public static async Task HeadCommitAndCommittedChangedFiles()
     {
-        var workspace = Path.Combine(Path.GetTempPath(), "workspace");
-        var safeDirectoryArguments = new[]
+        string workspace = Path.Combine(Path.GetTempPath(), "workspace");
+        string[] safeDirectoryArguments = new[]
         {
             "-c",
             $"safe.directory={Path.GetFullPath(workspace)}"
         };
-        var commandRunner = new Mock<ICommandRunner>(MockBehavior.Strict);
+        Mock<ICommandRunner> commandRunner = new(MockBehavior.Strict);
         commandRunner
             .Setup(value => value.RunAsync(
                 "git",
@@ -132,11 +132,11 @@ internal sealed class GitServiceTests
                 0,
                 "src/Changed.cs\n.sonar-copilot/issues-prompt.md\ntests/ChangedTests.cs\n",
                 ""));
-        var configurationHelper = TestData.MockConfigurationHelper(gitHubWorkspace: workspace);
-        var git = new GitService(commandRunner.Object, configurationHelper.Object);
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(gitHubWorkspace: workspace);
+        GitService git = new(commandRunner.Object, configurationHelper.Object);
 
-        var head = await git.GetHeadCommitAsync(CancellationToken.None);
-        var changedFiles = await git.GetChangedFilesSinceAsync(
+        string head = await git.GetHeadCommitAsync(CancellationToken.None);
+        IReadOnlyList<string> changedFiles = await git.GetChangedFilesSinceAsync(
             "base123",
             excludeGenerated: true,
             CancellationToken.None);

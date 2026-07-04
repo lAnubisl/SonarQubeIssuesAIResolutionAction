@@ -41,24 +41,24 @@ public sealed class SonarCopilotFixApp
     public async Task<int> RunAsync(CancellationToken cancellationToken = default)
     {
         ConfigurationValidator.Validate(_configurationHelper);
-        var summary = new ActionSummary();
+        ActionSummary summary = new();
 
-        var issues = await FetchIssuesAsync(summary, cancellationToken);
+        SonarIssueSearchResult issues = await FetchIssuesAsync(summary, cancellationToken);
         if (issues.Issues.Count == 0)
         {
             return CompleteWithoutIssues(summary);
         }
 
-        var baseBranch = await _git.ResolveBaseBranchAsync(cancellationToken);
-        var enrichedIssues = _sonarQube.EnrichIssues(issues.Issues);
-        var issueGroups = _sonarQube.GroupIssuesByRule(enrichedIssues);
+        string baseBranch = await _git.ResolveBaseBranchAsync(cancellationToken);
+        IReadOnlyList<SonarIssue> enrichedIssues = _sonarQube.EnrichIssues(issues.Issues);
+        IReadOnlyList<IssueGroup> issueGroups = _sonarQube.GroupIssuesByRule(enrichedIssues);
         _logger.Info($"Grouped {enrichedIssues.Count} selected issue(s) into {issueGroups.Count} rule group(s).");
 
         await PrepareRepositoryAsync(baseBranch, cancellationToken);
         _logger.Info("Using GH_CLI_TOKEN for GitHub repository operations.");
         await _github.SetupGitAuthenticationAsync(cancellationToken);
 
-        foreach (var issueGroup in issueGroups)
+        foreach (IssueGroup issueGroup in issueGroups)
         {
             await ProcessIssueGroupAsync(issueGroup, baseBranch, summary, cancellationToken);
         }
@@ -72,9 +72,9 @@ public sealed class SonarCopilotFixApp
         CancellationToken cancellationToken)
     {
         _logger.Info("Fetching SonarQube issues.");
-        var issues = await _sonarQube.GetIssuesAsync(cancellationToken);
+        SonarIssueSearchResult issues = await _sonarQube.GetIssuesAsync(cancellationToken);
         _logger.Info($"Fetched {issues.Issues.Count} SonarQube issue(s) ({issues.TotalFound} total matching issue(s) reported by SonarQube).");
-        foreach (var issue in issues.Issues)
+        foreach (SonarIssue issue in issues.Issues)
         {
             _logger.Info($"Fetched SonarQube issue: key={issue.Key}, severity={issue.Severity ?? "UNKNOWN"}, title={issue.Message}");
         }
@@ -100,7 +100,7 @@ public sealed class SonarCopilotFixApp
         string baseBranch,
         CancellationToken cancellationToken)
     {
-        var initialChanges = await _git.GetChangedFilesAsync(excludeGenerated: true, cancellationToken);
+        IReadOnlyList<string> initialChanges = await _git.GetChangedFilesAsync(excludeGenerated: true, cancellationToken);
         if (initialChanges.Count > 0)
         {
             throw new ControlledFailureException("The worktree has pre-existing changes outside .sonar-copilot. Refusing to continue so unrelated files are not committed.", ExitCodes.GitFailure);
@@ -115,16 +115,16 @@ public sealed class SonarCopilotFixApp
         ActionSummary actionSummary,
         CancellationToken cancellationToken)
     {
-        var generatedBranch = _git.BuildBranchName(issueGroup.RuleKey, DateTimeOffset.UtcNow);
+        string generatedBranch = _git.BuildBranchName(issueGroup.RuleKey, DateTimeOffset.UtcNow);
         _logger.Info($"Starting isolated fix attempt for rule {issueGroup.RuleKey} with {issueGroup.Issues.Count} issue(s) on branch {generatedBranch}.");
         await _git.CreateBranchAsync(generatedBranch, cancellationToken);
 
         try
         {
-            var prompt = _promptBuilder.Build(issueGroup.Issues, generatedBranch, baseBranch);
-            var headBeforeCopilot = await _git.GetHeadCommitAsync(cancellationToken);
-            var copilotSessionSummary = await RunCopilotAsync(prompt, cancellationToken);
-            var changes = await DetectCopilotChangesAsync(headBeforeCopilot, cancellationToken);
+            string prompt = _promptBuilder.Build(issueGroup.Issues, generatedBranch, baseBranch);
+            string headBeforeCopilot = await _git.GetHeadCommitAsync(cancellationToken);
+            string copilotSessionSummary = await RunCopilotAsync(prompt, cancellationToken);
+            CopilotChanges changes = await DetectCopilotChangesAsync(headBeforeCopilot, cancellationToken);
             PullRequestSummary pullRequestSummary = new(
                 issueGroup,
                 baseBranch,
@@ -162,13 +162,13 @@ public sealed class SonarCopilotFixApp
         string headBeforeCopilot,
         CancellationToken cancellationToken)
     {
-        var uncommittedFiles = await _git.GetChangedFilesAsync(excludeGenerated: true, cancellationToken);
-        var headAfterCopilot = await _git.GetHeadCommitAsync(cancellationToken);
-        var copilotCreatedCommits = !string.Equals(headBeforeCopilot, headAfterCopilot, StringComparison.Ordinal);
-        var committedFiles = copilotCreatedCommits
+        IReadOnlyList<string> uncommittedFiles = await _git.GetChangedFilesAsync(excludeGenerated: true, cancellationToken);
+        string headAfterCopilot = await _git.GetHeadCommitAsync(cancellationToken);
+        bool copilotCreatedCommits = !string.Equals(headBeforeCopilot, headAfterCopilot, StringComparison.Ordinal);
+        IReadOnlyList<string> committedFiles = copilotCreatedCommits
             ? await _git.GetChangedFilesSinceAsync(headBeforeCopilot, excludeGenerated: true, cancellationToken)
             : [];
-        var changedFiles = uncommittedFiles
+        string[] changedFiles = uncommittedFiles
             .Concat(committedFiles)
             .Distinct(StringComparer.Ordinal)
             .Order(StringComparer.Ordinal)

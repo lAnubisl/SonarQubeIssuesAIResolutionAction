@@ -14,8 +14,8 @@ internal sealed partial class TextLoggerTests
     [Test]
     public static void TextLoggerFormat()
     {
-        var originalOut = Console.Out;
-        using var output = new StringWriter();
+        TextWriter originalOut = Console.Out;
+        using StringWriter output = new();
         try
         {
             Console.SetOut(output);

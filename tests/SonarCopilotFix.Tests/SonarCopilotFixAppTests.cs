@@ -5,6 +5,7 @@ using SonarCopilotFix.GitHub;
 using SonarCopilotFix.Infrastructure;
 using SonarCopilotFix.Infrastructure.Models;
 using SonarCopilotFix.PromptGeneration;
+using SonarCopilotFix.SonarQube.Models;
 
 namespace SonarCopilotFix.Tests;
 
@@ -15,12 +16,12 @@ internal sealed class SonarCopilotFixAppTests
     [Test]
     public static async Task FetchedIssueLogging()
     {
-        var temp = Directory.CreateTempSubdirectory();
-        var logger = TestData.MockLogger();
-        var configurationHelper = CreateConfigurationHelper(temp.FullName);
-        var commandRunner = new WorkflowCommandRunner();
-        var prBodyBuilder = new PrBodyBuilder(configurationHelper.Object);
-        var app = new SonarCopilotFixApp(
+        DirectoryInfo temp = Directory.CreateTempSubdirectory();
+        Mock<ILogger> logger = TestData.MockLogger();
+        Mock<IConfigurationHelper> configurationHelper = CreateConfigurationHelper(temp.FullName);
+        WorkflowCommandRunner commandRunner = new();
+        PrBodyBuilder prBodyBuilder = new(configurationHelper.Object);
+        SonarCopilotFixApp app = new(
             configurationHelper.Object,
             logger.Object,
             TestData.MockSonarQubeClient([TestData.SampleIssue()]),
@@ -42,30 +43,30 @@ internal sealed class SonarCopilotFixAppTests
     [Test]
     public static async Task NormalRunCompletesAnIsolatedWorkflowPerRuleGroup()
     {
-        var temp = Directory.CreateTempSubdirectory();
-        var logger = TestData.MockLogger();
-        var configurationHelper = TestData.MockConfigurationHelper(
+        DirectoryInfo temp = Directory.CreateTempSubdirectory();
+        Mock<ILogger> logger = TestData.MockLogger();
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
             copilotCliToken: "copilot",
             ghCliToken: "github",
             gitHubWorkspace: temp.FullName,
             gitHubOutput: Path.Combine(temp.FullName, "output.txt"),
             gitHubStepSummary: Path.Combine(temp.FullName, "summary.md"));
-        var commandRunner = new WorkflowCommandRunner();
-        var secondIssue = TestData.SampleIssue() with
+        WorkflowCommandRunner commandRunner = new();
+        SonarIssue secondIssue = TestData.SampleIssue() with
         {
             Key = "ISSUE-2",
             Message = "Fix that too",
             IssueUrl = new Uri("https://sonar.example/project/issues?id=proj&issues=ISSUE-2&open=ISSUE-2")
         };
-        var thirdIssue = TestData.SampleIssue() with
+        SonarIssue thirdIssue = TestData.SampleIssue() with
         {
             Key = "ISSUE-3",
             RuleKey = "csharpsquid:S2",
             Message = "Fix a different rule",
             IssueUrl = new Uri("https://sonar.example/project/issues?id=proj&issues=ISSUE-3&open=ISSUE-3")
         };
-        var prBodyBuilder = new PrBodyBuilder(configurationHelper.Object);
-        var app = new SonarCopilotFixApp(
+        PrBodyBuilder prBodyBuilder = new(configurationHelper.Object);
+        SonarCopilotFixApp app = new(
             configurationHelper.Object,
             logger.Object,
             TestData.MockSonarQubeClient([TestData.SampleIssue(), secondIssue, thirdIssue]),
@@ -75,7 +76,7 @@ internal sealed class SonarCopilotFixAppTests
             new GitHubCliService(commandRunner, configurationHelper.Object, logger.Object, prBodyBuilder),
             new CopilotCliRunner(commandRunner, configurationHelper.Object, logger.Object));
 
-        var exitCode = await app.RunAsync();
+        int exitCode = await app.RunAsync();
 
         Assert.Equal(0, exitCode);
         Assert.Equal(2, commandRunner.CreatedBranches.Count);
@@ -99,7 +100,7 @@ internal sealed class SonarCopilotFixAppTests
         Assert.Equal(3, commandRunner.SwitchToMainCount);
         Assert.Equal(2, commandRunner.PullRequestBodies.Count);
 
-        var firstPrBody = commandRunner.PullRequestBodies[0];
+        string firstPrBody = commandRunner.PullRequestBodies[0];
         Assert.Contains("ISSUE-1", firstPrBody);
         Assert.Contains("ISSUE-2", firstPrBody);
         Assert.False(firstPrBody.Contains("ISSUE-3", StringComparison.Ordinal));
@@ -133,12 +134,12 @@ internal sealed class SonarCopilotFixAppTests
             Action<string>? standardErrorReceived = null,
             CancellationToken cancellationToken = default)
         {
-            var args = arguments.ToArray();
+            string[] args = arguments.ToArray();
             if (fileName == "copilot")
             {
-                var sessionIndex = Array.IndexOf(args, "--session-id");
+                int sessionIndex = Array.IndexOf(args, "--session-id");
                 CopilotSessionIds.Add(args[sessionIndex + 1]);
-                var promptIndex = Array.IndexOf(args, "--prompt");
+                int promptIndex = Array.IndexOf(args, "--prompt");
                 CopilotPrompts.Add(args[promptIndex + 1]);
                 return Task.FromResult(new CommandResult(0, "fixed\n", "session complete\n"));
             }
@@ -148,7 +149,7 @@ internal sealed class SonarCopilotFixAppTests
                 if (args.Take(2).SequenceEqual(["pr", "create"]))
                 {
                     PullRequestCount++;
-                    var bodyIndex = Array.IndexOf(args, "--body");
+                    int bodyIndex = Array.IndexOf(args, "--body");
                     PullRequestBodies.Add(args[bodyIndex + 1]);
                     return Task.FromResult(new CommandResult(
                         0,
@@ -159,7 +160,7 @@ internal sealed class SonarCopilotFixAppTests
                 return Task.FromResult(new CommandResult(0, "", ""));
             }
 
-            var gitArgs = args.Skip(2).ToArray();
+            string[] gitArgs = args.Skip(2).ToArray();
             if (gitArgs.SequenceEqual(["symbolic-ref", "refs/remotes/origin/HEAD", "--short"]))
             {
                 return Task.FromResult(new CommandResult(0, "origin/main\n", ""));

@@ -63,7 +63,7 @@ public sealed class ConfigurationHelper : IConfigurationHelper
             return fallback;
         }
 
-        if (bool.TryParse(value, out var result))
+        if (bool.TryParse(value, out bool result))
         {
             return result;
         }
@@ -80,7 +80,7 @@ public sealed class ConfigurationHelper : IConfigurationHelper
             return fallback;
         }
 
-        return int.TryParse(value, out var result) && result > 0
+        return int.TryParse(value, out int result) && result > 0
             ? result
             : throw new ControlledFailureException(
                 $"Invalid positive integer value '{value}'.",

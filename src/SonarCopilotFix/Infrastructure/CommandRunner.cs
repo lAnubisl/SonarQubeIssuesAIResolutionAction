@@ -16,8 +16,8 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
         Action<string>? standardErrorReceived = null,
         CancellationToken cancellationToken = default)
     {
-        var psi = CreateBaseProcess(fileName, workingDirectory, scopedEnvironment);
-        foreach (var argument in arguments)
+        ProcessStartInfo psi = CreateBaseProcess(fileName, workingDirectory, scopedEnvironment);
+        foreach (string argument in arguments)
         {
             psi.ArgumentList.Add(argument);
         }
@@ -31,8 +31,8 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
         IReadOnlyDictionary<string, string?>? scopedEnvironment = null,
         CancellationToken cancellationToken = default)
     {
-        var shell = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "/bin/sh";
-        var shellArgs = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+        string shell = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "/bin/sh";
+        string[] shellArgs = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
             ? new[] { "/d", "/s", "/c", command }
             : new[] { "-c", command };
         return await RunAsync(shell, shellArgs, workingDirectory, scopedEnvironment, cancellationToken: cancellationToken);
@@ -40,7 +40,7 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
 
     private ProcessStartInfo CreateBaseProcess(string fileName, string workingDirectory, IReadOnlyDictionary<string, string?>? scopedEnvironment)
     {
-        var psi = new ProcessStartInfo(fileName)
+        ProcessStartInfo psi = new(fileName)
         {
             WorkingDirectory = workingDirectory,
             RedirectStandardOutput = true,
@@ -50,7 +50,7 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
         };
 
         psi.Environment.Clear();
-        foreach (var (key, value) in BuildSafeEnvironment(scopedEnvironment))
+        foreach ((string? key, string? value) in BuildSafeEnvironment(scopedEnvironment))
         {
             psi.Environment[key] = value;
         }
@@ -60,8 +60,8 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
 
     public IReadOnlyDictionary<string, string> BuildSafeEnvironment(IReadOnlyDictionary<string, string?>? scopedEnvironment)
     {
-        var result = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var (name, value) in configurationHelper.SafeEnvironmentVariables)
+        Dictionary<string, string> result = new(StringComparer.Ordinal);
+        foreach ((string? name, string? value) in configurationHelper.SafeEnvironmentVariables)
         {
             if (!string.IsNullOrEmpty(value))
             {
@@ -71,7 +71,7 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
 
         if (scopedEnvironment is not null)
         {
-            foreach (var (key, value) in scopedEnvironment)
+            foreach ((string? key, string? value) in scopedEnvironment)
             {
                 if (!string.IsNullOrWhiteSpace(value))
                 {
@@ -89,9 +89,9 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
         Action<string>? standardErrorReceived,
         CancellationToken cancellationToken)
     {
-        using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
-        var stdout = new StringBuilder();
-        var stderr = new StringBuilder();
+        using Process process = new() { StartInfo = psi, EnableRaisingEvents = true };
+        StringBuilder stdout = new();
+        StringBuilder stderr = new();
         process.OutputDataReceived += (_, args) => HandleOutputData(args, stdout, standardOutputReceived);
         process.ErrorDataReceived += (_, args) => HandleErrorData(args, stderr, standardErrorReceived);
 

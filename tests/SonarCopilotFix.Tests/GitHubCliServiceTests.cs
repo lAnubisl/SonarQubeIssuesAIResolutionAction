@@ -14,12 +14,12 @@ internal sealed class GitHubCliServiceTests
     [Test]
     public static void GitHubCliEnvironment()
     {
-        var workspace = Path.Combine(Path.GetTempPath(), "github-workspace");
-        var configurationHelper = TestData.MockConfigurationHelper(
+        string workspace = Path.Combine(Path.GetTempPath(), "github-workspace");
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
             ghCliToken: "github-secret",
             gitHubWorkspace: workspace);
 
-        var environment = GitHubCliService.BuildEnvironment(configurationHelper.Object);
+        IReadOnlyDictionary<string, string?> environment = GitHubCliService.BuildEnvironment(configurationHelper.Object);
 
         Assert.Equal("github-secret", environment["GH_TOKEN"]);
         Assert.Equal("1", environment["GIT_CONFIG_COUNT"]);
@@ -30,19 +30,19 @@ internal sealed class GitHubCliServiceTests
     [Test]
     public static async Task PullRequestFailureIncludesCapturedOutput()
     {
-        var workspace = Path.Combine(Path.GetTempPath(), "github-workspace");
-        var commandRunner = new Mock<ICommandRunner>(MockBehavior.Strict);
-        var configurationHelper = TestData.MockConfigurationHelper(
+        string workspace = Path.Combine(Path.GetTempPath(), "github-workspace");
+        Mock<ICommandRunner> commandRunner = new(MockBehavior.Strict);
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
             ghCliToken: "github-secret",
             gitHubWorkspace: workspace);
-        var prBodyBuilder = new PrBodyBuilder(configurationHelper.Object);
-        var pullRequestSummary = new PullRequestSummary(
+        PrBodyBuilder prBodyBuilder = new(configurationHelper.Object);
+        PullRequestSummary pullRequestSummary = new(
             new IssueGroup("csharpsquid:S1", [TestData.SampleIssue()]),
             "main",
             "fix/issues",
             ["src/A.cs"],
             "Total usage est: 1k tokens");
-        var expectedArguments = new[]
+        string[] expectedArguments = new[]
         {
             "pr", "create",
             "--title", "Fix SonarQube rule csharpsquid:S1 (1 issue(s))",
@@ -64,13 +64,13 @@ internal sealed class GitHubCliServiceTests
                 1,
                 "stdout detail",
                 "permission denied"));
-        var service = new GitHubCliService(
+        GitHubCliService service = new(
             commandRunner.Object,
             configurationHelper.Object,
             TestData.MockLogger().Object,
             prBodyBuilder);
 
-        var exception = await Assert.ThrowsAsync<ControlledFailureException>(() =>
+        ControlledFailureException exception = await Assert.ThrowsAsync<ControlledFailureException>(() =>
             service.CreatePullRequestAsync(
                 pullRequestSummary,
                 CancellationToken.None));

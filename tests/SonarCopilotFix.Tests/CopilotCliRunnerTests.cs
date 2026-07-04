@@ -10,7 +10,7 @@ internal sealed class CopilotCliRunnerTests
     [Test]
     public static void DefaultCopilotCliArguments()
     {
-        var restricted = CopilotCliRunner.BuildArguments(
+        IReadOnlyList<string> restricted = CopilotCliRunner.BuildArguments(
             TestData.MockConfigurationHelper(inputCopilotModel: "gpt-5.2").Object,
             "Fix the selected issue.");
         CollectionAssert.AreEqual(
@@ -24,7 +24,7 @@ internal sealed class CopilotCliRunnerTests
     [Test]
     public static void RestrictedCopilotCliArguments()
     {
-        var restricted = CopilotCliRunner.BuildArguments(
+        IReadOnlyList<string> restricted = CopilotCliRunner.BuildArguments(
             TestData.MockConfigurationHelper(
                 inputCopilotAllowedTools: ["shell(dotnet:*)", "shell(python:*)"]).Object,
             "Fix it.");
@@ -37,7 +37,7 @@ internal sealed class CopilotCliRunnerTests
     [Test]
     public static void AllowAllCopilotCliArguments()
     {
-        var unrestricted = CopilotCliRunner.BuildArguments(
+        IReadOnlyList<string> unrestricted = CopilotCliRunner.BuildArguments(
             TestData.MockConfigurationHelper(
                 inputCopilotAllowedTools: ["shell(dotnet:*)"],
                 inputCopilotAllowAllTools: true).Object,
@@ -50,7 +50,7 @@ internal sealed class CopilotCliRunnerTests
     [Test]
     public static void MalformedCopilotToolPattern()
     {
-        var exception = Assert.Throws<ControlledFailureException>(() =>
+        ControlledFailureException exception = Assert.Throws<ControlledFailureException>(() =>
             CopilotCliRunner.BuildArguments(
                 TestData.MockConfigurationHelper(inputCopilotAllowedTools: ["shell(dotnet:*"]).Object,
                 "Fix it."));

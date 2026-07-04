@@ -1,4 +1,6 @@
+using Moq;
 using NUnit.Framework;
+using SonarCopilotFix.Infrastructure;
 
 namespace SonarCopilotFix.Tests;
 
@@ -9,9 +11,9 @@ internal sealed class ConfigurationValidatorTests
     [Test]
     public static void RequiresCopilotToken()
     {
-        var configurationHelper = TestData.MockConfigurationHelper(copilotCliToken: null);
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(copilotCliToken: null);
 
-        var ex = Assert.Throws<ControlledFailureException>(() => ConfigurationValidator.Validate(configurationHelper.Object));
+        ControlledFailureException ex = Assert.Throws<ControlledFailureException>(() => ConfigurationValidator.Validate(configurationHelper.Object));
 
         Assert.Contains("COPILOT_CLI_TOKEN", ex.Message);
     }
@@ -19,10 +21,10 @@ internal sealed class ConfigurationValidatorTests
     [Test]
     public static void RequiresGitHubCliToken()
     {
-        var configurationHelper = TestData.MockConfigurationHelper(
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
             ghCliToken: null);
 
-        var ex = Assert.Throws<ControlledFailureException>(() => ConfigurationValidator.Validate(configurationHelper.Object));
+        ControlledFailureException ex = Assert.Throws<ControlledFailureException>(() => ConfigurationValidator.Validate(configurationHelper.Object));
 
         Assert.Contains("GH_CLI_TOKEN", ex.Message);
     }
@@ -32,7 +34,7 @@ internal sealed class ConfigurationValidatorTests
     [TestCase("VULNERABILITY")]
     public static void AcceptsSupportedIssueType(string issueType)
     {
-        var configurationHelper = TestData.MockConfigurationHelper(inputType: issueType);
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(inputType: issueType);
 
         ConfigurationValidator.Validate(configurationHelper.Object);
     }
@@ -40,9 +42,9 @@ internal sealed class ConfigurationValidatorTests
     [Test]
     public static void RejectsUnsupportedIssueType()
     {
-        var configurationHelper = TestData.MockConfigurationHelper(inputType: "SECURITY_HOTSPOT");
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(inputType: "SECURITY_HOTSPOT");
 
-        var ex = Assert.Throws<ControlledFailureException>(() => ConfigurationValidator.Validate(configurationHelper.Object));
+        ControlledFailureException ex = Assert.Throws<ControlledFailureException>(() => ConfigurationValidator.Validate(configurationHelper.Object));
 
         Assert.Contains("CODE_SMELL, BUG, VULNERABILITY", ex.Message);
     }

@@ -14,26 +14,26 @@ public sealed partial class GitService(ICommandRunner commandRunner, IConfigurat
 
     public async Task<string> CurrentBranchAsync(CancellationToken cancellationToken)
     {
-        var result = await RunGitAsync(["branch", "--show-current"], cancellationToken: cancellationToken);
+        CommandResult result = await RunGitAsync(["branch", "--show-current"], cancellationToken: cancellationToken);
         return result.StandardOutput.Trim().Length > 0 ? result.StandardOutput.Trim() : "detached";
     }
 
     public async Task<string> DetectDefaultBranchAsync(CancellationToken cancellationToken)
     {
-        var symbolic = await RunGitAsync(["symbolic-ref", "refs/remotes/origin/HEAD", "--short"], cancellationToken: cancellationToken);
+        CommandResult symbolic = await RunGitAsync(["symbolic-ref", "refs/remotes/origin/HEAD", "--short"], cancellationToken: cancellationToken);
         if (symbolic.ExitCode == 0 && symbolic.StandardOutput.Trim().StartsWith("origin/", StringComparison.Ordinal))
         {
             return symbolic.StandardOutput.Trim()["origin/".Length..];
         }
 
-        var remote = await RunGitAsync(["remote", "show", "origin"], cancellationToken: cancellationToken);
-        var match = HeadBranchRegex().Match(remote.StandardOutput);
+        CommandResult remote = await RunGitAsync(["remote", "show", "origin"], cancellationToken: cancellationToken);
+        Match match = HeadBranchRegex().Match(remote.StandardOutput);
         return match.Success ? match.Groups["branch"].Value : "main";
     }
 
     public async Task<IReadOnlyList<string>> GetChangedFilesAsync(bool excludeGenerated, CancellationToken cancellationToken)
     {
-        var result = await RunGitAsync(["status", "--porcelain"], cancellationToken: cancellationToken);
+        CommandResult result = await RunGitAsync(["status", "--porcelain"], cancellationToken: cancellationToken);
         if (result.ExitCode != 0)
         {
             throw GitFailure("inspect git status", result);
@@ -51,7 +51,7 @@ public sealed partial class GitService(ICommandRunner commandRunner, IConfigurat
 
     public async Task<string> GetHeadCommitAsync(CancellationToken cancellationToken)
     {
-        var result = await RunGitAsync(["rev-parse", "HEAD"], cancellationToken: cancellationToken);
+        CommandResult result = await RunGitAsync(["rev-parse", "HEAD"], cancellationToken: cancellationToken);
         if (result.ExitCode != 0)
         {
             throw GitFailure("resolve the current HEAD commit", result);
@@ -65,7 +65,7 @@ public sealed partial class GitService(ICommandRunner commandRunner, IConfigurat
         bool excludeGenerated,
         CancellationToken cancellationToken)
     {
-        var result = await RunGitAsync(
+        CommandResult result = await RunGitAsync(
             ["diff", "--name-only", "--diff-filter=ACDMRTUXB", baseCommit, "HEAD", "--"],
             cancellationToken: cancellationToken);
         if (result.ExitCode != 0)
@@ -85,8 +85,8 @@ public sealed partial class GitService(ICommandRunner commandRunner, IConfigurat
 
     public string BuildBranchName(string ruleKey, DateTimeOffset timestamp)
     {
-        var safeProject = UnsafeBranchChars().Replace(configurationHelper.GetSonarProjectKey(), "-").Trim('-');
-        var safeRuleKey = UnsafeBranchChars().Replace(ruleKey, "-").Trim('-');
+        string safeProject = UnsafeBranchChars().Replace(configurationHelper.GetSonarProjectKey(), "-").Trim('-');
+        string safeRuleKey = UnsafeBranchChars().Replace(ruleKey, "-").Trim('-');
         return $"{configurationHelper.InputBranchPrefix.TrimEnd('/')}/{safeProject}/{safeRuleKey}/{timestamp:yyyyMMddHHmmssfff}";
     }
 
@@ -108,7 +108,7 @@ public sealed partial class GitService(ICommandRunner commandRunner, IConfigurat
 
     public async Task StageFilesAsync(IReadOnlyList<string> changedFiles, CancellationToken cancellationToken)
     {
-        foreach (var file in changedFiles)
+        foreach (string file in changedFiles)
         {
             await EnsureSuccess($"stage {file}", RunGitAsync(["add", "--", file], cancellationToken: cancellationToken), ExitCodes.GitFailure);
         }
@@ -121,7 +121,7 @@ public sealed partial class GitService(ICommandRunner commandRunner, IConfigurat
 
     public async Task PushBranchAsync(string branchName, CancellationToken cancellationToken)
     {
-        var env = new Dictionary<string, string?> { ["GH_TOKEN"] = configurationHelper.GetGitHubToken() };
+        Dictionary<string, string?> env = new() { ["GH_TOKEN"] = configurationHelper.GetGitHubToken() };
         await EnsureSuccess("push generated branch", RunGitAsync(["push", "--set-upstream", "origin", branchName], env, cancellationToken), ExitCodes.GitFailure);
     }
 
@@ -144,8 +144,8 @@ public sealed partial class GitService(ICommandRunner commandRunner, IConfigurat
     {
         // The first two characters are fixed-width index/worktree status columns.
         // In particular, an unstaged modification starts with a significant space.
-        var path = statusLine.Length > 3 ? statusLine[3..] : statusLine;
-        var renameIndex = path.IndexOf(" -> ", StringComparison.Ordinal);
+        string path = statusLine.Length > 3 ? statusLine[3..] : statusLine;
+        int renameIndex = path.IndexOf(" -> ", StringComparison.Ordinal);
         if (renameIndex >= 0)
         {
             path = path[(renameIndex + 4)..];
@@ -156,7 +156,7 @@ public sealed partial class GitService(ICommandRunner commandRunner, IConfigurat
 
     private static async Task EnsureSuccess(string operation, Task<CommandResult> commandTask, int exitCode)
     {
-        var result = await commandTask;
+        CommandResult result = await commandTask;
         if (result.ExitCode != 0)
         {
             throw GitFailure(operation, result, exitCode);
@@ -165,8 +165,8 @@ public sealed partial class GitService(ICommandRunner commandRunner, IConfigurat
 
     private static ControlledFailureException GitFailure(string operation, CommandResult result, int exitCode = ExitCodes.GitFailure)
     {
-        var detail = result.Summary;
-        var message = $"Failed to {operation} (git exited with code {result.ExitCode}).";
+        string detail = result.Summary;
+        string message = $"Failed to {operation} (git exited with code {result.ExitCode}).";
         if (!string.IsNullOrWhiteSpace(detail))
         {
             message += $" {detail}";

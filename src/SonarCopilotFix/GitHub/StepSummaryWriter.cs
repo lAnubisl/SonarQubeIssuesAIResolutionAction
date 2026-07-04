@@ -6,14 +6,14 @@ public sealed class StepSummaryWriter(IConfigurationHelper configurationHelper) 
 {
     public void Write(ActionSummary actionSummary)
     {
-        var path = configurationHelper.GitHubStepSummary;
+        string? path = configurationHelper.GitHubStepSummary;
         if (string.IsNullOrWhiteSpace(path))
         {
             return;
         }
 
-        var lines = new List<string>
-        {
+        List<string> lines =
+        [
             "# SonarQube Copilot Fix",
             "",
             $"* SonarQube project: `{configurationHelper.GetSonarProjectKey()}`",
@@ -27,17 +27,17 @@ public sealed class StepSummaryWriter(IConfigurationHelper configurationHelper) 
             "",
             "| Rule | Issues | Branch | Pull request |",
             "| --- | --- | --- | --- |"
-        };
+        ];
         if (actionSummary.PullRequestSummaries.Count == 0)
         {
             lines.Add("| n/a | n/a | n/a | no rule groups processed |");
         }
         else
         {
-            foreach (var result in actionSummary.PullRequestSummaries)
+            foreach (PullRequestSummary result in actionSummary.PullRequestSummaries)
             {
                 string issues = string.Join(", ", result.IssueGroup.Issues.Select(i => i.Key).Select(key => $"`{key}`"));
-                var pullRequest = string.IsNullOrWhiteSpace(result.PullRequestUrl)
+                string pullRequest = string.IsNullOrWhiteSpace(result.PullRequestUrl)
                     ? "not created"
                     : result.PullRequestUrl;
                 lines.Add($"| `{result.IssueGroup.RuleKey}` | {issues} | `{result.GeneratedBranch}` | {pullRequest} |");
@@ -50,7 +50,7 @@ public sealed class StepSummaryWriter(IConfigurationHelper configurationHelper) 
             "## Copilot Session Summary",
             ""
         ]);
-        var sessions = actionSummary.PullRequestSummaries
+        PullRequestSummary[] sessions = actionSummary.PullRequestSummaries
             .Where(result => !string.IsNullOrWhiteSpace(result.CopilotSessionSummary))
             .ToArray();
         if (sessions.Length == 0)
@@ -61,7 +61,7 @@ public sealed class StepSummaryWriter(IConfigurationHelper configurationHelper) 
         }
         else
         {
-            foreach (var session in sessions)
+            foreach (PullRequestSummary? session in sessions)
             {
                 lines.Add($"### {session.IssueGroup.RuleKey}");
                 lines.Add("");

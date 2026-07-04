@@ -1,5 +1,8 @@
+using Moq;
 using NUnit.Framework;
+using SonarCopilotFix.Infrastructure;
 using SonarCopilotFix.PromptGeneration;
+using SonarCopilotFix.SonarQube.Models;
 
 namespace SonarCopilotFix.Tests;
 
@@ -10,14 +13,14 @@ internal sealed class CodeSnippetReaderTests
     [Test]
     public static void SnippetExtraction()
     {
-        var temp = Directory.CreateTempSubdirectory();
+        DirectoryInfo temp = Directory.CreateTempSubdirectory();
         Directory.CreateDirectory(Path.Combine(temp.FullName, "src"));
         File.WriteAllLines(Path.Combine(temp.FullName, "src", "A.cs"), ["one", "two", "three", "four", "five"]);
 
-        var configurationHelper = TestData.MockConfigurationHelper(
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
             inputCodeSnippetContextLines: 1,
             gitHubWorkspace: temp.FullName);
-        var snippet = new CodeSnippetReader(configurationHelper.Object).ReadSnippet("src/A.cs", 3);
+        CodeSnippet snippet = new CodeSnippetReader(configurationHelper.Object).ReadSnippet("src/A.cs", 3);
 
         Assert.True(snippet.FileFound);
         Assert.Equal(2, snippet.StartLine);

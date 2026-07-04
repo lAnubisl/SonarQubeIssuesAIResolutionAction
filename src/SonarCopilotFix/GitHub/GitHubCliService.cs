@@ -1,4 +1,5 @@
 using SonarCopilotFix.Infrastructure;
+using SonarCopilotFix.Infrastructure.Models;
 
 namespace SonarCopilotFix.GitHub;
 
@@ -10,8 +11,8 @@ public sealed class GitHubCliService(
 {
     public async Task SetupGitAuthenticationAsync(CancellationToken cancellationToken)
     {
-        var env = BuildEnvironment(configurationHelper);
-        var result = await commandRunner.RunAsync(
+        IReadOnlyDictionary<string, string?> env = BuildEnvironment(configurationHelper);
+        CommandResult result = await commandRunner.RunAsync(
             "gh",
             ["auth", "setup-git"],
             configurationHelper.GitHubWorkspace,
@@ -27,21 +28,21 @@ public sealed class GitHubCliService(
         PullRequestSummary pullRequestSummary,
         CancellationToken cancellationToken)
     {
-        var args = new List<string>
-        {
+        List<string> args =
+        [
             "pr", "create",
             "--title", $"Fix SonarQube rule {pullRequestSummary.IssueGroup.RuleKey} ({pullRequestSummary.IssueGroup.Issues.Count} issue(s))",
             "--body", prBodyBuilder.Build(pullRequestSummary),
             "--base", pullRequestSummary.BaseBranch,
             "--head", pullRequestSummary.GeneratedBranch
-        };
+        ];
         if (configurationHelper.InputPullRequestDraft)
         {
             args.Add("--draft");
         }
 
-        var env = BuildEnvironment(configurationHelper);
-        var result = await commandRunner.RunAsync(
+        IReadOnlyDictionary<string, string?> env = BuildEnvironment(configurationHelper);
+        CommandResult result = await commandRunner.RunAsync(
             "gh",
             args,
             configurationHelper.GitHubWorkspace,
@@ -49,8 +50,8 @@ public sealed class GitHubCliService(
             cancellationToken: cancellationToken);
         if (result.ExitCode != 0)
         {
-            var detail = result.Summary;
-            var message = "GitHub CLI failed to create a pull request.";
+            string detail = result.Summary;
+            string message = "GitHub CLI failed to create a pull request.";
             if (!string.IsNullOrWhiteSpace(detail))
             {
                 message += $" {detail}";

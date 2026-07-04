@@ -40,8 +40,8 @@ internal static class TestData
         string? gitHubStepSummary = null,
         IReadOnlyDictionary<string, string?>? safeEnvironmentVariables = null)
     {
-        var systemConfiguration = new ConfigurationHelper();
-        var configurationHelper = new Mock<IConfigurationHelper>(MockBehavior.Strict);
+        ConfigurationHelper systemConfiguration = new();
+        Mock<IConfigurationHelper> configurationHelper = new(MockBehavior.Strict);
         configurationHelper.SetupGet(value => value.InputSonarHostUrl).Returns(inputSonarHostUrl);
         configurationHelper.SetupGet(value => value.InputSonarProjectKey).Returns(inputSonarProjectKey);
         configurationHelper.SetupGet(value => value.InputComponents).Returns(inputComponents ?? []);
@@ -102,7 +102,7 @@ internal static class TestData
 
     public static ISonarQubeClient MockSonarQubeClient(IReadOnlyList<SonarIssue> issues)
     {
-        var client = new Mock<ISonarQubeClient>(MockBehavior.Strict);
+        Mock<ISonarQubeClient> client = new(MockBehavior.Strict);
         client
             .Setup(value => value.GetIssuesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new SonarIssueSearchResult(issues.Count, issues));

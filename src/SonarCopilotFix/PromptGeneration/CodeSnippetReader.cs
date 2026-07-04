@@ -17,8 +17,8 @@ public sealed class CodeSnippetReader(IConfigurationHelper configurationHelper) 
             return new CodeSnippet(relativePath, FileFound: false, null, null, "No file path was provided by SonarQube.");
         }
 
-        var fullPath = Path.GetFullPath(Path.Combine(configurationHelper.GitHubWorkspace, relativePath));
-        var root = Path.GetFullPath(configurationHelper.GitHubWorkspace);
+        string fullPath = Path.GetFullPath(Path.Combine(configurationHelper.GitHubWorkspace, relativePath));
+        string root = Path.GetFullPath(configurationHelper.GitHubWorkspace);
         if (!fullPath.StartsWith(root, StringComparison.OrdinalIgnoreCase))
         {
             return new CodeSnippet(relativePath, FileFound: false, null, null, "Resolved path is outside the workspace.");
@@ -29,16 +29,16 @@ public sealed class CodeSnippetReader(IConfigurationHelper configurationHelper) 
             return new CodeSnippet(relativePath, FileFound: false, null, null, "File was not found in the checked-out repository.");
         }
 
-        var lines = File.ReadAllLines(fullPath);
+        string[] lines = File.ReadAllLines(fullPath);
         if (lines.Length == 0)
         {
             return new CodeSnippet(relativePath, FileFound: true, 1, 1, "");
         }
 
-        var targetLine = Math.Clamp(line ?? 1, 1, lines.Length);
-        var start = Math.Max(1, targetLine - configurationHelper.InputCodeSnippetContextLines);
-        var end = Math.Min(lines.Length, targetLine + configurationHelper.InputCodeSnippetContextLines);
-        var content = string.Join(Environment.NewLine, Enumerable.Range(start, end - start + 1)
+        int targetLine = Math.Clamp(line ?? 1, 1, lines.Length);
+        int start = Math.Max(1, targetLine - configurationHelper.InputCodeSnippetContextLines);
+        int end = Math.Min(lines.Length, targetLine + configurationHelper.InputCodeSnippetContextLines);
+        string content = string.Join(Environment.NewLine, Enumerable.Range(start, end - start + 1)
             .Select(number => $"{number,5}: {lines[number - 1]}"));
 
         return new CodeSnippet(relativePath, FileFound: true, start, end, content);

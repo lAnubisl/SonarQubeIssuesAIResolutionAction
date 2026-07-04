@@ -11,9 +11,9 @@ internal sealed class PromptBuilderTests
     [Test]
     public static void PromptGeneration()
     {
-        var issue = TestData.SampleIssue() with { CodeSnippet = new CodeSnippet("src/A.cs", true, 1, 1, "    1: code") };
+        SonarIssue issue = TestData.SampleIssue() with { CodeSnippet = new CodeSnippet("src/A.cs", true, 1, 1, "    1: code") };
 
-        var prompt = new PromptBuilder(TestData.Configuration()).Build([issue], "feature", "main");
+        string prompt = new PromptBuilder(TestData.Configuration()).Build([issue], "feature", "main");
 
         Assert.Contains("Fix only the listed SonarQube issues", prompt);
         Assert.Contains("The fix branch is already checked out", prompt);

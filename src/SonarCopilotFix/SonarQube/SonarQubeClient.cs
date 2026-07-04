@@ -6,54 +6,40 @@ using SonarCopilotFix.SonarQube.Models;
 
 namespace SonarCopilotFix.SonarQube;
 
-public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
+public sealed class SonarQubeClient(
+    IConfigurationHelper configurationHelper,
+    ILogger logger,
+    ISonarQubeHttpClient httpClient,
+    ICodeSnippetReader snippetReader,
+    bool disposeClient = false) : ISonarQubeClient, IDisposable
 {
-    private readonly IConfigurationHelper _configurationHelper;
-    private readonly ILogger _logger;
-    private readonly ISonarQubeHttpClient _httpClient;
-    private readonly ICodeSnippetReader _snippetReader;
-    private readonly bool _disposeClient;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-
-    public SonarQubeClient(
-        IConfigurationHelper configurationHelper,
-        ILogger logger,
-        ISonarQubeHttpClient httpClient,
-        ICodeSnippetReader snippetReader,
-        bool disposeClient = false)
-    {
-        _configurationHelper = configurationHelper;
-        _logger = logger;
-        _httpClient = httpClient;
-        _snippetReader = snippetReader;
-        _disposeClient = disposeClient;
-    }
 
     public async Task<SonarIssueSearchResult> GetIssuesAsync(CancellationToken cancellationToken)
     {
-        var selected = new List<SonarIssue>();
-        var page = 1;
-        var pageSize = Math.Min(_configurationHelper.InputMaxIssues, 100);
-        var total = 0;
-        var issuesSeen = 0;
+        List<SonarIssue> selected = [];
+        int page = 1;
+        int pageSize = Math.Min(configurationHelper.InputMaxIssues, 100);
+        int total = 0;
+        int issuesSeen = 0;
 
-        while (selected.Count < _configurationHelper.InputMaxIssues)
+        while (selected.Count < configurationHelper.InputMaxIssues)
         {
-            var uri = BuildIssueSearchUri(page, pageSize);
-            var requestUrl = new Uri(_httpClient.BaseAddress, uri);
-            _logger.Info($"SonarQube issue search request URL: {requestUrl.AbsoluteUri}");
+            string uri = BuildIssueSearchUri(page, pageSize);
+            Uri requestUrl = new(httpClient.BaseAddress, uri);
+            logger.Info($"SonarQube issue search request URL: {requestUrl.AbsoluteUri}");
 
-            using var response = await _httpClient.GetAsync(uri, cancellationToken);
-            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
-            _logger.Info($"SonarQube issue search response body: {responseBody}");
+            using HttpResponseMessage response = await httpClient.GetAsync(uri, cancellationToken);
+            string responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            logger.Info($"SonarQube issue search response body: {responseBody}");
 
             EnsureSuccess(response, "search SonarQube issues", responseBody);
-            var payload = Deserialize<IssueSearchResponse>(responseBody);
+            IssueSearchResponse payload = Deserialize<IssueSearchResponse>(responseBody);
             total = payload.Total;
 
-            foreach (var issue in payload.Issues)
+            foreach (IssueDto issue in payload.Issues)
             {
-                _logger.Info($"SonarQube returned issue: key={issue.Key ?? "unknown"}, status={issue.IssueStatus ?? issue.Status ?? "not specified"}");
+                logger.Info($"SonarQube returned issue: key={issue.Key ?? "unknown"}, status={issue.IssueStatus ?? issue.Status ?? "not specified"}");
             }
 
             if (payload.Issues.Count == 0)
@@ -61,11 +47,11 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
                 break;
             }
 
-            foreach (var issue in payload.Issues)
+            foreach (IssueDto issue in payload.Issues)
             {
                 issuesSeen++;
 
-                if (selected.Count >= _configurationHelper.InputMaxIssues)
+                if (selected.Count >= configurationHelper.InputMaxIssues)
                 {
                     break;
                 }
@@ -85,8 +71,8 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
     }
 
     public IReadOnlyList<SonarIssue> EnrichIssues(IReadOnlyList<SonarIssue> issues) =>
-        _configurationHelper.InputIncludeCodeSnippets
-            ? _snippetReader.AddSnippets(issues)
+        configurationHelper.InputIncludeCodeSnippets
+            ? snippetReader.AddSnippets(issues)
             : issues;
 
     public IReadOnlyList<IssueGroup> GroupIssuesByRule(IReadOnlyList<SonarIssue> issues) =>
@@ -95,61 +81,42 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
             .Select(group => new IssueGroup(group.Key, group.ToArray()))
             .ToArray();
 
+    private static void AddQueryParameter(Dictionary<string, string?> query, string key, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            query[key] = value;
+        }
+    }
+
+    private static void AddQueryParameter(Dictionary<string, string?> query, string key, IReadOnlyList<string>? value)
+    {
+        if (value?.Count > 0)
+        {
+            query[key] = string.Join(",", value);
+        }
+    }
+
     private string BuildIssueSearchUri(int page, int pageSize)
     {
-        var query = new Dictionary<string, string?>
+        Dictionary<string, string?> query = new()
         {
-            ["componentKeys"] = _configurationHelper.InputComponents.Count > 0
-                ? string.Join(",", _configurationHelper.InputComponents)
-                : _configurationHelper.GetSonarProjectKey(),
+            ["componentKeys"] = configurationHelper.InputComponents.Count > 0
+                ? string.Join(",", configurationHelper.InputComponents)
+                : configurationHelper.GetSonarProjectKey(),
             ["p"] = page.ToString(),
             ["ps"] = pageSize.ToString()
         };
 
-        if (!string.IsNullOrWhiteSpace(_configurationHelper.InputSonarBranch))
-        {
-            query["branch"] = _configurationHelper.InputSonarBranch;
-        }
-
-        if (!string.IsNullOrWhiteSpace(_configurationHelper.InputSonarOrganization))
-        {
-            query["organization"] = _configurationHelper.InputSonarOrganization;
-        }
-
-        if (_configurationHelper.InputStatuses.Count > 0)
-        {
-            query["statuses"] = string.Join(",", _configurationHelper.InputStatuses);
-        }
-
-        if (!string.IsNullOrWhiteSpace(_configurationHelper.InputType))
-        {
-            query["types"] = _configurationHelper.InputType;
-        }
-
-        if (_configurationHelper.InputSeverities.Count > 0)
-        {
-            query["severities"] = string.Join(",", _configurationHelper.InputSeverities);
-        }
-
-        if (_configurationHelper.InputImpactSoftwareQualities.Count > 0)
-        {
-            query["impactSoftwareQualities"] = string.Join(",", _configurationHelper.InputImpactSoftwareQualities);
-        }
-
-        if (_configurationHelper.InputImpactSeverities.Count > 0)
-        {
-            query["impactSeverities"] = string.Join(",", _configurationHelper.InputImpactSeverities);
-        }
-
-        if (_configurationHelper.InputCleanCodeAttributeCategories.Count > 0)
-        {
-            query["cleanCodeAttributeCategories"] = string.Join(",", _configurationHelper.InputCleanCodeAttributeCategories);
-        }
-
-        if (_configurationHelper.InputRules.Count > 0)
-        {
-            query["rules"] = string.Join(",", _configurationHelper.InputRules);
-        }
+        AddQueryParameter(query, "branch", configurationHelper.InputSonarBranch);
+        AddQueryParameter(query, "organization", configurationHelper.InputSonarOrganization);
+        AddQueryParameter(query, "statuses", configurationHelper.InputStatuses);
+        AddQueryParameter(query, "types", configurationHelper.InputType);
+        AddQueryParameter(query, "severities", configurationHelper.InputSeverities);
+        AddQueryParameter(query, "impactSoftwareQualities", configurationHelper.InputImpactSoftwareQualities);
+        AddQueryParameter(query, "impactSeverities", configurationHelper.InputImpactSeverities);
+        AddQueryParameter(query, "cleanCodeAttributeCategories", configurationHelper.InputCleanCodeAttributeCategories);
+        AddQueryParameter(query, "rules", configurationHelper.InputRules);
 
         return "/api/issues/search?" + string.Join("&", query
             .Where(pair => !string.IsNullOrWhiteSpace(pair.Value))
@@ -158,9 +125,9 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
 
     private async Task<SonarIssue> ToIssueAsync(IssueDto dto, CancellationToken cancellationToken)
     {
-        var filePath = ExtractFilePath(dto.Component, _configurationHelper.GetSonarProjectKey());
+        string filePath = ExtractFilePath(dto.Component, configurationHelper.GetSonarProjectKey());
         SonarRule? rule = null;
-        if (_configurationHelper.InputIncludeRuleDetails && !string.IsNullOrWhiteSpace(dto.Rule))
+        if (configurationHelper.InputIncludeRuleDetails && !string.IsNullOrWhiteSpace(dto.Rule))
         {
             rule = await TryGetRuleAsync(dto.Rule, cancellationToken);
         }
@@ -175,16 +142,16 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
     private async Task<SonarRule?> TryGetRuleAsync(string ruleKey, CancellationToken cancellationToken)
     {
         string uri = $"/api/rules/show?key={Uri.EscapeDataString(ruleKey)}";
-        var requestUrl = new Uri(_httpClient.BaseAddress, uri);
-        _logger.Info($"SonarQube rule show request URL: {requestUrl.AbsoluteUri}");
-        using var response = await _httpClient.GetAsync(uri, cancellationToken);
+        Uri requestUrl = new(httpClient.BaseAddress, uri);
+        logger.Info($"SonarQube rule show request URL: {requestUrl.AbsoluteUri}");
+        using HttpResponseMessage response = await httpClient.GetAsync(uri, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            _logger.Warn($"Could not retrieve SonarQube rule details for '{ruleKey}'.");
+            logger.Warn($"Could not retrieve SonarQube rule details for '{ruleKey}'.");
             return null;
         }
 
-        var payload = await DeserializeAsync<RuleShowResponse>(response, cancellationToken);
+        RuleShowResponse payload = await DeserializeAsync<RuleShowResponse>(response, cancellationToken);
         return payload.Rule is null
             ? null
             : new SonarRule(
@@ -198,10 +165,10 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
 
     private Uri BuildIssueUrl(string? issueKey)
     {
-        var builder = new UriBuilder(_configurationHelper.GetSonarHostUri())
+        UriBuilder builder = new(configurationHelper.GetSonarHostUri())
         {
             Path = "project/issues",
-            Query = $"id={Uri.EscapeDataString(_configurationHelper.GetSonarProjectKey())}&issues={Uri.EscapeDataString(issueKey ?? "")}&open={Uri.EscapeDataString(issueKey ?? "")}"
+            Query = $"id={Uri.EscapeDataString(configurationHelper.GetSonarProjectKey())}&issues={Uri.EscapeDataString(issueKey ?? "")}&open={Uri.EscapeDataString(issueKey ?? "")}"
         };
         return builder.Uri;
     }
@@ -213,7 +180,7 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
             return "";
         }
 
-        var prefix = projectKey + ":";
+        string prefix = projectKey + ":";
         return component.StartsWith(prefix, StringComparison.Ordinal)
             ? component[prefix.Length..].Replace('\\', '/')
             : component.Replace('\\', '/');
@@ -223,7 +190,7 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
     {
         try
         {
-            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            await using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
             return await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions, cancellationToken)
                 ?? throw new ControlledFailureException("SonarQube returned an empty or malformed JSON response.", ExitCodes.SonarQubeError);
         }
@@ -253,7 +220,7 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
             return;
         }
 
-        var status = response.StatusCode switch
+        string status = response.StatusCode switch
         {
             HttpStatusCode.BadRequest => "Malformed request or unsupported SonarQube filter.",
             HttpStatusCode.Unauthorized => "Invalid or missing SonarQube token.",
@@ -269,9 +236,9 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
 
     public void Dispose()
     {
-        if (_disposeClient)
+        if (disposeClient)
         {
-            _httpClient.Dispose();
+            httpClient.Dispose();
         }
     }
 }

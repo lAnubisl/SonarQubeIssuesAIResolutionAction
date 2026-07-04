@@ -3,7 +3,7 @@ namespace SonarCopilotFix.Infrastructure;
 public static class ConfigurationHelperExtensions
 {
     public static Uri GetSonarHostUri(this IConfigurationHelper configurationHelper) =>
-        Uri.TryCreate(configurationHelper.InputSonarHostUrl?.TrimEnd('/'), UriKind.Absolute, out var hostUri)
+        Uri.TryCreate(configurationHelper.InputSonarHostUrl?.TrimEnd('/'), UriKind.Absolute, out Uri? hostUri)
             ? hostUri
             : throw new ControlledFailureException(
                 "Input sonar_host_url must be an absolute URL.",

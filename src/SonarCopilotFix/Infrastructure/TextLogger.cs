@@ -10,8 +10,8 @@ public sealed class TextLogger : ILogger
 
     private static void Write(string level, string message, Exception? exception = null)
     {
-        var timestamp = DateTimeOffset.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
-        var exceptionPart = exception is null
+        string timestamp = DateTimeOffset.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
+        string exceptionPart = exception is null
             ? ""
             : $" | {exception.GetType().Name}: {exception.Message}";
         Console.WriteLine($"{timestamp} | {level} | {message}{exceptionPart}");
