@@ -10,7 +10,8 @@ namespace SonarCopilotFix.Tests;
 [NonParallelizable]
 internal sealed class GitHubCliServiceTests
 {
-    private static readonly string[] PrCreateArguments = new[] { "pr", "create", "--title", "Fix issues", "--body-file", "body.md", "--base", "main", "--head", "fix/issues", "--draft" };
+    private const string PrBody = "Fixes the following issues:\n\n- ISSUE-1";
+    private static readonly string[] PrCreateArguments = ["pr", "create", "--title", "Fix issues", "--body", PrBody, "--base", "main", "--head", "fix/issues", "--draft"];
     [Test]
     public static void GitHubCliEnvironment()
     {
@@ -56,7 +57,7 @@ internal sealed class GitHubCliServiceTests
         var exception = await Assert.ThrowsAsync<ControlledFailureException>(() =>
             service.CreatePullRequestAsync(
                 "Fix issues",
-                "body.md",
+                PrBody,
                 "main",
                 "fix/issues",
                 CancellationToken.None));

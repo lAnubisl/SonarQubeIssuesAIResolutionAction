@@ -24,7 +24,7 @@ public sealed class GitHubCliService(
 
     public async Task<string> CreatePullRequestAsync(
         string title,
-        string bodyFile,
+        string body,
         string baseBranch,
         string headBranch,
         CancellationToken cancellationToken)
@@ -33,7 +33,7 @@ public sealed class GitHubCliService(
         {
             "pr", "create",
             "--title", title,
-            "--body-file", bodyFile,
+            "--body", body,
             "--base", baseBranch,
             "--head", headBranch
         };

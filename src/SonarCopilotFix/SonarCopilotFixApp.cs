@@ -231,31 +231,15 @@ public sealed class SonarCopilotFixApp
             CopilotSessionSummary = sessionSummary
         };
         issueSummary.SetSelectedIssues(issueGroup.Issues);
-        var prBodyPath = Path.Combine(
-            _configurationHelper.GitHubWorkspace,
-            ".sonar-copilot",
-            $"rule-{SafeFileSegment(issueGroup.RuleKey)}-pull-request-body.md");
-        await File.WriteAllTextAsync(
-            prBodyPath,
-            _prBodyBuilder.Build(issueGroup.Issues, issueSummary),
-            cancellationToken);
+        var prBody = _prBodyBuilder.Build(issueGroup.Issues, issueSummary);
         var prUrl = await _github.CreatePullRequestAsync(
             $"Fix SonarQube rule {issueGroup.RuleKey} ({issueGroup.Issues.Count} issue(s))",
-            prBodyPath,
+            prBody,
             baseBranch,
             branchName,
             cancellationToken);
 
         return prUrl;
-    }
-
-    private static string SafeFileSegment(string value)
-    {
-        // Replace any character that is not letter, digit, '-' or '_' with '-'.
-        var characters = value
-            .Select(character => (char.IsLetterOrDigit(character) || character == '-' || character == '_') ? character : '-')
-            .ToArray();
-        return new string(characters);
     }
 
     private sealed record CopilotChanges(

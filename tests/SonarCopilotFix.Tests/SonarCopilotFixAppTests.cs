@@ -90,21 +90,9 @@ internal sealed class SonarCopilotFixAppTests
         Assert.Equal(2, commandRunner.PushCount);
         Assert.Equal(2, commandRunner.PullRequestCount);
         Assert.Equal(3, commandRunner.SwitchToMainCount);
+        Assert.Equal(2, commandRunner.PullRequestBodies.Count);
 
-        var output = File.ReadAllText(Path.Combine(temp.FullName, "output.txt"));
-        Assert.Contains("\"https://github.example/pr/1\"", output);
-        Assert.Contains("\"https://github.example/pr/2\"", output);
-        var firstPrBodyPath = Path.Combine(
-            temp.FullName,
-            ".sonar-copilot",
-            "rule-csharpsquid-S1-pull-request-body.md");
-        if (!File.Exists(firstPrBodyPath))
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(firstPrBodyPath)!);
-            File.WriteAllText(firstPrBodyPath, "ISSUE-1\nISSUE-2\n");
-        }
-
-        var firstPrBody = File.ReadAllText(firstPrBodyPath);
+        var firstPrBody = commandRunner.PullRequestBodies[0];
         Assert.Contains("ISSUE-1", firstPrBody);
         Assert.Contains("ISSUE-2", firstPrBody);
         Assert.False(firstPrBody.Contains("ISSUE-3", StringComparison.Ordinal));
@@ -123,6 +111,7 @@ internal sealed class SonarCopilotFixAppTests
         public List<string> CreatedBranches { get; } = [];
         public List<string> CopilotSessionIds { get; } = [];
         public List<string> CopilotPrompts { get; } = [];
+        public List<string> PullRequestBodies { get; } = [];
         public int CommitCount { get; private set; }
         public int PushCount { get; private set; }
         public int PullRequestCount { get; private set; }
@@ -152,6 +141,8 @@ internal sealed class SonarCopilotFixAppTests
                 if (args.Take(2).SequenceEqual(["pr", "create"]))
                 {
                     PullRequestCount++;
+                    var bodyIndex = Array.IndexOf(args, "--body");
+                    PullRequestBodies.Add(args[bodyIndex + 1]);
                     return Task.FromResult(new CommandResult(
                         0,
                         $"https://github.example/pr/{PullRequestCount}\n",
