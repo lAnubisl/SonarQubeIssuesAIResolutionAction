@@ -14,7 +14,6 @@ internal sealed class JobSummaryTests
         var configurationHelper = TestData.MockConfigurationHelper(gitHubStepSummary: path);
         var summary = new JobSummary(configurationHelper.Object)
         {
-            CopilotExecuted = true,
             CopilotSessionSummary = "Total usage est: 1k tokens\nTotal duration: 5s"
         };
         summary.SetSelectedIssues(

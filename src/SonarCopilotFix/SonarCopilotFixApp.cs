@@ -56,12 +56,6 @@ public sealed class SonarCopilotFixApp
         WriteOutput("selected_rule_group_count", issueGroups.Count.ToString());
         _logger.Info($"Grouped {enrichedIssues.Count} selected issue(s) into {issueGroups.Count} rule group(s).");
 
-        if (_configurationHelper.InputDryRun)
-        {
-            await WriteDryRunPromptsAsync(issueGroups, baseBranch, summary, cancellationToken);
-            return CompleteDryRun(summary);
-        }
-
         await PrepareRepositoryAsync(baseBranch, cancellationToken);
         _logger.Info("Using GH_CLI_TOKEN for GitHub repository operations.");
         await _github.SetupGitAuthenticationAsync(cancellationToken);
@@ -134,30 +128,6 @@ public sealed class SonarCopilotFixApp
         }
 
         await _git.SwitchBranchAsync(baseBranch, cancellationToken);
-    }
-
-    private async Task WriteDryRunPromptsAsync(
-        IReadOnlyList<IssueGroup> issueGroups,
-        string baseBranch,
-        JobSummary summary,
-        CancellationToken cancellationToken)
-    {
-        var currentBranch = await _git.CurrentBranchAsync(cancellationToken);
-        foreach (var issueGroup in issueGroups)
-        {
-            var promptPath = await WritePromptAsync(issueGroup, currentBranch, baseBranch, cancellationToken);
-            summary.AddGroupResult(new GroupRunResult(
-                issueGroup.RuleKey,
-                issueGroup.Issues.Select(issue => issue.Key).ToArray(),
-                null,
-                promptPath,
-                [],
-                null,
-                null,
-                "dry run"));
-        }
-
-        WriteCollectionOutputs(summary);
     }
 
     private async Task ProcessIssueGroupAsync(
@@ -236,13 +206,6 @@ public sealed class SonarCopilotFixApp
         return promptPath;
     }
 
-    private int CompleteDryRun(JobSummary summary)
-    {
-        _logger.Info("Dry-run mode enabled. Copilot, git push, and PR creation will be skipped.");
-        summary.Write();
-        return ExitCodes.Success;
-    }
-
     private async Task<string> RunCopilotAsync(
         string promptPath,
         CancellationToken cancellationToken)
@@ -306,7 +269,6 @@ public sealed class SonarCopilotFixApp
             GeneratedBranch = branchName,
             PromptFile = promptPath,
             ChangedFiles = changedFiles,
-            CopilotExecuted = true,
             CopilotSessionSummary = sessionSummary
         };
         issueSummary.SetSelectedIssues(issueGroup.Issues);

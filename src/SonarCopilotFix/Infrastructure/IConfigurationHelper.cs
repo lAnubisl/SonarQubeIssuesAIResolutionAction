@@ -23,7 +23,6 @@ public interface IConfigurationHelper
     string InputBranchPrefix { get; }
     string? InputBaseBranch { get; }
     bool InputPullRequestDraft { get; }
-    bool InputDryRun { get; }
     bool InputFailIfNoIssues { get; }
     IReadOnlyList<string> InputCopilotAllowedTools { get; }
     bool InputCopilotAllowAllTools { get; }

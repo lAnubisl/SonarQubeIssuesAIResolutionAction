@@ -73,10 +73,6 @@ inputs:
     description: Create a draft pull request.
     required: false
     default: "true"
-  dry_run:
-    description: Fetch issues and generate the prompt without changing the repository.
-    required: false
-    default: "false"
   fail_if_no_issues:
     description: Fail when no matching SonarQube issues are found.
     required: false
@@ -167,7 +163,6 @@ runs:
         INPUT_BRANCH_PREFIX: ${{ inputs.branch_prefix }}
         INPUT_BASE_BRANCH: ${{ inputs.base_branch }}
         INPUT_PULL_REQUEST_DRAFT: ${{ inputs.pull_request_draft }}
-        INPUT_DRY_RUN: ${{ inputs.dry_run }}
         INPUT_FAIL_IF_NO_ISSUES: ${{ inputs.fail_if_no_issues }}
         INPUT_COPILOT_ALLOWED_TOOLS: ${{ inputs.copilot_allowed_tools }}
         INPUT_COPILOT_ALLOW_ALL_TOOLS: ${{ inputs.copilot_allow_all_tools }}

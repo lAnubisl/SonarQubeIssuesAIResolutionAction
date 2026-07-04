@@ -7,10 +7,6 @@ on:
         description: Maximum number of SonarQube issues to attempt
         required: false
         default: "10"
-      dry_run:
-        description: Run without making changes
-        required: false
-        default: "true"
 
 permissions:
   contents: write
@@ -57,7 +53,6 @@ jobs:
           impactSeverities: HIGH
           cleanCodeAttributeCategories: INTENTIONAL
           rules: csharpsquid:S1234,csharpsquid:S5678
-          dry_run: ${{ inputs.dry_run }}
           copilot_allowed_tools: "shell(dotnet:*),shell(python:*),shell(java:*)"
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

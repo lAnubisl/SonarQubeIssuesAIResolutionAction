@@ -11,48 +11,12 @@ namespace SonarCopilotFix.Tests;
 internal sealed class SonarCopilotFixAppTests
 {
     [Test]
-    public static async Task DryRunAppBehavior()
-    {
-        var temp = Directory.CreateTempSubdirectory();
-        var logger = TestData.MockLogger();
-        var configurationHelper = CreateConfigurationHelper(temp.FullName);
-        var commandRunner = new CommandRunner(logger.Object, configurationHelper.Object);
-        var gitInit = await commandRunner.RunAsync("git", ["init"], temp.FullName);
-        Assert.Equal(0, gitInit.ExitCode);
-        var app = new SonarCopilotFixApp(
-            configurationHelper.Object,
-            logger.Object,
-            TestData.MockSonarQubeClient([TestData.SampleIssue()]),
-            new CodeSnippetReader(configurationHelper.Object),
-            new PromptBuilder(configurationHelper.Object),
-            commandRunner,
-            new PrBodyBuilder(configurationHelper.Object));
-
-        var exitCode = await app.RunAsync();
-
-        Assert.Equal(0, exitCode);
-        var promptPath = Path.Combine(temp.FullName, ".sonar-copilot", "rule-csharpsquid-S1-prompt.md");
-        if (!File.Exists(promptPath))
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(promptPath)!);
-            File.WriteAllText(promptPath, "ISSUE-1\n");
-        }
-        Assert.True(File.Exists(promptPath));
-        Assert.False(Directory.Exists(Path.Combine(temp.FullName, ".git", "refs", "heads", "copilot")));
-        Assert.Contains(
-            "Total effort saved: `5min`",
-            File.ReadAllText(Path.Combine(temp.FullName, "summary.md")));
-    }
-
-    [Test]
     public static async Task FetchedIssueLogging()
     {
         var temp = Directory.CreateTempSubdirectory();
         var logger = TestData.MockLogger();
         var configurationHelper = CreateConfigurationHelper(temp.FullName);
-        var commandRunner = new CommandRunner(logger.Object, configurationHelper.Object);
-        var gitInit = await commandRunner.RunAsync("git", ["init"], temp.FullName);
-        Assert.Equal(0, gitInit.ExitCode);
+        var commandRunner = new WorkflowCommandRunner();
         var app = new SonarCopilotFixApp(
             configurationHelper.Object,
             logger.Object,
@@ -72,74 +36,11 @@ internal sealed class SonarCopilotFixAppTests
     }
 
     [Test]
-    public static async Task DryRunWritesOnePromptPerRuleGroup()
-    {
-        var temp = Directory.CreateTempSubdirectory();
-        var logger = TestData.MockLogger();
-        var configurationHelper = CreateConfigurationHelper(temp.FullName);
-        var commandRunner = new CommandRunner(logger.Object, configurationHelper.Object);
-        var gitInit = await commandRunner.RunAsync("git", ["init"], temp.FullName);
-        Assert.Equal(0, gitInit.ExitCode);
-        var secondIssue = TestData.SampleIssue() with
-        {
-            Key = "ISSUE-2",
-            Message = "Fix that too",
-            IssueUrl = new Uri("https://sonar.example/project/issues?id=proj&issues=ISSUE-2&open=ISSUE-2")
-        };
-        var thirdIssue = TestData.SampleIssue() with
-        {
-            Key = "ISSUE-3",
-            RuleKey = "csharpsquid:S2",
-            Message = "Fix a different rule",
-            IssueUrl = new Uri("https://sonar.example/project/issues?id=proj&issues=ISSUE-3&open=ISSUE-3")
-        };
-        var app = new SonarCopilotFixApp(
-            configurationHelper.Object,
-            logger.Object,
-            TestData.MockSonarQubeClient([TestData.SampleIssue(), secondIssue, thirdIssue]),
-            new CodeSnippetReader(configurationHelper.Object),
-            new PromptBuilder(configurationHelper.Object),
-            commandRunner,
-            new PrBodyBuilder(configurationHelper.Object));
-
-        var exitCode = await app.RunAsync();
-
-        Assert.Equal(0, exitCode);
-        var firstPromptPath = Path.Combine(temp.FullName, ".sonar-copilot", "rule-csharpsquid-S1-prompt.md");
-        var secondPromptPath = Path.Combine(temp.FullName, ".sonar-copilot", "rule-csharpsquid-S2-prompt.md");
-        if (!File.Exists(firstPromptPath))
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(firstPromptPath)!);
-            File.WriteAllText(firstPromptPath, "ISSUE-1\nISSUE-2\n");
-        }
-
-        if (!File.Exists(secondPromptPath))
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(secondPromptPath)!);
-            File.WriteAllText(secondPromptPath, "ISSUE-3\n");
-        }
-
-        var firstPrompt = File.ReadAllText(firstPromptPath);
-        var secondPrompt = File.ReadAllText(secondPromptPath);
-        Assert.Contains("ISSUE-1", firstPrompt);
-        Assert.Contains("ISSUE-2", firstPrompt);
-        Assert.False(firstPrompt.Contains("ISSUE-3", StringComparison.Ordinal));
-        Assert.Contains("ISSUE-3", secondPrompt);
-        Assert.False(secondPrompt.Contains("ISSUE-1", StringComparison.Ordinal));
-        Assert.False(secondPrompt.Contains("ISSUE-2", StringComparison.Ordinal));
-
-        var output = File.ReadAllText(Path.Combine(temp.FullName, "output.txt"));
-        Assert.Contains("selected_issue_count=3", output);
-        Assert.Contains("selected_rule_group_count=2", output);
-    }
-
-    [Test]
     public static async Task NormalRunCompletesAnIsolatedWorkflowPerRuleGroup()
     {
         var temp = Directory.CreateTempSubdirectory();
         var logger = TestData.MockLogger();
         var configurationHelper = TestData.MockConfigurationHelper(
-            inputDryRun: false,
             copilotCliToken: "copilot",
             ghCliToken: "github",
             gitHubWorkspace: temp.FullName,

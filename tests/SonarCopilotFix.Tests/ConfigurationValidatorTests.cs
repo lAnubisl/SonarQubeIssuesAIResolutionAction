@@ -7,19 +7,9 @@ namespace SonarCopilotFix.Tests;
 internal sealed class ConfigurationValidatorTests
 {
     [Test]
-    public static void DryRunInputValidation()
+    public static void RequiresCopilotToken()
     {
-        var configurationHelper = TestData.MockConfigurationHelper();
-
-        ConfigurationValidator.Validate(configurationHelper.Object);
-
-        Assert.True(configurationHelper.Object.InputDryRun);
-    }
-
-    [Test]
-    public static void NormalModeTokenValidation()
-    {
-        var configurationHelper = TestData.MockConfigurationHelper(inputDryRun: false);
+        var configurationHelper = TestData.MockConfigurationHelper(copilotCliToken: null);
 
         var ex = Assert.Throws<ControlledFailureException>(() => ConfigurationValidator.Validate(configurationHelper.Object));
 
@@ -27,11 +17,10 @@ internal sealed class ConfigurationValidatorTests
     }
 
     [Test]
-    public static void NormalModeRequiresGitHubCliToken()
+    public static void RequiresGitHubCliToken()
     {
         var configurationHelper = TestData.MockConfigurationHelper(
-            inputDryRun: false,
-            copilotCliToken: "copilot");
+            ghCliToken: null);
 
         var ex = Assert.Throws<ControlledFailureException>(() => ConfigurationValidator.Validate(configurationHelper.Object));
 

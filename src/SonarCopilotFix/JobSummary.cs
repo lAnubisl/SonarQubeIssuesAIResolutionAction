@@ -18,7 +18,6 @@ public sealed partial class JobSummary(IConfigurationHelper configurationHelper)
     public int IssuesSelected { get; set; }
     public int RuleGroupsSelected { get; private set; }
     public string TotalEffortSaved { get; private set; } = "not available";
-    public bool CopilotExecuted { get; set; }
     public string? PromptFile { get; set; }
     public string? BaseBranch { get; set; }
     public string? GeneratedBranch { get; set; }
@@ -60,7 +59,6 @@ public sealed partial class JobSummary(IConfigurationHelper configurationHelper)
         GeneratedBranch = result.BranchName;
         PullRequestUrl = result.PullRequestUrl;
         CopilotSessionSummary = result.CopilotSessionSummary;
-        CopilotExecuted |= !string.Equals(result.Outcome, "dry run", StringComparison.Ordinal);
         ChangedFiles = ChangedFiles
             .Concat(result.ChangedFiles)
             .Distinct(StringComparer.Ordinal)
@@ -86,8 +84,6 @@ public sealed partial class JobSummary(IConfigurationHelper configurationHelper)
             $"* Issues selected: `{IssuesSelected}`",
             $"* Rule groups selected: `{RuleGroupsSelected}`",
             $"* Total effort saved: `{TotalEffortSaved}`",
-            $"* Dry run: `{configurationHelper.InputDryRun}`",
-            $"* Copilot CLI executed: `{CopilotExecuted}`",
             "",
             "## Rule Group Results",
             "",

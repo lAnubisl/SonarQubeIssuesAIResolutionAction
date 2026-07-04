@@ -28,18 +28,17 @@ public static class ConfigurationValidator
                 ExitCodes.ConfigurationError);
         }
 
-        var dryRun = configurationHelper.InputDryRun;
         var ghCliToken = configurationHelper.GhCliToken;
         var copilotToken = configurationHelper.CopilotCliToken;
 
-        if (!dryRun && string.IsNullOrWhiteSpace(copilotToken))
+        if (string.IsNullOrWhiteSpace(copilotToken))
         {
-            throw new ControlledFailureException("COPILOT_CLI_TOKEN is required outside dry_run mode.", ExitCodes.ConfigurationError);
+            throw new ControlledFailureException("COPILOT_CLI_TOKEN is required.", ExitCodes.ConfigurationError);
         }
 
-        if (!dryRun && string.IsNullOrWhiteSpace(ghCliToken))
+        if (string.IsNullOrWhiteSpace(ghCliToken))
         {
-            throw new ControlledFailureException("GH_CLI_TOKEN is required outside dry_run mode.", ExitCodes.ConfigurationError);
+            throw new ControlledFailureException("GH_CLI_TOKEN is required.", ExitCodes.ConfigurationError);
         }
     }
 }

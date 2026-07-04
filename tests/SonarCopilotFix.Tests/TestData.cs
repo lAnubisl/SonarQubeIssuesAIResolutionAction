@@ -30,10 +30,9 @@ internal static class TestData
         string? inputCopilotModel = null,
         IReadOnlyList<string>? inputCopilotAllowedTools = null,
         bool inputCopilotAllowAllTools = false,
-        bool inputDryRun = true,
         string? sonarToken = "sonar",
-        string? copilotCliToken = null,
-        string? ghCliToken = null,
+        string? copilotCliToken = "copilot",
+        string? ghCliToken = "github",
         string? gitHubWorkspace = null,
         string? gitHubOutput = null,
         string? gitHubStepSummary = null,
@@ -62,7 +61,6 @@ internal static class TestData
         configurationHelper.SetupGet(value => value.InputBranchPrefix).Returns("copilot/sonar-fixes");
         configurationHelper.SetupGet(value => value.InputBaseBranch).Returns((string?)null);
         configurationHelper.SetupGet(value => value.InputPullRequestDraft).Returns(true);
-        configurationHelper.SetupGet(value => value.InputDryRun).Returns(inputDryRun);
         configurationHelper.SetupGet(value => value.InputFailIfNoIssues).Returns(false);
         configurationHelper.SetupGet(value => value.InputCopilotAllowedTools).Returns(inputCopilotAllowedTools ?? []);
         configurationHelper.SetupGet(value => value.InputCopilotAllowAllTools).Returns(inputCopilotAllowAllTools);

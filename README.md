@@ -49,7 +49,6 @@ All known token values are masked with `::add-mask::`. Child processes receive m
 | `branch_prefix` | `copilot/sonar-fixes` | Generated branch prefix |
 | `base_branch` | detected | Uses `origin/HEAD` or `main` fallback |
 | `pull_request_draft` | `true` | Draft PRs by default |
-| `dry_run` | `false` | No Copilot, branch, commit, push, or PR |
 | `fail_if_no_issues` | `false` | Strict empty-result behavior |
 | `copilot_allowed_tools` | empty | Comma-separated Copilot permission patterns added alongside file writes, such as `shell(dotnet:*)` |
 | `copilot_allow_all_tools` | `false` | Allows all CLI tools without confirmation; otherwise only file writes are pre-approved |
@@ -66,10 +65,6 @@ on:
         description: Maximum number of SonarQube issues to attempt
         required: false
         default: "10"
-      dry_run:
-        description: Run without making changes
-        required: false
-        default: "true"
 
 permissions:
   contents: write
@@ -106,7 +101,6 @@ jobs:
           sonar_branch: ${{ github.ref_name }}
           max_issues: ${{ inputs.max_issues }}
           type: BUG
-          dry_run: ${{ inputs.dry_run }}
           copilot_allowed_tools: "shell(dotnet:*),shell(python:*),shell(java:*)"
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -114,13 +108,9 @@ jobs:
           GH_CLI_TOKEN: ${{ secrets.GH_CLI_TOKEN }}
 ```
 
-## Dry Run
+## Execution
 
-Dry run requires only `SONAR_TOKEN`. It fetches issues, groups them by rule, writes one `.sonar-copilot/rule-<rule-key>-prompt.md` file per rule group, emits action outputs, and writes the job summary. It does not run Copilot CLI, create a branch, commit, push, or create a pull request.
-
-## Normal Execution
-
-Normal mode requires `SONAR_TOKEN`, `COPILOT_CLI_TOKEN`, and `GH_CLI_TOKEN`. The action:
+The action requires `SONAR_TOKEN`, `COPILOT_CLI_TOKEN`, and `GH_CLI_TOKEN`. It:
 
 1. Fetches and paginates open SonarQube issues from `/api/issues/search`.
 2. Optionally fetches rule details from `/api/rules/show`.
@@ -181,14 +171,15 @@ dotnet build
 dotnet test
 ```
 
-For a local dry run:
+For a local run:
 
 ```bash
 INPUT_SONAR_HOST_URL="https://sonar.example.com" \
 INPUT_SONAR_PROJECT_KEY="my-project" \
-INPUT_DRY_RUN=true \
 GITHUB_WORKSPACE="$PWD" \
 SONAR_TOKEN="$SONAR_TOKEN" \
+COPILOT_CLI_TOKEN="$COPILOT_CLI_TOKEN" \
+GH_CLI_TOKEN="$GH_CLI_TOKEN" \
 dotnet run \
   --project src/SonarCopilotFix/SonarCopilotFix.csproj \
   --configuration Release \

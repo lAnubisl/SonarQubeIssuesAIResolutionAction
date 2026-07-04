@@ -23,7 +23,6 @@ public sealed class ConfigurationHelper : IConfigurationHelper
     public string InputBranchPrefix => Trimmed(Get("INPUT_BRANCH_PREFIX")) ?? "copilot/sonar-fixes";
     public string? InputBaseBranch => Trimmed(Get("INPUT_BASE_BRANCH"));
     public bool InputPullRequestDraft => Bool(Get("INPUT_PULL_REQUEST_DRAFT"), true);
-    public bool InputDryRun => Bool(Get("INPUT_DRY_RUN"), false);
     public bool InputFailIfNoIssues => Bool(Get("INPUT_FAIL_IF_NO_ISSUES"), false);
     public IReadOnlyList<string> InputCopilotAllowedTools => Csv(Get("INPUT_COPILOT_ALLOWED_TOOLS"));
     public bool InputCopilotAllowAllTools => Bool(Get("INPUT_COPILOT_ALLOW_ALL_TOOLS"), false);
