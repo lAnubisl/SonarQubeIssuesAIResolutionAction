@@ -26,9 +26,10 @@ public sealed partial class JobSummary(IConfigurationHelper configurationHelper)
     public string? PullRequestUrl { get; set; }
     public string? CopilotSessionSummary { get; set; }
     public List<GroupRunResult> GroupResults { get; } = [];
-    public IReadOnlyList<string> PromptFiles =>
+    public IReadOnlyList<string> GetPromptFiles() =>
         GroupResults.Select(result => result.PromptFile).ToArray();
-    public IReadOnlyList<string> PullRequestUrls =>
+
+    public IReadOnlyList<string> GetPullRequestUrls() =>
         GroupResults
             .Where(result => !string.IsNullOrWhiteSpace(result.PullRequestUrl))
             .Select(result => result.PullRequestUrl!)
@@ -139,8 +140,8 @@ public sealed partial class JobSummary(IConfigurationHelper configurationHelper)
             "## Result",
             "",
             $"* Files changed: `{ChangedFiles.Count}`",
-            $"* Pull requests created: `{PullRequestUrls.Count}`",
-            $"* Prompt files generated: `{PromptFiles.Count}`"
+            $"* Pull requests created: `{GetPullRequestUrls().Count}`",
+            $"* Prompt files generated: `{GetPromptFiles().Count}`"
         ]);
 
         File.AppendAllText(path, string.Join(Environment.NewLine, lines) + Environment.NewLine);
