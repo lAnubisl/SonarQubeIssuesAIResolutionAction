@@ -10,7 +10,7 @@ public sealed class ActionSummary
     public string TotalEffortSaved { get; private set; } = "not available";
     public List<PullRequestSummary> PullRequestSummaries { get; } = [];
 
-    public IReadOnlyList<string> ChangedFiles =>
+    public IReadOnlyList<string> GetChangedFiles() =>
         PullRequestSummaries
             .SelectMany(result => result.ChangedFiles)
             .Distinct(StringComparer.Ordinal)
