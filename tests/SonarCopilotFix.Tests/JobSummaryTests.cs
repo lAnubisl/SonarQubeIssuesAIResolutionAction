@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using SonarCopilotFix.GitHub;
 
 namespace SonarCopilotFix.Tests;
 
@@ -12,7 +13,7 @@ internal sealed class JobSummaryTests
         var temp = Directory.CreateTempSubdirectory();
         var path = Path.Combine(temp.FullName, "summary.md");
         var configurationHelper = TestData.MockConfigurationHelper(gitHubStepSummary: path);
-        var summary = new JobSummary(configurationHelper.Object)
+        var summary = new JobSummary
         {
             CopilotSessionSummary = "Total usage est: 1k tokens\nTotal duration: 5s"
         };
@@ -23,7 +24,7 @@ internal sealed class JobSummaryTests
             TestData.SampleIssue() with { Effort = null }
         ]);
 
-        summary.Write();
+        new StepSummaryWriter(configurationHelper.Object).Write(summary);
 
         var contents = File.ReadAllText(path);
         Assert.Contains("Copilot Session Summary", contents);
@@ -37,7 +38,7 @@ internal sealed class JobSummaryTests
     [Test]
     public static void UnavailableEffort()
     {
-        var summary = new JobSummary(TestData.Configuration());
+        var summary = new JobSummary();
         summary.SetSelectedIssues(
         [
             TestData.SampleIssue() with { Effort = null },
@@ -50,7 +51,7 @@ internal sealed class JobSummaryTests
     [Test]
     public static void ZeroEffort()
     {
-        var summary = new JobSummary(TestData.Configuration());
+        var summary = new JobSummary();
         summary.SetSelectedIssues([TestData.SampleIssue() with { Effort = "0min" }]);
 
         Assert.Equal("0min", summary.TotalEffortSaved);

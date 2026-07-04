@@ -17,7 +17,6 @@ public sealed class CopilotCliRunner(
         var sessionId = Guid.NewGuid().ToString();
         var gitHookDirectory = await CreateGitCommitGuardAsync(cancellationToken);
         var environment = BuildEnvironment(configurationHelper, gitHookDirectory);
-
         var result = await ExecutePromptAsync(prompt, sessionId, environment, cancellationToken);
         return result.StandardError.Trim();
     }

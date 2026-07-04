@@ -15,6 +15,7 @@ public sealed class SonarCopilotFixApp
     private readonly ISonarQubeClient _sonarQube;
     private readonly PromptBuilder _promptBuilder;
     private readonly PrBodyBuilder _prBodyBuilder;
+    private readonly StepSummaryWriter _stepSummaryWriter;
     private readonly GitService _git;
     private readonly GitHubCliService _github;
     private readonly CopilotCliRunner _copilot;
@@ -32,6 +33,7 @@ public sealed class SonarCopilotFixApp
         _sonarQube = sonarQube;
         _promptBuilder = promptBuilder;
         _prBodyBuilder = prBodyBuilder;
+        _stepSummaryWriter = new StepSummaryWriter(configurationHelper);
         _git = new GitService(commandRunner, configurationHelper);
         _github = new GitHubCliService(commandRunner, configurationHelper, logger);
         _copilot = new CopilotCliRunner(commandRunner, configurationHelper, logger);
@@ -40,7 +42,7 @@ public sealed class SonarCopilotFixApp
     public async Task<int> RunAsync(CancellationToken cancellationToken = default)
     {
         ConfigurationValidator.Validate(_configurationHelper);
-        var summary = new JobSummary(_configurationHelper);
+        var summary = new JobSummary();
 
         var issues = await FetchIssuesAsync(summary, cancellationToken);
         if (issues.Issues.Count == 0)
@@ -63,7 +65,7 @@ public sealed class SonarCopilotFixApp
             await ProcessIssueGroupAsync(issueGroup, baseBranch, summary, cancellationToken);
         }
 
-        summary.Write();
+        _stepSummaryWriter.Write(summary);
         return ExitCodes.Success;
     }
 
@@ -86,7 +88,7 @@ public sealed class SonarCopilotFixApp
 
     private int CompleteWithoutIssues(JobSummary summary)
     {
-        summary.Write();
+        _stepSummaryWriter.Write(summary);
         if (_configurationHelper.InputFailIfNoIssues)
         {
             throw new ControlledFailureException("No matching SonarQube issues were found.", ExitCodes.NoIssuesFound);
@@ -220,7 +222,7 @@ public sealed class SonarCopilotFixApp
     {
         await _git.PushBranchAsync(branchName, cancellationToken);
 
-        var issueSummary = new JobSummary(_configurationHelper)
+        var issueSummary = new JobSummary
         {
             BaseBranch = baseBranch,
             GeneratedBranch = branchName,
@@ -246,5 +248,4 @@ public sealed class SonarCopilotFixApp
     {
         public bool HasRepositoryChanges => ChangedFiles.Count > 0 || CopilotCreatedCommits;
     }
-
 }

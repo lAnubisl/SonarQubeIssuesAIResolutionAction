@@ -11,7 +11,7 @@ internal sealed class PrBodyBuilderTests
     public static void PrBody()
     {
         var configurationHelper = TestData.Configuration();
-        var summary = new JobSummary(configurationHelper)
+        var summary = new JobSummary
         {
             BaseBranch = "main",
             GeneratedBranch = "copilot/sonar/proj/20260101000000",

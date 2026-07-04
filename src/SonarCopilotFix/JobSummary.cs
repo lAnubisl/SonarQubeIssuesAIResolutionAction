@@ -1,12 +1,11 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
-using SonarCopilotFix.Infrastructure;
 using SonarCopilotFix.Models;
 using SonarCopilotFix.SonarQube.Models;
 
 namespace SonarCopilotFix;
 
-public sealed partial class JobSummary(IConfigurationHelper configurationHelper)
+public sealed partial class JobSummary
 {
     private const long MinutesPerSonarDay = 8 * 60;
 
@@ -60,82 +59,6 @@ public sealed partial class JobSummary(IConfigurationHelper configurationHelper)
             .Distinct(StringComparer.Ordinal)
             .Order(StringComparer.Ordinal)
             .ToArray();
-    }
-
-    public void Write()
-    {
-        var path = configurationHelper.GitHubStepSummary;
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return;
-        }
-
-        var lines = new List<string>
-        {
-            "# SonarQube Copilot Fix",
-            "",
-            $"* SonarQube project: `{configurationHelper.GetSonarProjectKey()}`",
-            $"* SonarQube branch: `{configurationHelper.InputSonarBranch ?? "not specified"}`",
-            $"* Issues found: `{IssuesFound}`",
-            $"* Issues selected: `{IssuesSelected}`",
-            $"* Rule groups selected: `{RuleGroupsSelected}`",
-            $"* Total effort saved: `{TotalEffortSaved}`",
-            "",
-            "## Rule Group Results",
-            "",
-            "| Rule | Issues | Branch | Outcome | Pull request |",
-            "| --- | --- | --- | --- | --- |"
-        };
-        if (GroupResults.Count == 0)
-        {
-            lines.Add("| n/a | n/a | n/a | no rule groups processed | n/a |");
-        }
-        else
-        {
-            lines.AddRange(GroupResults.Select(result =>
-                $"| `{result.RuleKey}` | {string.Join(", ", result.IssueKeys.Select(key => $"`{key}`"))} | `{result.BranchName ?? "not created"}` | {result.Outcome} | {result.PullRequestUrl ?? "not created"} |"));
-        }
-
-        lines.AddRange(
-        [
-            "",
-            "## Copilot Session Summary",
-            ""
-        ]);
-        var sessions = GroupResults
-            .Where(result => !string.IsNullOrWhiteSpace(result.CopilotSessionSummary))
-            .ToArray();
-        if (sessions.Length == 0)
-        {
-            lines.Add("```text");
-            lines.Add(string.IsNullOrWhiteSpace(CopilotSessionSummary)
-                ? "Not available because Copilot CLI did not write session information to stderr."
-                : CopilotSessionSummary);
-            lines.Add("```");
-        }
-        else
-        {
-            foreach (var session in sessions)
-            {
-                lines.Add($"### {session.RuleKey}");
-                lines.Add("");
-                lines.Add("```text");
-                lines.Add(session.CopilotSessionSummary!);
-                lines.Add("```");
-                lines.Add("");
-            }
-        }
-
-        lines.AddRange(
-        [
-            "",
-            "## Result",
-            "",
-            $"* Files changed: `{ChangedFiles.Count}`",
-            $"* Pull requests created: `{GetPullRequestUrls().Count}`"
-        ]);
-
-        File.AppendAllText(path, string.Join(Environment.NewLine, lines) + Environment.NewLine);
     }
 
     private static long? ParseEffortMinutes(string? effort)
