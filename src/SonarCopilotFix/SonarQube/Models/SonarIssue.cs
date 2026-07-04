@@ -42,7 +42,7 @@ public sealed record SonarIssue(
         : this(
             dto.Key ?? "unknown",
             dto.Rule ?? "unknown",
-            dto.Severity ?? dto.Impacts?.FirstOrDefault()?.Severity,
+            dto.Severity ?? (dto.Impacts != null && dto.Impacts.Count > 0 ? dto.Impacts[0].Severity : null),
             dto.Status,
             dto.Type,
             dto.CleanCodeAttributeCategory,
