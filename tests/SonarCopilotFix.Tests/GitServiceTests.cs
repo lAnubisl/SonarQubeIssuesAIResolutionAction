@@ -13,6 +13,7 @@ internal sealed class GitServiceTests
     private static readonly string[] GitStatusArguments = new[] { "status", "--porcelain" };
     private static readonly string[] GitSafeDirectoryRevParseSuffix = new[] { "rev-parse", "HEAD" };
     private static readonly string[] GitSafeDirectoryDiffSuffix = new[] { "diff", "--name-only", "--diff-filter=ACDMRTUXB", "base123", "HEAD", "--" };
+    private static readonly string[] SymbolicRefSuffix = new[] { "symbolic-ref", "refs/remotes/origin/HEAD", "--short" };
     [Test]
     public static void BranchNameIncludesRuleKey()
     {
@@ -154,7 +155,7 @@ internal sealed class GitServiceTests
             .Setup(value => value.RunAsync(
                 "git",
                 It.Is<IEnumerable<string>>(arguments =>
-                    arguments.TakeLast(3).SequenceEqual(new[] { "symbolic-ref", "refs/remotes/origin/HEAD", "--short" })),
+                    arguments.TakeLast(3).SequenceEqual(SymbolicRefSuffix)),
                 It.IsAny<string>(),
                 null,
                 null,
