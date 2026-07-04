@@ -168,12 +168,12 @@ public sealed class SonarQubeClient(
         return payload.Rule is null
             ? null
             : new SonarRule(
-                payload.Rule.Key ?? ruleKey,
-                payload.Rule.Name,
-                payload.Rule.HtmlDesc,
-                payload.Rule.MarkdownDescription,
-                payload.Rule.Severity,
-                payload.Rule.Tags ?? []);
+                payload.Rule.DescriptionSections?
+                    .Select(section => new SonarRuleDescriptionSection(
+                        section.Key,
+                        section.Content))
+                    .ToArray()
+                ?? []);
     }
 
     private Uri BuildIssueUrl(string? issueKey)

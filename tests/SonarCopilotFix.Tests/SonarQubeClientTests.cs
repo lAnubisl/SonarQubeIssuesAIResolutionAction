@@ -215,7 +215,26 @@ internal sealed class SonarQubeClientTests
                 CancellationToken.None))
             .ReturnsAsync(Json("""{"total":1,"issues":[{"key":"I1","rule":"rule:S1","component":"proj:A.cs","message":"fix"}]}"""));
         http.Setup(value => value.GetAsync("/api/rules/show?key=rule%3AS1", CancellationToken.None))
-            .ReturnsAsync(Json("""{"rule":{"key":"rule:S1","name":"Avoid this","htmlDesc":"description","severity":"MAJOR","tags":["tag"]}}"""));
+            .ReturnsAsync(Json("""
+                {
+                  "rule": {
+                    "key": "rule:S1",
+                    "name": "Avoid this",
+                    "htmlDesc": "legacy description",
+                    "severity": "MAJOR",
+                    "descriptionSections": [
+                      {
+                        "key": "root_cause",
+                        "content": "<p>Description</p>"
+                      },
+                      {
+                        "key": "how_to_fix",
+                        "content": "<p>Use Spring protection.</p>",
+                      }
+                    ]
+                  }
+                }
+                """));
         Mock<ICodeSnippetReader> snippets = new(MockBehavior.Strict);
         SonarQubeClient client = new(
             TestData.MockConfigurationHelper(inputIncludeRuleDetails: true).Object,
@@ -227,8 +246,13 @@ internal sealed class SonarQubeClientTests
         IssueGroup group =
             (await client.GroupIssuesByRuleAsync([issue], CancellationToken.None)).Single();
 
-        Assert.Equal("Avoid this", group.Rule!.Name);
-        Assert.Equal("description", group.Rule.HtmlDescription);
+        Assert.Equal(2, group.Rule!.DescriptionSections.Count);
+        Assert.Equal("root_cause", group.Rule.DescriptionSections[0].Key);
+        Assert.Equal("<p>Description</p>", group.Rule.DescriptionSections[0].Content);
+        Assert.True(group.Rule.DescriptionSections[0].Context is null);
+        Assert.Equal("how_to_fix", group.Rule.DescriptionSections[1].Key);
+        Assert.Equal("Spring", group.Rule.DescriptionSections[1].Context!.DisplayName);
+        Assert.Equal("spring", group.Rule.DescriptionSections[1].Context!.Key);
         http.VerifyAll();
         snippets.VerifyNoOtherCalls();
     }
@@ -251,7 +275,7 @@ internal sealed class SonarQubeClientTests
                 }
                 """));
         http.Setup(value => value.GetAsync("/api/rules/show?key=rule%3AS1", CancellationToken.None))
-            .ReturnsAsync(Json("""{"rule":{"key":"rule:S1","name":"Avoid this","htmlDesc":"description"}}"""));
+            .ReturnsAsync(Json("""{"rule":{"descriptionSections":[]}}"""));
         SonarQubeClient client = new(
             TestData.MockConfigurationHelper(inputIncludeRuleDetails: true).Object,
             Mock.Of<ILogger>(),
@@ -263,7 +287,7 @@ internal sealed class SonarQubeClientTests
             (await client.GroupIssuesByRuleAsync(result.Issues, CancellationToken.None)).Single();
 
         Assert.Equal(2, result.Issues.Count);
-        Assert.Equal("Avoid this", group.Rule!.Name);
+        Assert.Equal(0, group.Rule!.DescriptionSections.Count);
         http.Verify(
             value => value.GetAsync("/api/rules/show?key=rule%3AS1", CancellationToken.None),
             Times.Once);
@@ -282,7 +306,7 @@ internal sealed class SonarQubeClientTests
         http.Setup(value => value.GetAsync(
                 "/api/rules/show?key=external_roslyn%3ACA1861&organization=my%20organization",
                 CancellationToken.None))
-            .ReturnsAsync(Json("""{"rule":{"key":"external_roslyn:CA1861","name":"Avoid constant arrays"}}"""));
+            .ReturnsAsync(Json("""{"rule":{"descriptionSections":[{"key":"root_cause","content":"Avoid constant arrays"}]}}"""));
         SonarQubeClient client = new(
             TestData.MockConfigurationHelper(
                 inputSonarHostUrl: "https://sonarcloud.io",
@@ -296,7 +320,7 @@ internal sealed class SonarQubeClientTests
         IssueGroup group =
             (await client.GroupIssuesByRuleAsync([issue], CancellationToken.None)).Single();
 
-        Assert.Equal("Avoid constant arrays", group.Rule!.Name);
+        Assert.Equal("Avoid constant arrays", group.Rule!.DescriptionSections.Single().Content);
         http.VerifyAll();
     }
 

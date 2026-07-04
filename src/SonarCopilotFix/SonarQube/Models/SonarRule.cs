@@ -1,9 +1,7 @@
 namespace SonarCopilotFix.SonarQube.Models;
 
-public sealed record SonarRule(
-    string Key,
-    string? Name,
-    string? HtmlDescription,
-    string? MarkdownDescription,
-    string? Severity,
-    IReadOnlyList<string> Tags);
+public sealed record SonarRule(IReadOnlyList<SonarRuleDescriptionSection> DescriptionSections);
+
+public sealed record SonarRuleDescriptionSection(
+    string? Key,
+    string? Content);

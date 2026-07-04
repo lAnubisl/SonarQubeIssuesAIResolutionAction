@@ -78,10 +78,14 @@ public sealed class PromptBuilder(IConfigurationHelper configurationHelper) : IP
         }
 
         builder.AppendLine("## Rule Details");
-        builder.AppendLine($"- Key: `{issueGroup.Rule.Key}`");
-        builder.AppendLine($"- Name: {issueGroup.Rule.Name ?? NotSpecified}");
-        builder.AppendLine($"- Severity: `{issueGroup.Rule.Severity ?? NotSpecified}`");
-        builder.AppendLine($"- Description: {issueGroup.Rule.MarkdownDescription ?? issueGroup.Rule.HtmlDescription ?? NotSpecified}");
+        builder.AppendLine($"- Key: `{issueGroup.RuleKey}`");
+        foreach (SonarRuleDescriptionSection section in issueGroup.Rule.DescriptionSections)
+        {
+            string sectionKey = section.Key ?? NotSpecified;
+            builder.AppendLine($"### {sectionKey}");
+            builder.AppendLine(section.Content ?? NotSpecified);
+        }
+
         builder.AppendLine();
     }
 

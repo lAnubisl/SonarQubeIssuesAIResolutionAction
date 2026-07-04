@@ -17,7 +17,15 @@ internal sealed class PromptBuilderTests
         IssueGroup group = new(
             issue.RuleKey,
             [issue],
-            new SonarRule(issue.RuleKey, "Rule", "Description", null, "MAJOR", []));
+            new SonarRule(
+            [
+                new SonarRuleDescriptionSection(
+                    "root_cause",
+                    "<p>Description</p>"),
+                new SonarRuleDescriptionSection(
+                    "how_to_fix",
+                    "<p>Use the Spring fix.</p>")
+            ]));
 
         Mock<IConfigurationHelper> configuration = TestData.MockConfigurationHelper();
         string prompt = new PromptBuilder(configuration.Object).Build(group, "feature", "main");
@@ -29,7 +37,10 @@ internal sealed class PromptBuilderTests
         Assert.Contains("ISSUE-1", prompt);
         Assert.Contains("src/A.cs", prompt);
         Assert.Contains("## Rule Details", prompt);
-        Assert.Contains("Description", prompt);
+        Assert.Contains("### root_cause", prompt);
+        Assert.Contains("<p>Description</p>", prompt);
+        Assert.Contains("### how_to_fix", prompt);
+        Assert.Contains("<p>Use the Spring fix.</p>", prompt);
     }
 
     [Test]
