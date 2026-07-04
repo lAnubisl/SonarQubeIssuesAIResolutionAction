@@ -18,7 +18,6 @@ public sealed class SonarCopilotFixApp
     private readonly GitService _git;
     private readonly GitHubCliService _github;
     private readonly CopilotCliRunner _copilot;
-    private readonly ActionOutputWriter _actionOutputWriter;
 
     public SonarCopilotFixApp(
         IConfigurationHelper configurationHelper,
@@ -36,7 +35,6 @@ public sealed class SonarCopilotFixApp
         _git = new GitService(commandRunner, configurationHelper);
         _github = new GitHubCliService(commandRunner, configurationHelper, logger);
         _copilot = new CopilotCliRunner(commandRunner, configurationHelper, logger);
-        _actionOutputWriter = new ActionOutputWriter(configurationHelper);
     }
 
     public async Task<int> RunAsync(CancellationToken cancellationToken = default)
@@ -65,7 +63,6 @@ public sealed class SonarCopilotFixApp
             await ProcessIssueGroupAsync(issueGroup, baseBranch, summary, cancellationToken);
         }
 
-        _actionOutputWriter.WriteCollectionOutputs(summary);
         summary.Write();
         return ExitCodes.Success;
     }
