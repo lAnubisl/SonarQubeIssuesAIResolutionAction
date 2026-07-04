@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Headers;
-using System.Globalization;
 using System.Text.Json;
 using SonarCopilotFix.Infrastructure;
 using SonarCopilotFix.PromptGeneration;
@@ -176,62 +175,18 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
         }
 
         return new SonarIssue(
-            dto.Key ?? "unknown",
-            dto.Rule ?? "unknown",
-            dto.Severity ?? dto.Impacts?.FirstOrDefault()?.Severity,
-            dto.Status,
-            dto.Type,
-            dto.CleanCodeAttributeCategory,
-            dto.Component ?? "",
+            dto,
             filePath,
-            dto.Line ?? dto.TextRange?.StartLine,
-            dto.TextRange is null ? null : new TextRange(dto.TextRange.StartLine, dto.TextRange.EndLine, dto.TextRange.StartOffset, dto.TextRange.EndOffset),
-            dto.Message ?? "",
-            dto.Effort ?? dto.Debt,
-            dto.Tags ?? [],
-            dto.Author,
             BuildIssueUrl(dto.Key),
-            rule,
-            null,
-            dto.Project,
-            dto.Hash,
-            dto.Flows?.Select(ToFlow).ToArray() ?? [],
-            dto.Resolution,
-            dto.Debt,
-            ParseSonarDate(dto.CreationDate),
-            ParseSonarDate(dto.UpdateDate),
-            ParseSonarDate(dto.CloseDate),
-            dto.Organization,
-            dto.ExternalRuleEngine,
-            dto.CleanCodeAttribute,
-            dto.Impacts?.Select(impact => new SonarImpact(impact.SoftwareQuality, impact.Severity)).ToArray() ?? [],
-            dto.IssueStatus,
-            dto.ProjectName,
-            dto.InternalTags ?? [],
-            dto.LastChangeAnalysisUuid,
-            dto.LastChangeSource);
+            rule);
     }
-
-    private static DateTimeOffset? ParseSonarDate(string? value) =>
-        DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var result)
-            ? result
-            : null;
-
-    private static SonarFlow ToFlow(FlowDto flow) =>
-        new(flow.Locations?.Select(location => new SonarLocation(
-            location.Component,
-            location.TextRange is null
-                ? null
-                : new TextRange(
-                    location.TextRange.StartLine,
-                    location.TextRange.EndLine,
-                    location.TextRange.StartOffset,
-                    location.TextRange.EndOffset),
-            location.Message)).ToArray() ?? []);
 
     private async Task<SonarRule?> TryGetRuleAsync(string ruleKey, CancellationToken cancellationToken)
     {
-        using var response = await _httpClient.GetAsync($"/api/rules/show?key={Uri.EscapeDataString(ruleKey)}", cancellationToken);
+        string uri = $"/api/rules/show?key={Uri.EscapeDataString(ruleKey)}";
+        var requestUrl = new Uri(_httpClient.BaseAddress!, uri);
+        _logger.Info($"SonarQube rule show request URL: {requestUrl.AbsoluteUri}");
+        using var response = await _httpClient.GetAsync(uri, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             _logger.Warn($"Could not retrieve SonarQube rule details for '{ruleKey}'.");

@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace SonarCopilotFix.SonarQube.Models;
 
 public sealed record SonarIssue(
@@ -34,4 +36,64 @@ public sealed record SonarIssue(
     string? ProjectName = null,
     IReadOnlyList<string>? InternalTags = null,
     string? LastChangeAnalysisUuid = null,
-    string? LastChangeSource = null);
+    string? LastChangeSource = null)
+{
+    internal SonarIssue(IssueDto dto, string filePath, Uri issueUrl, SonarRule? rule)
+        : this(
+            dto.Key ?? "unknown",
+            dto.Rule ?? "unknown",
+            dto.Severity ?? dto.Impacts?.FirstOrDefault()?.Severity,
+            dto.Status,
+            dto.Type,
+            dto.CleanCodeAttributeCategory,
+            dto.Component ?? "",
+            filePath,
+            dto.Line ?? dto.TextRange?.StartLine,
+            ToTextRange(dto.TextRange),
+            dto.Message ?? "",
+            dto.Effort ?? dto.Debt,
+            dto.Tags ?? [],
+            dto.Author,
+            issueUrl,
+            rule,
+            null,
+            dto.Project,
+            dto.Hash,
+            dto.Flows?.Select(ToFlow).ToArray() ?? [],
+            dto.Resolution,
+            dto.Debt,
+            ParseSonarDate(dto.CreationDate),
+            ParseSonarDate(dto.UpdateDate),
+            ParseSonarDate(dto.CloseDate),
+            dto.Organization,
+            dto.ExternalRuleEngine,
+            dto.CleanCodeAttribute,
+            dto.Impacts?.Select(impact => new SonarImpact(impact.SoftwareQuality, impact.Severity)).ToArray() ?? [],
+            dto.IssueStatus,
+            dto.ProjectName,
+            dto.InternalTags ?? [],
+            dto.LastChangeAnalysisUuid,
+            dto.LastChangeSource)
+    {
+    }
+
+    private static DateTimeOffset? ParseSonarDate(string? value) =>
+        DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var result)
+            ? result
+            : null;
+
+    private static SonarFlow ToFlow(FlowDto flow) =>
+        new(flow.Locations?.Select(location => new SonarLocation(
+            location.Component,
+            ToTextRange(location.TextRange),
+            location.Message)).ToArray() ?? []);
+
+    private static TextRange? ToTextRange(TextRangeDto? textRange) =>
+        textRange is null
+            ? null
+            : new TextRange(
+                textRange.StartLine,
+                textRange.EndLine,
+                textRange.StartOffset,
+                textRange.EndOffset);
+}
