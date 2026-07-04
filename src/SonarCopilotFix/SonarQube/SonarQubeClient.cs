@@ -142,6 +142,11 @@ public sealed class SonarQubeClient(
     private async Task<SonarRule?> TryGetRuleAsync(string ruleKey, CancellationToken cancellationToken)
     {
         string uri = $"/api/rules/show?key={Uri.EscapeDataString(ruleKey)}";
+        if (!string.IsNullOrWhiteSpace(configurationHelper.InputSonarOrganization))
+        {
+            uri += $"&organization={Uri.EscapeDataString(configurationHelper.InputSonarOrganization)}";
+        }
+
         Uri requestUrl = new(httpClient.BaseAddress, uri);
         logger.Info($"SonarQube rule show request URL: {requestUrl.AbsoluteUri}");
         using HttpResponseMessage response = await httpClient.GetAsync(uri, cancellationToken);

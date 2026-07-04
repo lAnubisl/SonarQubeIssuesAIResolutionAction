@@ -231,6 +231,34 @@ internal sealed class SonarQubeClientTests
     }
 
     [Test]
+    public static async Task RuleDetailsRequestIncludesSonarCloudOrganization()
+    {
+        Mock<ISonarQubeHttpClient> http = new(MockBehavior.Strict);
+        http.SetupGet(value => value.BaseAddress).Returns(new Uri("https://sonarcloud.io"));
+        http.Setup(value => value.GetAsync(
+                It.Is<string>(uri => uri.StartsWith("/api/issues/search?", StringComparison.Ordinal)),
+                CancellationToken.None))
+            .ReturnsAsync(Json("""{"total":1,"issues":[{"key":"I1","rule":"external_roslyn:CA1861","component":"proj:A.cs","message":"fix"}]}"""));
+        http.Setup(value => value.GetAsync(
+                "/api/rules/show?key=external_roslyn%3ACA1861&organization=my%20organization",
+                CancellationToken.None))
+            .ReturnsAsync(Json("""{"rule":{"key":"external_roslyn:CA1861","name":"Avoid constant arrays"}}"""));
+        SonarQubeClient client = new(
+            TestData.MockConfigurationHelper(
+                inputSonarHostUrl: "https://sonarcloud.io",
+                inputSonarOrganization: "my organization",
+                inputIncludeRuleDetails: true).Object,
+            Mock.Of<ILogger>(),
+            http.Object,
+            Mock.Of<ICodeSnippetReader>());
+
+        SonarIssue issue = (await client.GetIssuesAsync(CancellationToken.None)).Issues.Single();
+
+        Assert.Equal("Avoid constant arrays", issue.Rule!.Name);
+        http.VerifyAll();
+    }
+
+    [Test]
     public static void DisposeOnlyDisposesOwnedHttpClient()
     {
         Mock<ISonarQubeHttpClient> ownedHttp = new(MockBehavior.Strict);

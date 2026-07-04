@@ -35,7 +35,6 @@ public sealed class PromptBuilder(IConfigurationHelper configurationHelper) : IP
         builder.AppendLine("- Do not suppress SonarQube rules unless there is a strong justification.");
         builder.AppendLine("- Document suspected false positives instead of blindly changing code.");
         builder.AppendLine("- Keep changes reviewable.");
-        builder.AppendLine("- Do not run `git commit`, use `git commit --no-verify`, or change Git hook configuration.");
         builder.AppendLine("- Do not read, print, or write token values or authentication headers.");
         builder.AppendLine();
 

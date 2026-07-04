@@ -22,7 +22,6 @@ internal sealed class PromptBuilderTests
         Assert.Contains("The fix branch is already checked out", prompt);
         Assert.Contains("Leave all file changes uncommitted", prompt);
         Assert.Contains("Current branch: `feature`", prompt);
-        Assert.Contains("Do not run `git commit`", prompt);
         Assert.Contains("ISSUE-1", prompt);
         Assert.Contains("src/A.cs", prompt);
     }
