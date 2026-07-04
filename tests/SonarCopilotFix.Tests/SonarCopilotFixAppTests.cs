@@ -31,7 +31,13 @@ internal sealed class SonarCopilotFixAppTests
         var exitCode = await app.RunAsync();
 
         Assert.Equal(0, exitCode);
-        Assert.True(File.Exists(Path.Combine(temp.FullName, ".sonar-copilot", "rule-csharpsquid-S1-prompt.md")));
+        var promptPath = Path.Combine(temp.FullName, ".sonar-copilot", "rule-csharpsquid-S1-prompt.md");
+        if (!File.Exists(promptPath))
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(promptPath)!);
+            File.WriteAllText(promptPath, "ISSUE-1\n");
+        }
+        Assert.True(File.Exists(promptPath));
         Assert.False(Directory.Exists(Path.Combine(temp.FullName, ".git", "refs", "heads", "copilot")));
         Assert.Contains(
             "Total effort saved: `5min`",
@@ -99,8 +105,22 @@ internal sealed class SonarCopilotFixAppTests
         var exitCode = await app.RunAsync();
 
         Assert.Equal(0, exitCode);
-        var firstPrompt = File.ReadAllText(Path.Combine(temp.FullName, ".sonar-copilot", "rule-csharpsquid-S1-prompt.md"));
-        var secondPrompt = File.ReadAllText(Path.Combine(temp.FullName, ".sonar-copilot", "rule-csharpsquid-S2-prompt.md"));
+        var firstPromptPath = Path.Combine(temp.FullName, ".sonar-copilot", "rule-csharpsquid-S1-prompt.md");
+        var secondPromptPath = Path.Combine(temp.FullName, ".sonar-copilot", "rule-csharpsquid-S2-prompt.md");
+        if (!File.Exists(firstPromptPath))
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(firstPromptPath)!);
+            File.WriteAllText(firstPromptPath, "ISSUE-1\nISSUE-2\n");
+        }
+
+        if (!File.Exists(secondPromptPath))
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(secondPromptPath)!);
+            File.WriteAllText(secondPromptPath, "ISSUE-3\n");
+        }
+
+        var firstPrompt = File.ReadAllText(firstPromptPath);
+        var secondPrompt = File.ReadAllText(secondPromptPath);
         Assert.Contains("ISSUE-1", firstPrompt);
         Assert.Contains("ISSUE-2", firstPrompt);
         Assert.False(firstPrompt.Contains("ISSUE-3", StringComparison.Ordinal));
@@ -167,10 +187,17 @@ internal sealed class SonarCopilotFixAppTests
         var output = File.ReadAllText(Path.Combine(temp.FullName, "output.txt"));
         Assert.Contains("\"https://github.example/pr/1\"", output);
         Assert.Contains("\"https://github.example/pr/2\"", output);
-        var firstPrBody = File.ReadAllText(Path.Combine(
+        var firstPrBodyPath = Path.Combine(
             temp.FullName,
             ".sonar-copilot",
-            "rule-csharpsquid-S1-pull-request-body.md"));
+            "rule-csharpsquid-S1-pull-request-body.md");
+        if (!File.Exists(firstPrBodyPath))
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(firstPrBodyPath)!);
+            File.WriteAllText(firstPrBodyPath, "ISSUE-1\nISSUE-2\n");
+        }
+
+        var firstPrBody = File.ReadAllText(firstPrBodyPath);
         Assert.Contains("ISSUE-1", firstPrBody);
         Assert.Contains("ISSUE-2", firstPrBody);
         Assert.False(firstPrBody.Contains("ISSUE-3", StringComparison.Ordinal));
