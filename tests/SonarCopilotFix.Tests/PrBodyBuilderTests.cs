@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using SonarCopilotFix.GitHub;
+using SonarCopilotFix.SonarQube.Models;
 
 namespace SonarCopilotFix.Tests;
 
@@ -11,16 +12,14 @@ internal sealed class PrBodyBuilderTests
     public static void PrBody()
     {
         var configurationHelper = TestData.Configuration();
-        var summary = new JobSummary
-        {
-            BaseBranch = "main",
-            GeneratedBranch = "copilot/sonar/proj/20260101000000",
-            ChangedFiles = ["src/A.cs"],
-            CopilotSessionSummary = "Total usage est: 29.3k tokens\nTotal duration: 42s"
-        };
-        summary.SetSelectedIssues([TestData.SampleIssue()]);
+        var summary = new PullRequestSummary(
+            new IssueGroup("csharpsquid:S1", [TestData.SampleIssue()]),
+            "main",
+            "copilot/sonar/proj/20260101000000",
+            ["src/A.cs"],
+            "Total usage est: 29.3k tokens\nTotal duration: 42s");
 
-        var body = new PrBodyBuilder(configurationHelper).Build([TestData.SampleIssue()], summary);
+        var body = new PrBodyBuilder(configurationHelper).Build(summary);
 
         Assert.Contains("Human review is required", body);
         Assert.Contains("ISSUE-1", body);

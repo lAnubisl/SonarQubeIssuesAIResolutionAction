@@ -4,7 +4,7 @@ namespace SonarCopilotFix.GitHub;
 
 public sealed class StepSummaryWriter(IConfigurationHelper configurationHelper)
 {
-    public void Write(JobSummary summary)
+    public void Write(ActionSummary actionSummary)
     {
         var path = configurationHelper.GitHubStepSummary;
         if (string.IsNullOrWhiteSpace(path))
@@ -18,24 +18,30 @@ public sealed class StepSummaryWriter(IConfigurationHelper configurationHelper)
             "",
             $"* SonarQube project: `{configurationHelper.GetSonarProjectKey()}`",
             $"* SonarQube branch: `{configurationHelper.InputSonarBranch ?? "not specified"}`",
-            $"* Issues found: `{summary.IssuesFound}`",
-            $"* Issues selected: `{summary.IssuesSelected}`",
-            $"* Rule groups selected: `{summary.RuleGroupsSelected}`",
-            $"* Total effort saved: `{summary.TotalEffortSaved}`",
+            $"* Issues found: `{actionSummary.IssuesFound}`",
+            $"* Issues selected: `{actionSummary.IssuesSelected}`",
+            $"* Rule groups selected: `{actionSummary.RuleGroupsSelected}`",
+            $"* Total effort saved: `{actionSummary.TotalEffortSaved}`",
             "",
             "## Rule Group Results",
             "",
-            "| Rule | Issues | Branch | Outcome | Pull request |",
-            "| --- | --- | --- | --- | --- |"
+            "| Rule | Issues | Branch | Pull request |",
+            "| --- | --- | --- | --- |"
         };
-        if (summary.GroupResults.Count == 0)
+        if (actionSummary.PullRequestSummaries.Count == 0)
         {
-            lines.Add("| n/a | n/a | n/a | no rule groups processed | n/a |");
+            lines.Add("| n/a | n/a | n/a | no rule groups processed |");
         }
         else
         {
-            lines.AddRange(summary.GroupResults.Select(result =>
-                $"| `{result.RuleKey}` | {string.Join(", ", result.IssueKeys.Select(key => $"`{key}`"))} | `{result.BranchName ?? "not created"}` | {result.Outcome} | {result.PullRequestUrl ?? "not created"} |"));
+            foreach (var result in actionSummary.PullRequestSummaries)
+            {
+                string issues = string.Join(", ", result.IssueGroup.Issues.Select(i => i.Key).Select(key => $"`{key}`"));
+                var pullRequest = string.IsNullOrWhiteSpace(result.PullRequestUrl)
+                    ? "not created"
+                    : result.PullRequestUrl;
+                lines.Add($"| `{result.IssueGroup.RuleKey}` | {issues} | `{result.GeneratedBranch}` | {pullRequest} |");
+            }
         }
 
         lines.AddRange(
@@ -44,22 +50,20 @@ public sealed class StepSummaryWriter(IConfigurationHelper configurationHelper)
             "## Copilot Session Summary",
             ""
         ]);
-        var sessions = summary.GroupResults
+        var sessions = actionSummary.PullRequestSummaries
             .Where(result => !string.IsNullOrWhiteSpace(result.CopilotSessionSummary))
             .ToArray();
         if (sessions.Length == 0)
         {
             lines.Add("```text");
-            lines.Add(string.IsNullOrWhiteSpace(summary.CopilotSessionSummary)
-                ? "Not available because Copilot CLI did not write session information to stderr."
-                : summary.CopilotSessionSummary);
+            lines.Add("Not available because Copilot CLI did not write session information to stderr.");
             lines.Add("```");
         }
         else
         {
             foreach (var session in sessions)
             {
-                lines.Add($"### {session.RuleKey}");
+                lines.Add($"### {session.IssueGroup.RuleKey}");
                 lines.Add("");
                 lines.Add("```text");
                 lines.Add(session.CopilotSessionSummary!);
@@ -73,8 +77,8 @@ public sealed class StepSummaryWriter(IConfigurationHelper configurationHelper)
             "",
             "## Result",
             "",
-            $"* Files changed: `{summary.ChangedFiles.Count}`",
-            $"* Pull requests created: `{summary.GetPullRequestUrls().Count}`"
+            $"* Files changed: `{actionSummary.ChangedFiles.Count}`",
+            $"* Pull requests created: `{actionSummary.GetPullRequestUrls().Count}`"
         ]);
 
         File.AppendAllText(path, string.Join(Environment.NewLine, lines) + Environment.NewLine);

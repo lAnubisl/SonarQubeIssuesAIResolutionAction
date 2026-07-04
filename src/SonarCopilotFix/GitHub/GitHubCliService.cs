@@ -5,7 +5,8 @@ namespace SonarCopilotFix.GitHub;
 public sealed class GitHubCliService(
     ICommandRunner commandRunner,
     IConfigurationHelper configurationHelper,
-    ILogger logger)
+    ILogger logger,
+    PrBodyBuilder prBodyBuilder)
 {
     public async Task SetupGitAuthenticationAsync(CancellationToken cancellationToken)
     {
@@ -22,20 +23,17 @@ public sealed class GitHubCliService(
         }
     }
 
-    public async Task<string> CreatePullRequestAsync(
-        string title,
-        string body,
-        string baseBranch,
-        string headBranch,
+    public async Task CreatePullRequestAsync(
+        PullRequestSummary pullRequestSummary,
         CancellationToken cancellationToken)
     {
         var args = new List<string>
         {
             "pr", "create",
-            "--title", title,
-            "--body", body,
-            "--base", baseBranch,
-            "--head", headBranch
+            "--title", $"Fix SonarQube rule {pullRequestSummary.IssueGroup.RuleKey} ({pullRequestSummary.IssueGroup.Issues.Count} issue(s))",
+            "--body", prBodyBuilder.Build(pullRequestSummary),
+            "--base", pullRequestSummary.BaseBranch,
+            "--head", pullRequestSummary.GeneratedBranch
         };
         if (configurationHelper.InputPullRequestDraft)
         {
@@ -61,9 +59,8 @@ public sealed class GitHubCliService(
             throw new ControlledFailureException(message, ExitCodes.GitHubCliFailure);
         }
 
-        var url = result.StandardOutput.Trim().Split('\n', StringSplitOptions.RemoveEmptyEntries).LastOrDefault()?.Trim() ?? "";
-        logger.Info($"Created pull request: {url}");
-        return url;
+        pullRequestSummary.PullRequestUrl = result.StandardOutput.Trim().Split('\n', StringSplitOptions.RemoveEmptyEntries).LastOrDefault()?.Trim() ?? "";
+        logger.Info($"Created pull request: {pullRequestSummary.PullRequestUrl}");
     }
 
     public static IReadOnlyDictionary<string, string?> BuildEnvironment(IConfigurationHelper configurationHelper)

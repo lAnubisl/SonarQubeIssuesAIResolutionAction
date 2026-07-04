@@ -1,12 +1,11 @@
 using System.Text;
 using SonarCopilotFix.Infrastructure;
-using SonarCopilotFix.SonarQube.Models;
 
 namespace SonarCopilotFix.GitHub;
 
 public sealed class PrBodyBuilder(IConfigurationHelper configurationHelper)
 {
-    public string Build(IReadOnlyList<SonarIssue> issues, JobSummary summary)
+    public string Build(PullRequestSummary summary)
     {
         var builder = new StringBuilder();
         builder.AppendLine($"## Fix SonarQube issues for `{configurationHelper.GetSonarProjectKey()}`");
@@ -17,8 +16,8 @@ public sealed class PrBodyBuilder(IConfigurationHelper configurationHelper)
         builder.AppendLine($"| SonarQube branch | `{configurationHelper.InputSonarBranch ?? "not specified"}` |");
         builder.AppendLine($"| Base branch | `{summary.BaseBranch ?? configurationHelper.InputBaseBranch ?? "not detected"}` |");
         builder.AppendLine($"| Generated branch | `{summary.GeneratedBranch ?? "not created"}` |");
-        builder.AppendLine($"| Issues selected | `{issues.Count}` |");
-        builder.AppendLine($"| Issues attempted | `{issues.Count}` |");
+        builder.AppendLine($"| Issues selected | `{summary.IssueGroup.Issues.Count}` |");
+        builder.AppendLine($"| Issues attempted | `{summary.IssueGroup.Issues.Count}` |");
         builder.AppendLine($"| Total effort saved | `{summary.TotalEffortSaved}` |");
         builder.AppendLine();
         builder.AppendLine("## Copilot Session Summary");
@@ -30,7 +29,7 @@ public sealed class PrBodyBuilder(IConfigurationHelper configurationHelper)
         builder.AppendLine("```");
         builder.AppendLine();
         builder.AppendLine("## Issue List");
-        foreach (var issue in issues)
+        foreach (var issue in summary.IssueGroup.Issues)
         {
             builder.AppendLine($"- [{issue.Key}]({issue.IssueUrl}) `{issue.RuleKey}` `{issue.FilePath}` line `{issue.Line?.ToString() ?? "not specified"}`");
         }

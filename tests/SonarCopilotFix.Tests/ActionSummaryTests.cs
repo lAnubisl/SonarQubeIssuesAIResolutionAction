@@ -1,28 +1,36 @@
 using NUnit.Framework;
 using SonarCopilotFix.GitHub;
+using SonarCopilotFix.SonarQube.Models;
 
 namespace SonarCopilotFix.Tests;
 
 [TestFixture]
 [NonParallelizable]
-internal sealed class JobSummaryTests
+internal sealed class ActionSummaryTests
 {
     [Test]
-    public static void JobSummary()
+    public static void WritesActionSummary()
     {
         var temp = Directory.CreateTempSubdirectory();
         var path = Path.Combine(temp.FullName, "summary.md");
         var configurationHelper = TestData.MockConfigurationHelper(gitHubStepSummary: path);
-        var summary = new JobSummary
-        {
-            CopilotSessionSummary = "Total usage est: 1k tokens\nTotal duration: 5s"
-        };
+        var summary = new ActionSummary();
         summary.SetSelectedIssues(
         [
             TestData.SampleIssue() with { Effort = "1d 2h" },
             TestData.SampleIssue() with { Effort = "45min" },
             TestData.SampleIssue() with { Effort = null }
         ]);
+        var pullRequestSummary = new PullRequestSummary(
+            new IssueGroup("csharpsquid:S1234", [TestData.SampleIssue()]),
+            "main",
+            "fix-branch",
+            ["fixed.cs"],
+            "Total usage est: 1k tokens\nTotal duration: 5s")
+        {
+            PullRequestUrl = "https://github.example/pr/1"
+        };
+        summary.Add(pullRequestSummary);
 
         new StepSummaryWriter(configurationHelper.Object).Write(summary);
 
@@ -38,7 +46,7 @@ internal sealed class JobSummaryTests
     [Test]
     public static void UnavailableEffort()
     {
-        var summary = new JobSummary();
+        var summary = new ActionSummary();
         summary.SetSelectedIssues(
         [
             TestData.SampleIssue() with { Effort = null },
@@ -51,9 +59,29 @@ internal sealed class JobSummaryTests
     [Test]
     public static void ZeroEffort()
     {
-        var summary = new JobSummary();
+        var summary = new ActionSummary();
         summary.SetSelectedIssues([TestData.SampleIssue() with { Effort = "0min" }]);
 
         Assert.Equal("0min", summary.TotalEffortSaved);
+    }
+
+    [Test]
+    public static void WritesNotCreatedWhenGroupHasNoPullRequest()
+    {
+        var temp = Directory.CreateTempSubdirectory();
+        var path = Path.Combine(temp.FullName, "summary.md");
+        var configurationHelper = TestData.MockConfigurationHelper(gitHubStepSummary: path);
+        var summary = new ActionSummary();
+        summary.Add(new PullRequestSummary(
+            new IssueGroup("csharpsquid:S1", [TestData.SampleIssue()]),
+            "main",
+            "fix-branch",
+            [],
+            ""));
+
+        new StepSummaryWriter(configurationHelper.Object).Write(summary);
+
+        var contents = File.ReadAllText(path);
+        Assert.Contains("| `csharpsquid:S1` | `ISSUE-1` | `fix-branch` | not created |", contents);
     }
 }

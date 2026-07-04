@@ -3,6 +3,7 @@ using NUnit.Framework;
 using SonarCopilotFix.Infrastructure;
 using SonarCopilotFix.Infrastructure.Models;
 using SonarCopilotFix.GitHub;
+using SonarCopilotFix.SonarQube.Models;
 
 namespace SonarCopilotFix.Tests;
 
@@ -10,8 +11,6 @@ namespace SonarCopilotFix.Tests;
 [NonParallelizable]
 internal sealed class GitHubCliServiceTests
 {
-    private const string PrBody = "Fixes the following issues:\n\n- ISSUE-1";
-    private static readonly string[] PrCreateArguments = ["pr", "create", "--title", "Fix issues", "--body", PrBody, "--base", "main", "--head", "fix/issues", "--draft"];
     [Test]
     public static void GitHubCliEnvironment()
     {
@@ -33,10 +32,29 @@ internal sealed class GitHubCliServiceTests
     {
         var workspace = Path.Combine(Path.GetTempPath(), "github-workspace");
         var commandRunner = new Mock<ICommandRunner>(MockBehavior.Strict);
+        var configurationHelper = TestData.MockConfigurationHelper(
+            ghCliToken: "github-secret",
+            gitHubWorkspace: workspace);
+        var prBodyBuilder = new PrBodyBuilder(configurationHelper.Object);
+        var pullRequestSummary = new PullRequestSummary(
+            new IssueGroup("csharpsquid:S1", [TestData.SampleIssue()]),
+            "main",
+            "fix/issues",
+            ["src/A.cs"],
+            "Total usage est: 1k tokens");
+        var expectedArguments = new[]
+        {
+            "pr", "create",
+            "--title", "Fix SonarQube rule csharpsquid:S1 (1 issue(s))",
+            "--body", prBodyBuilder.Build(pullRequestSummary),
+            "--base", "main",
+            "--head", "fix/issues",
+            "--draft"
+        };
         commandRunner
             .Setup(value => value.RunAsync(
                 "gh",
-                It.Is<IEnumerable<string>>(arguments => arguments.SequenceEqual(PrCreateArguments)),
+                It.Is<IEnumerable<string>>(arguments => arguments.SequenceEqual(expectedArguments)),
                 workspace,
                 It.IsAny<IReadOnlyDictionary<string, string?>>(),
                 null,
@@ -46,20 +64,15 @@ internal sealed class GitHubCliServiceTests
                 1,
                 "stdout detail",
                 "permission denied"));
-        var configurationHelper = TestData.MockConfigurationHelper(
-            ghCliToken: "github-secret",
-            gitHubWorkspace: workspace);
         var service = new GitHubCliService(
             commandRunner.Object,
             configurationHelper.Object,
-            TestData.MockLogger().Object);
+            TestData.MockLogger().Object,
+            prBodyBuilder);
 
         var exception = await Assert.ThrowsAsync<ControlledFailureException>(() =>
             service.CreatePullRequestAsync(
-                "Fix issues",
-                PrBody,
-                "main",
-                "fix/issues",
+                pullRequestSummary,
                 CancellationToken.None));
 
         Assert.Equal(ExitCodes.GitHubCliFailure, exception.ExitCode);
