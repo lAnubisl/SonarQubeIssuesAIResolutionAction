@@ -18,7 +18,6 @@ public sealed record SonarIssue(
     IReadOnlyList<string> Tags,
     string? Author,
     Uri IssueUrl,
-    SonarRule? Rule,
     CodeSnippet? CodeSnippet,
     string? Project = null,
     string? Hash = null,
@@ -38,7 +37,7 @@ public sealed record SonarIssue(
     string? LastChangeAnalysisUuid = null,
     string? LastChangeSource = null)
 {
-    internal SonarIssue(IssueDto dto, string filePath, Uri issueUrl, SonarRule? rule)
+    internal SonarIssue(IssueDto dto, string filePath, Uri issueUrl)
         : this(
             dto.Key ?? "unknown",
             dto.Rule ?? "unknown",
@@ -55,7 +54,6 @@ public sealed record SonarIssue(
             dto.Tags ?? [],
             dto.Author,
             issueUrl,
-            rule,
             null,
             dto.Project,
             dto.Hash,

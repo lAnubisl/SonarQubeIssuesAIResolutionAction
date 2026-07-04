@@ -9,8 +9,9 @@ public sealed class PromptBuilder(IConfigurationHelper configurationHelper) : IP
 {
     private const string NotSpecified = "not specified";
 
-    public string Build(IReadOnlyList<SonarIssue> issues, string currentBranch, string baseBranch)
+    public string Build(IssueGroup issueGroup, string currentBranch, string baseBranch)
     {
+        IReadOnlyList<SonarIssue> issues = issueGroup.Issues;
         StringBuilder builder = new();
         builder.AppendLine("# SonarQube Issue Fix Request");
         builder.AppendLine();
@@ -26,6 +27,9 @@ public sealed class PromptBuilder(IConfigurationHelper configurationHelper) : IP
         builder.AppendLine($"- SonarQube branch: `{configurationHelper.InputSonarBranch ?? NotSpecified}`");
         builder.AppendLine($"- Selected issue count: `{issues.Count}`");
         builder.AppendLine();
+
+        AppendRuleDetails(builder, issueGroup);
+
         builder.AppendLine("## Safety Rules");
         builder.AppendLine("- Fix only the listed SonarQube issues.");
         builder.AppendLine("- Prefer minimal, targeted changes.");
@@ -64,6 +68,21 @@ public sealed class PromptBuilder(IConfigurationHelper configurationHelper) : IP
         builder.AppendLine("- Leave a concise summary of changed files and issue outcomes in your command output.");
         builder.AppendLine("- If an issue cannot be fixed safely, explain why and avoid unrelated edits.");
         return builder.ToString();
+    }
+
+    private static void AppendRuleDetails(StringBuilder builder, IssueGroup issueGroup)
+    {
+        if (issueGroup.Rule is null)
+        {
+            return;
+        }
+
+        builder.AppendLine("## Rule Details");
+        builder.AppendLine($"- Key: `{issueGroup.Rule.Key}`");
+        builder.AppendLine($"- Name: {issueGroup.Rule.Name ?? NotSpecified}");
+        builder.AppendLine($"- Severity: `{issueGroup.Rule.Severity ?? NotSpecified}`");
+        builder.AppendLine($"- Description: {issueGroup.Rule.MarkdownDescription ?? issueGroup.Rule.HtmlDescription ?? NotSpecified}");
+        builder.AppendLine();
     }
 
     private static void AppendIssue(StringBuilder builder, SonarIssue issue, int index)

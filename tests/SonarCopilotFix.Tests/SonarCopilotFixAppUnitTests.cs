@@ -67,7 +67,10 @@ internal sealed class SonarCopilotFixAppUnitTests
         sonar.Setup(value => value.GetIssuesAsync(CancellationToken.None))
             .ReturnsAsync(new SonarIssueSearchResult(1, [issue]));
         sonar.Setup(value => value.EnrichIssues(It.IsAny<IReadOnlyList<SonarIssue>>())).Returns([issue]);
-        sonar.Setup(value => value.GroupIssuesByRule(It.IsAny<IReadOnlyList<SonarIssue>>())).Returns([group]);
+        sonar.Setup(value => value.GroupIssuesByRuleAsync(
+                It.IsAny<IReadOnlyList<SonarIssue>>(),
+                CancellationToken.None))
+            .ReturnsAsync([group]);
         Mock<IGitService> git = new(MockBehavior.Strict);
         git.Setup(value => value.ResolveBaseBranchAsync(CancellationToken.None)).ReturnsAsync("main");
         git.Setup(value => value.GetChangedFilesAsync(true, CancellationToken.None)).ReturnsAsync(["unrelated.cs"]);
@@ -99,7 +102,10 @@ internal sealed class SonarCopilotFixAppUnitTests
         sonar.Setup(value => value.GetIssuesAsync(CancellationToken.None))
             .ReturnsAsync(new SonarIssueSearchResult(1, [issue]));
         sonar.Setup(value => value.EnrichIssues(It.IsAny<IReadOnlyList<SonarIssue>>())).Returns([issue]);
-        sonar.Setup(value => value.GroupIssuesByRule(It.IsAny<IReadOnlyList<SonarIssue>>())).Returns([group]);
+        sonar.Setup(value => value.GroupIssuesByRuleAsync(
+                It.IsAny<IReadOnlyList<SonarIssue>>(),
+                CancellationToken.None))
+            .ReturnsAsync([group]);
         Mock<IGitService> git = new(MockBehavior.Strict);
         git.Setup(value => value.ResolveBaseBranchAsync(CancellationToken.None)).ReturnsAsync("main");
         git.SetupSequence(value => value.GetChangedFilesAsync(true, CancellationToken.None))
@@ -112,7 +118,7 @@ internal sealed class SonarCopilotFixAppUnitTests
             .ReturnsAsync("abc")
             .ReturnsAsync("abc");
         Mock<IPromptBuilder> prompts = new(MockBehavior.Strict);
-        prompts.Setup(value => value.Build(group.Issues, "fix/rule", "main")).Returns("prompt");
+        prompts.Setup(value => value.Build(group, "fix/rule", "main")).Returns("prompt");
         Mock<IGitHubCliService> github = new(MockBehavior.Strict);
         github.Setup(value => value.SetupGitAuthenticationAsync(CancellationToken.None)).Returns(Task.CompletedTask);
         Mock<ICopilotCliRunner> copilot = new(MockBehavior.Strict);

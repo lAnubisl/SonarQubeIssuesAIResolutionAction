@@ -102,7 +102,6 @@ internal static class TestData
         ["bug"],
         null,
         new Uri("https://sonar.example/project/issues?id=proj&issues=ISSUE-1&open=ISSUE-1"),
-        new SonarRule("csharpsquid:S1", "Rule", "Description", null, "MAJOR", []),
         null);
 
     public static ISonarQubeClient MockSonarQubeClient(IReadOnlyList<SonarIssue> issues)
@@ -115,8 +114,10 @@ internal static class TestData
             .Setup(value => value.EnrichIssues(It.IsAny<IReadOnlyList<SonarIssue>>()))
             .Returns((IReadOnlyList<SonarIssue> value) => value);
         client
-            .Setup(value => value.GroupIssuesByRule(It.IsAny<IReadOnlyList<SonarIssue>>()))
-            .Returns((IReadOnlyList<SonarIssue> value) => value
+            .Setup(value => value.GroupIssuesByRuleAsync(
+                It.IsAny<IReadOnlyList<SonarIssue>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<SonarIssue> value, CancellationToken _) => value
                 .GroupBy(issue => issue.RuleKey, StringComparer.Ordinal)
                 .Select(group => new IssueGroup(group.Key, group.ToArray()))
                 .ToArray());

@@ -51,7 +51,8 @@ public sealed class SonarCopilotFixApp
 
         string baseBranch = await _git.ResolveBaseBranchAsync(cancellationToken);
         IReadOnlyList<SonarIssue> enrichedIssues = _sonarQube.EnrichIssues(issues.Issues);
-        IReadOnlyList<IssueGroup> issueGroups = _sonarQube.GroupIssuesByRule(enrichedIssues);
+        IReadOnlyList<IssueGroup> issueGroups =
+            await _sonarQube.GroupIssuesByRuleAsync(enrichedIssues, cancellationToken);
         _logger.Info($"Grouped {enrichedIssues.Count} selected issue(s) into {issueGroups.Count} rule group(s).");
 
         await PrepareRepositoryAsync(baseBranch, cancellationToken);
@@ -121,7 +122,7 @@ public sealed class SonarCopilotFixApp
 
         try
         {
-            string prompt = _promptBuilder.Build(issueGroup.Issues, generatedBranch, baseBranch);
+            string prompt = _promptBuilder.Build(issueGroup, generatedBranch, baseBranch);
             string headBeforeCopilot = await _git.GetHeadCommitAsync(cancellationToken);
             string copilotSessionSummary = await RunCopilotAsync(prompt, cancellationToken);
             CopilotChanges changes = await DetectCopilotChangesAsync(headBeforeCopilot, cancellationToken);

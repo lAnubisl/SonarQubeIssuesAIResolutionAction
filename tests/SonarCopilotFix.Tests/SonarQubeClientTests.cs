@@ -33,14 +33,15 @@ internal sealed class SonarQubeClientTests
     }
 
     [Test]
-    public static void IssuesAreGroupedByRuleInFirstSeenOrder()
+    public static async Task IssuesAreGroupedByRuleInFirstSeenOrder()
     {
         SonarQubeClient client = NewClient(new FakeHandler(_ => Json("""{"total":0,"issues":[]}""")));
         SonarIssue first = TestData.SampleIssue();
         SonarIssue second = first with { Key = "ISSUE-2", RuleKey = "csharpsquid:S2" };
         SonarIssue third = first with { Key = "ISSUE-3" };
 
-        IReadOnlyList<IssueGroup> groups = client.GroupIssuesByRule([first, second, third]);
+        IReadOnlyList<IssueGroup> groups =
+            await client.GroupIssuesByRuleAsync([first, second, third], CancellationToken.None);
 
         Assert.Equal(2, groups.Count);
         Assert.Equal("csharpsquid:S1", groups[0].RuleKey);
@@ -223,11 +224,50 @@ internal sealed class SonarQubeClientTests
             snippets.Object);
 
         SonarIssue issue = (await client.GetIssuesAsync(CancellationToken.None)).Issues.Single();
+        IssueGroup group =
+            (await client.GroupIssuesByRuleAsync([issue], CancellationToken.None)).Single();
 
-        Assert.Equal("Avoid this", issue.Rule!.Name);
-        Assert.Equal("description", issue.Rule.HtmlDescription);
+        Assert.Equal("Avoid this", group.Rule!.Name);
+        Assert.Equal("description", group.Rule.HtmlDescription);
         http.VerifyAll();
         snippets.VerifyNoOtherCalls();
+    }
+
+    [Test]
+    public static async Task RuleDetailsAreFetchedOncePerRuleGroup()
+    {
+        Mock<ISonarQubeHttpClient> http = new(MockBehavior.Strict);
+        http.SetupGet(value => value.BaseAddress).Returns(new Uri("https://sonar.example"));
+        http.Setup(value => value.GetAsync(
+                It.Is<string>(uri => uri.StartsWith("/api/issues/search?", StringComparison.Ordinal)),
+                CancellationToken.None))
+            .ReturnsAsync(Json("""
+                {
+                  "total": 2,
+                  "issues": [
+                    {"key":"I1","rule":"rule:S1","component":"proj:A.cs","message":"fix one"},
+                    {"key":"I2","rule":"rule:S1","component":"proj:B.cs","message":"fix two"}
+                  ]
+                }
+                """));
+        http.Setup(value => value.GetAsync("/api/rules/show?key=rule%3AS1", CancellationToken.None))
+            .ReturnsAsync(Json("""{"rule":{"key":"rule:S1","name":"Avoid this","htmlDesc":"description"}}"""));
+        SonarQubeClient client = new(
+            TestData.MockConfigurationHelper(inputIncludeRuleDetails: true).Object,
+            Mock.Of<ILogger>(),
+            http.Object,
+            Mock.Of<ICodeSnippetReader>());
+
+        SonarIssueSearchResult result = await client.GetIssuesAsync(CancellationToken.None);
+        IssueGroup group =
+            (await client.GroupIssuesByRuleAsync(result.Issues, CancellationToken.None)).Single();
+
+        Assert.Equal(2, result.Issues.Count);
+        Assert.Equal("Avoid this", group.Rule!.Name);
+        http.Verify(
+            value => value.GetAsync("/api/rules/show?key=rule%3AS1", CancellationToken.None),
+            Times.Once);
+        http.VerifyAll();
     }
 
     [Test]
@@ -253,8 +293,10 @@ internal sealed class SonarQubeClientTests
             Mock.Of<ICodeSnippetReader>());
 
         SonarIssue issue = (await client.GetIssuesAsync(CancellationToken.None)).Issues.Single();
+        IssueGroup group =
+            (await client.GroupIssuesByRuleAsync([issue], CancellationToken.None)).Single();
 
-        Assert.Equal("Avoid constant arrays", issue.Rule!.Name);
+        Assert.Equal("Avoid constant arrays", group.Rule!.Name);
         http.VerifyAll();
     }
 

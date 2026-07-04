@@ -4,5 +4,5 @@ namespace SonarCopilotFix.PromptGeneration;
 
 public interface IPromptBuilder
 {
-    string Build(IReadOnlyList<SonarIssue> issues, string currentBranch, string baseBranch);
+    string Build(IssueGroup issueGroup, string currentBranch, string baseBranch);
 }

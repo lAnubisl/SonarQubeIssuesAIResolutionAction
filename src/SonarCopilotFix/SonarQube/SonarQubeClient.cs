@@ -56,7 +56,7 @@ public sealed class SonarQubeClient(
                     break;
                 }
 
-                selected.Add(await ToIssueAsync(issue, cancellationToken));
+                selected.Add(ToIssue(issue));
             }
 
             if (issuesSeen >= total)
@@ -75,11 +75,26 @@ public sealed class SonarQubeClient(
             ? snippetReader.AddSnippets(issues)
             : issues;
 
-    public IReadOnlyList<IssueGroup> GroupIssuesByRule(IReadOnlyList<SonarIssue> issues) =>
-        issues
+    public async Task<IReadOnlyList<IssueGroup>> GroupIssuesByRuleAsync(
+        IReadOnlyList<SonarIssue> issues,
+        CancellationToken cancellationToken)
+    {
+        IGrouping<string, SonarIssue>[] groups = issues
             .GroupBy(issue => issue.RuleKey, StringComparer.Ordinal)
-            .Select(group => new IssueGroup(group.Key, group.ToArray()))
             .ToArray();
+
+        List<IssueGroup> issueGroups = new(groups.Length);
+        foreach (IGrouping<string, SonarIssue> group in groups)
+        {
+            SonarRule? rule = configurationHelper.InputIncludeRuleDetails
+                && !string.Equals(group.Key, "unknown", StringComparison.Ordinal)
+                ? await TryGetRuleAsync(group.Key, cancellationToken)
+                : null;
+            issueGroups.Add(new IssueGroup(group.Key, group.ToArray(), rule));
+        }
+
+        return issueGroups;
+    }
 
     private static void AddQueryParameter(Dictionary<string, string?> query, string key, string? value)
     {
@@ -123,20 +138,13 @@ public sealed class SonarQubeClient(
             .Select(pair => $"{Uri.EscapeDataString(pair.Key)}={Uri.EscapeDataString(pair.Value!)}"));
     }
 
-    private async Task<SonarIssue> ToIssueAsync(IssueDto dto, CancellationToken cancellationToken)
+    private SonarIssue ToIssue(IssueDto dto)
     {
         string filePath = ExtractFilePath(dto.Component, configurationHelper.GetSonarProjectKey());
-        SonarRule? rule = null;
-        if (configurationHelper.InputIncludeRuleDetails && !string.IsNullOrWhiteSpace(dto.Rule))
-        {
-            rule = await TryGetRuleAsync(dto.Rule, cancellationToken);
-        }
-
         return new SonarIssue(
             dto,
             filePath,
-            BuildIssueUrl(dto.Key),
-            rule);
+            BuildIssueUrl(dto.Key));
     }
 
     private async Task<SonarRule?> TryGetRuleAsync(string ruleKey, CancellationToken cancellationToken)

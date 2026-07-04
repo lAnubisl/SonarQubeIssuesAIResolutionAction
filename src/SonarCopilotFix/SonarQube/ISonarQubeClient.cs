@@ -8,5 +8,7 @@ public interface ISonarQubeClient
 
     IReadOnlyList<SonarIssue> EnrichIssues(IReadOnlyList<SonarIssue> issues);
 
-    IReadOnlyList<IssueGroup> GroupIssuesByRule(IReadOnlyList<SonarIssue> issues);
+    Task<IReadOnlyList<IssueGroup>> GroupIssuesByRuleAsync(
+        IReadOnlyList<SonarIssue> issues,
+        CancellationToken cancellationToken);
 }
