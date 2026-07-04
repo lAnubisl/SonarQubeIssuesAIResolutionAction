@@ -17,7 +17,6 @@ try
         configurationHelper,
         logger,
         new SonarQubeClient(configurationHelper, logger),
-        new CodeSnippetReader(configurationHelper),
         new PromptBuilder(configurationHelper),
         new CommandRunner(logger, configurationHelper),
         new PrBodyBuilder(configurationHelper));

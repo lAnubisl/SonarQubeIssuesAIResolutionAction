@@ -21,7 +21,6 @@ internal sealed class SonarCopilotFixAppTests
             configurationHelper.Object,
             logger.Object,
             TestData.MockSonarQubeClient([TestData.SampleIssue()]),
-            new CodeSnippetReader(configurationHelper.Object),
             new PromptBuilder(configurationHelper.Object),
             commandRunner,
             new PrBodyBuilder(configurationHelper.Object));
@@ -64,7 +63,6 @@ internal sealed class SonarCopilotFixAppTests
             configurationHelper.Object,
             logger.Object,
             TestData.MockSonarQubeClient([TestData.SampleIssue(), secondIssue, thirdIssue]),
-            new CodeSnippetReader(configurationHelper.Object),
             new PromptBuilder(configurationHelper.Object),
             commandRunner,
             new PrBodyBuilder(configurationHelper.Object));

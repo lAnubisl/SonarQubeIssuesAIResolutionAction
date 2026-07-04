@@ -5,6 +5,11 @@ namespace SonarCopilotFix.Git;
 
 public sealed partial class GitService(ICommandRunner commandRunner, IConfigurationHelper configurationHelper)
 {
+    public async Task<string> ResolveBaseBranchAsync(CancellationToken cancellationToken) =>
+        string.IsNullOrWhiteSpace(configurationHelper.InputBaseBranch)
+            ? await DetectDefaultBranchAsync(cancellationToken)
+            : configurationHelper.InputBaseBranch;
+
     public async Task<string> CurrentBranchAsync(CancellationToken cancellationToken)
     {
         var result = await RunGitAsync(["branch", "--show-current"], cancellationToken: cancellationToken);

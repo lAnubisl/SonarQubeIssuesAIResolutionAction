@@ -26,6 +26,19 @@ internal sealed class GitServiceTests
     }
 
     [Test]
+    public static async Task ResolveBaseBranchUsesConfiguredBranchWithoutCallingGit()
+    {
+        var configurationHelper = TestData.MockConfigurationHelper(inputBaseBranch: "release");
+        var commandRunner = new Mock<ICommandRunner>(MockBehavior.Strict);
+        var git = new GitService(commandRunner.Object, configurationHelper.Object);
+
+        var baseBranch = await git.ResolveBaseBranchAsync(CancellationToken.None);
+
+        Assert.Equal("release", baseBranch);
+        commandRunner.VerifyNoOtherCalls();
+    }
+
+    [Test]
     public static async Task SwitchBranch()
     {
         var workspace = Path.Combine(Path.GetTempPath(), "workspace");

@@ -31,6 +31,35 @@ internal sealed class SonarQubeClientTests
     }
 
     [Test]
+    public static void IssuesAreGroupedByRuleInFirstSeenOrder()
+    {
+        var client = NewClient(new FakeHandler(_ => Json("""{"total":0,"issues":[]}""")));
+        var first = TestData.SampleIssue();
+        var second = first with { Key = "ISSUE-2", RuleKey = "csharpsquid:S2" };
+        var third = first with { Key = "ISSUE-3" };
+
+        var groups = client.GroupIssuesByRule([first, second, third]);
+
+        Assert.Equal(2, groups.Count);
+        Assert.Equal("csharpsquid:S1", groups[0].RuleKey);
+        CollectionAssert.AreEqual(["ISSUE-1", "ISSUE-3"], groups[0].Issues.Select(issue => issue.Key));
+        Assert.Equal("csharpsquid:S2", groups[1].RuleKey);
+    }
+
+    [Test]
+    public static void EnrichmentCanBeDisabled()
+    {
+        var client = NewClient(
+            new FakeHandler(_ => Json("""{"total":0,"issues":[]}""")),
+            includeCodeSnippets: false);
+        IReadOnlyList<SonarIssue> issues = [TestData.SampleIssue()];
+
+        var enriched = client.EnrichIssues(issues);
+
+        Assert.True(ReferenceEquals(issues, enriched));
+    }
+
+    [Test]
     public static async Task AuthenticationError()
     {
         var client = NewClient(new FakeHandler(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized)));
@@ -163,7 +192,8 @@ internal sealed class SonarQubeClientTests
         string? cleanCodeAttributeCategories = null,
         string? rules = null,
         string? components = null,
-        ILogger? logger = null)
+        ILogger? logger = null,
+        bool includeCodeSnippets = true)
     {
         var configurationHelper = TestData.MockConfigurationHelper(
             inputComponents: Csv(components),
@@ -175,7 +205,8 @@ internal sealed class SonarQubeClientTests
             inputImpactSeverities: Csv(impactSeverities),
             inputCleanCodeAttributeCategories: Csv(cleanCodeAttributeCategories),
             inputRules: Csv(rules),
-            inputIncludeRuleDetails: false);
+            inputIncludeRuleDetails: false,
+            inputIncludeCodeSnippets: includeCodeSnippets);
         return new SonarQubeClient(
             configurationHelper.Object,
             logger ?? TestData.MockLogger().Object,

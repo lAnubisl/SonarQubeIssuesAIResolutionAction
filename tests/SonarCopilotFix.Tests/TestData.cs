@@ -30,6 +30,7 @@ internal static class TestData
         string? inputCopilotModel = null,
         IReadOnlyList<string>? inputCopilotAllowedTools = null,
         bool inputCopilotAllowAllTools = false,
+        string? inputBaseBranch = null,
         string? sonarToken = "sonar",
         string? copilotCliToken = "copilot",
         string? ghCliToken = "github",
@@ -59,7 +60,7 @@ internal static class TestData
         configurationHelper.SetupGet(value => value.InputCopilotModel).Returns(inputCopilotModel);
         configurationHelper.SetupGet(value => value.InputCopilotExtraInstructions).Returns((string?)null);
         configurationHelper.SetupGet(value => value.InputBranchPrefix).Returns("copilot/sonar-fixes");
-        configurationHelper.SetupGet(value => value.InputBaseBranch).Returns((string?)null);
+        configurationHelper.SetupGet(value => value.InputBaseBranch).Returns(inputBaseBranch);
         configurationHelper.SetupGet(value => value.InputPullRequestDraft).Returns(true);
         configurationHelper.SetupGet(value => value.InputFailIfNoIssues).Returns(false);
         configurationHelper.SetupGet(value => value.InputCopilotAllowedTools).Returns(inputCopilotAllowedTools ?? []);
@@ -104,6 +105,15 @@ internal static class TestData
         client
             .Setup(value => value.GetIssuesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new SonarIssueSearchResult(issues.Count, issues));
+        client
+            .Setup(value => value.EnrichIssues(It.IsAny<IReadOnlyList<SonarIssue>>()))
+            .Returns((IReadOnlyList<SonarIssue> value) => value);
+        client
+            .Setup(value => value.GroupIssuesByRule(It.IsAny<IReadOnlyList<SonarIssue>>()))
+            .Returns((IReadOnlyList<SonarIssue> value) => value
+                .GroupBy(issue => issue.RuleKey, StringComparer.Ordinal)
+                .Select(group => new IssueGroup(group.Key, group.ToArray()))
+                .ToArray());
         return client.Object;
     }
 }

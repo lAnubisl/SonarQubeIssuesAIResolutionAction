@@ -11,7 +11,6 @@ public sealed class SonarCopilotFixApp
     private readonly IConfigurationHelper _configurationHelper;
     private readonly ILogger _logger;
     private readonly ISonarQubeClient _sonarQube;
-    private readonly CodeSnippetReader _snippetReader;
     private readonly PromptBuilder _promptBuilder;
     private readonly PrBodyBuilder _prBodyBuilder;
     private readonly GitService _git;
@@ -22,7 +21,6 @@ public sealed class SonarCopilotFixApp
         IConfigurationHelper configurationHelper,
         ILogger logger,
         ISonarQubeClient sonarQube,
-        CodeSnippetReader snippetReader,
         PromptBuilder promptBuilder,
         ICommandRunner commandRunner,
         PrBodyBuilder prBodyBuilder)
@@ -30,7 +28,6 @@ public sealed class SonarCopilotFixApp
         _configurationHelper = configurationHelper;
         _logger = logger;
         _sonarQube = sonarQube;
-        _snippetReader = snippetReader;
         _promptBuilder = promptBuilder;
         _prBodyBuilder = prBodyBuilder;
         _git = new GitService(commandRunner, configurationHelper);
@@ -49,10 +46,10 @@ public sealed class SonarCopilotFixApp
             return CompleteWithoutIssues(summary);
         }
 
-        var baseBranch = await ResolveBaseBranchAsync(cancellationToken);
+        var baseBranch = await _git.ResolveBaseBranchAsync(cancellationToken);
         summary.BaseBranch = baseBranch;
-        var enrichedIssues = EnrichIssues(issues.Issues);
-        var issueGroups = GroupIssuesByRule(enrichedIssues);
+        var enrichedIssues = _sonarQube.EnrichIssues(issues.Issues);
+        var issueGroups = _sonarQube.GroupIssuesByRule(enrichedIssues);
         WriteOutput("selected_rule_group_count", issueGroups.Count.ToString());
         _logger.Info($"Grouped {enrichedIssues.Count} selected issue(s) into {issueGroups.Count} rule group(s).");
 
@@ -100,22 +97,6 @@ public sealed class SonarCopilotFixApp
         _logger.Info("No matching SonarQube issues were found.");
         return ExitCodes.Success;
     }
-
-    private async Task<string> ResolveBaseBranchAsync(CancellationToken cancellationToken) =>
-        string.IsNullOrWhiteSpace(_configurationHelper.InputBaseBranch)
-            ? await _git.DetectDefaultBranchAsync(cancellationToken)
-            : _configurationHelper.InputBaseBranch;
-
-    private IReadOnlyList<SonarIssue> EnrichIssues(IReadOnlyList<SonarIssue> issues) =>
-        _configurationHelper.InputIncludeCodeSnippets
-            ? _snippetReader.AddSnippets(issues)
-            : issues;
-
-    private static IReadOnlyList<IssueGroup> GroupIssuesByRule(IReadOnlyList<SonarIssue> issues) =>
-        issues
-            .GroupBy(issue => issue.RuleKey, StringComparer.Ordinal)
-            .Select(group => new IssueGroup(group.Key, group.ToArray()))
-            .ToArray();
 
     private async Task PrepareRepositoryAsync(
         string baseBranch,
@@ -335,5 +316,4 @@ public sealed class SonarCopilotFixApp
         public bool HasRepositoryChanges => ChangedFiles.Count > 0 || CopilotCreatedCommits;
     }
 
-    private sealed record IssueGroup(string RuleKey, IReadOnlyList<SonarIssue> Issues);
 }

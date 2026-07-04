@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Globalization;
 using System.Text.Json;
 using SonarCopilotFix.Infrastructure;
+using SonarCopilotFix.PromptGeneration;
 
 namespace SonarCopilotFix.SonarQube;
 
@@ -11,6 +12,7 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
     private readonly IConfigurationHelper _configurationHelper;
     private readonly ILogger _logger;
     private readonly HttpClient _httpClient;
+    private readonly CodeSnippetReader _snippetReader;
     private readonly bool _disposeClient;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -23,11 +25,13 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
         IConfigurationHelper configurationHelper,
         ILogger logger,
         HttpClient httpClient,
-        bool disposeClient = false)
+        bool disposeClient = false,
+        CodeSnippetReader? snippetReader = null)
     {
         _configurationHelper = configurationHelper;
         _logger = logger;
         _httpClient = httpClient;
+        _snippetReader = snippetReader ?? new CodeSnippetReader(configurationHelper);
         _disposeClient = disposeClient;
         _httpClient.BaseAddress = configurationHelper.GetSonarHostUri();
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", configurationHelper.GetSonarToken());
@@ -88,6 +92,17 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
 
         return new SonarIssueSearchResult(total, selected);
     }
+
+    public IReadOnlyList<SonarIssue> EnrichIssues(IReadOnlyList<SonarIssue> issues) =>
+        _configurationHelper.InputIncludeCodeSnippets
+            ? _snippetReader.AddSnippets(issues)
+            : issues;
+
+    public IReadOnlyList<IssueGroup> GroupIssuesByRule(IReadOnlyList<SonarIssue> issues) =>
+        issues
+            .GroupBy(issue => issue.RuleKey, StringComparer.Ordinal)
+            .Select(group => new IssueGroup(group.Key, group.ToArray()))
+            .ToArray();
 
     private string BuildIssueSearchUri(int page, int pageSize)
     {
