@@ -11,6 +11,12 @@ namespace SonarCopilotFix.Tests;
 [NonParallelizable]
 internal sealed class GitHubCliServiceTests
 {
+    private static readonly string[] AuthSetupArguments = new[] { "auth", "setup-git" };
+    private static readonly string[] CreatePullRequestArguments = new[]
+    {
+        "pr", "create", "--title", "Fix SonarQube rule rule:S1 (1 issue(s))",
+        "--body", "body", "--base", "main", "--head", "fix/rule"
+    };
     [Test]
     public static void GitHubCliEnvironment()
     {
@@ -92,7 +98,7 @@ internal sealed class GitHubCliServiceTests
         commandRunner
             .Setup(value => value.RunAsync(
                 "gh",
-                It.Is<IEnumerable<string>>(arguments => arguments.SequenceEqual(new[] { "auth", "setup-git" })),
+                It.Is<IEnumerable<string>>(arguments => arguments.SequenceEqual(AuthSetupArguments)),
                 workspace,
                 It.IsAny<IReadOnlyDictionary<string, string?>>(),
                 null,
@@ -134,11 +140,7 @@ internal sealed class GitHubCliServiceTests
             .Setup(value => value.RunAsync(
                 "gh",
                 It.Is<IEnumerable<string>>(arguments =>
-                    arguments.SequenceEqual(new[]
-                    {
-                        "pr", "create", "--title", "Fix SonarQube rule rule:S1 (1 issue(s))",
-                        "--body", "body", "--base", "main", "--head", "fix/rule"
-                    })),
+                    arguments.SequenceEqual(CreatePullRequestArguments)),
                 workspace,
                 It.IsAny<IReadOnlyDictionary<string, string?>>(),
                 null,
