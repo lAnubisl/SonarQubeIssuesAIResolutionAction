@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using SonarCopilotFix.Infrastructure;
+using SonarCopilotFix.Infrastructure.Models;
 
 namespace SonarCopilotFix.Git;
 

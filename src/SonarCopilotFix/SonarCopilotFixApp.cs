@@ -1,8 +1,10 @@
 using SonarCopilotFix.Git;
 using SonarCopilotFix.GitHub;
 using SonarCopilotFix.Infrastructure;
+using SonarCopilotFix.Models;
 using SonarCopilotFix.PromptGeneration;
 using SonarCopilotFix.SonarQube;
+using SonarCopilotFix.SonarQube.Models;
 
 namespace SonarCopilotFix;
 
@@ -16,6 +18,7 @@ public sealed class SonarCopilotFixApp
     private readonly GitService _git;
     private readonly GitHubCliService _github;
     private readonly CopilotCliRunner _copilot;
+    private readonly ActionOutputWriter _actionOutputWriter;
 
     public SonarCopilotFixApp(
         IConfigurationHelper configurationHelper,
@@ -33,6 +36,7 @@ public sealed class SonarCopilotFixApp
         _git = new GitService(commandRunner, configurationHelper);
         _github = new GitHubCliService(commandRunner, configurationHelper, logger);
         _copilot = new CopilotCliRunner(commandRunner, configurationHelper, logger);
+        _actionOutputWriter = new ActionOutputWriter(configurationHelper);
     }
 
     public async Task<int> RunAsync(CancellationToken cancellationToken = default)
@@ -50,7 +54,6 @@ public sealed class SonarCopilotFixApp
         summary.BaseBranch = baseBranch;
         var enrichedIssues = _sonarQube.EnrichIssues(issues.Issues);
         var issueGroups = _sonarQube.GroupIssuesByRule(enrichedIssues);
-        WriteOutput("selected_rule_group_count", issueGroups.Count.ToString());
         _logger.Info($"Grouped {enrichedIssues.Count} selected issue(s) into {issueGroups.Count} rule group(s).");
 
         await PrepareRepositoryAsync(baseBranch, cancellationToken);
@@ -62,7 +65,7 @@ public sealed class SonarCopilotFixApp
             await ProcessIssueGroupAsync(issueGroup, baseBranch, summary, cancellationToken);
         }
 
-        WriteCollectionOutputs(summary);
+        _actionOutputWriter.WriteCollectionOutputs(summary);
         summary.Write();
         return ExitCodes.Success;
     }
@@ -81,13 +84,11 @@ public sealed class SonarCopilotFixApp
 
         summary.IssuesFound = issues.TotalFound;
         summary.SetSelectedIssues(issues.Issues);
-        WriteOutput("selected_issue_count", issues.Issues.Count.ToString());
         return issues;
     }
 
     private int CompleteWithoutIssues(JobSummary summary)
     {
-        WriteOutput("selected_rule_group_count", "0");
         summary.Write();
         if (_configurationHelper.InputFailIfNoIssues)
         {
@@ -271,23 +272,6 @@ public sealed class SonarCopilotFixApp
         return prUrl;
     }
 
-    private void WriteCollectionOutputs(JobSummary summary)
-    {
-        var promptFiles = summary.GetPromptFiles();
-        if (promptFiles.Count > 0)
-        {
-            WriteOutput("prompt_file", promptFiles[^1]);
-            WriteOutput("prompt_files", System.Text.Json.JsonSerializer.Serialize(promptFiles));
-        }
-
-        var pullRequestUrls = summary.GetPullRequestUrls();
-        if (pullRequestUrls.Count > 0)
-        {
-            WriteOutput("pull_request_url", pullRequestUrls[^1]);
-            WriteOutput("pull_request_urls", System.Text.Json.JsonSerializer.Serialize(pullRequestUrls));
-        }
-    }
-
     private static string SafeFileSegment(string value)
     {
         // Replace any character that is not letter, digit, '-' or '_' with '-'.
@@ -295,17 +279,6 @@ public sealed class SonarCopilotFixApp
             .Select(character => (char.IsLetterOrDigit(character) || character == '-' || character == '_') ? character : '-')
             .ToArray();
         return new string(characters);
-    }
-
-    private void WriteOutput(string name, string value)
-    {
-        var outputPath = _configurationHelper.GitHubOutput;
-        if (string.IsNullOrWhiteSpace(outputPath))
-        {
-            return;
-        }
-
-        File.AppendAllText(outputPath, $"{name}={value}{Environment.NewLine}");
     }
 
     private sealed record CopilotChanges(

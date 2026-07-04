@@ -1,3 +1,5 @@
+using SonarCopilotFix.Infrastructure.Models;
+
 namespace SonarCopilotFix.Infrastructure;
 
 public interface ICommandRunner

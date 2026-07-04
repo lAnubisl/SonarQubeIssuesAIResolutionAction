@@ -1,6 +1,6 @@
 using NUnit.Framework;
 using SonarCopilotFix.PromptGeneration;
-using SonarCopilotFix.SonarQube;
+using SonarCopilotFix.SonarQube.Models;
 
 namespace SonarCopilotFix.Tests;
 

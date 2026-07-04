@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using SonarCopilotFix.Infrastructure;
+using SonarCopilotFix.Infrastructure.Models;
 
 namespace SonarCopilotFix.GitHub;
 

@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Text.Json;
 using SonarCopilotFix.Infrastructure;
 using SonarCopilotFix.PromptGeneration;
+using SonarCopilotFix.SonarQube.Models;
 
 namespace SonarCopilotFix.SonarQube;
 

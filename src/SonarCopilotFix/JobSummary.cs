@@ -1,7 +1,8 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using SonarCopilotFix.Infrastructure;
-using SonarCopilotFix.SonarQube;
+using SonarCopilotFix.Models;
+using SonarCopilotFix.SonarQube.Models;
 
 namespace SonarCopilotFix;
 
@@ -196,13 +197,3 @@ public sealed partial class JobSummary(IConfigurationHelper configurationHelper)
         return string.Join(" ", parts);
     }
 }
-
-public sealed record GroupRunResult(
-    string RuleKey,
-    IReadOnlyList<string> IssueKeys,
-    string? BranchName,
-    string PromptFile,
-    IReadOnlyList<string> ChangedFiles,
-    string? PullRequestUrl,
-    string? CopilotSessionSummary,
-    string Outcome);

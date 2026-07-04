@@ -1,6 +1,6 @@
 using System.Text;
 using SonarCopilotFix.Infrastructure;
-using SonarCopilotFix.SonarQube;
+using SonarCopilotFix.SonarQube.Models;
 
 namespace SonarCopilotFix.GitHub;
 

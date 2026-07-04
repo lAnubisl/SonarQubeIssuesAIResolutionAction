@@ -85,26 +85,6 @@ inputs:
     required: false
     default: "false"
 
-outputs:
-  prompt_file:
-    description: Path to the last generated Copilot prompt file.
-    value: ${{ steps.run.outputs.prompt_file }}
-  pull_request_url:
-    description: URL of the last created pull request, when one is created.
-    value: ${{ steps.run.outputs.pull_request_url }}
-  pull_request_urls:
-    description: JSON array containing every created pull request URL.
-    value: ${{ steps.run.outputs.pull_request_urls }}
-  prompt_files:
-    description: JSON array containing the generated prompt path for each selected rule group.
-    value: ${{ steps.run.outputs.prompt_files }}
-  selected_issue_count:
-    description: Number of selected SonarQube issues.
-    value: ${{ steps.run.outputs.selected_issue_count }}
-  selected_rule_group_count:
-    description: Number of rule groups formed from the selected SonarQube issues.
-    value: ${{ steps.run.outputs.selected_rule_group_count }}
-
 runs:
   using: composite
   steps:

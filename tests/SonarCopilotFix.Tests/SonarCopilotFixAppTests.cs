@@ -2,6 +2,7 @@ using Moq;
 using NUnit.Framework;
 using SonarCopilotFix.GitHub;
 using SonarCopilotFix.Infrastructure;
+using SonarCopilotFix.Infrastructure.Models;
 using SonarCopilotFix.PromptGeneration;
 
 namespace SonarCopilotFix.Tests;

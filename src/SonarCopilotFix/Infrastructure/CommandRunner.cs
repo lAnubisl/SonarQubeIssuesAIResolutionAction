@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using SonarCopilotFix.Infrastructure.Models;
 
 namespace SonarCopilotFix.Infrastructure;
 

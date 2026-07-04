@@ -1,3 +1,5 @@
+using SonarCopilotFix.SonarQube.Models;
+
 namespace SonarCopilotFix.SonarQube;
 
 public interface ISonarQubeClient
