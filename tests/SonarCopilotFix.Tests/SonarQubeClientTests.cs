@@ -183,6 +183,82 @@ internal sealed class SonarQubeClientTests
         Assert.Equal(new DateTimeOffset(2026, 6, 26, 0, 49, 23, TimeSpan.Zero), issue.CreationDate);
     }
 
+    [Test]
+    public static void EnrichmentDelegatesToSnippetReaderWhenEnabled()
+    {
+        IReadOnlyList<SonarIssue> source = [TestData.SampleIssue()];
+        IReadOnlyList<SonarIssue> enriched = [source[0] with { CodeSnippet = new CodeSnippet("src/A.cs", true, 1, 1, "code") }];
+        Mock<ICodeSnippetReader> snippets = new(MockBehavior.Strict);
+        snippets.Setup(value => value.AddSnippets(source)).Returns(enriched);
+        Mock<ISonarQubeHttpClient> http = new(MockBehavior.Strict);
+        SonarQubeClient client = new(
+            TestData.MockConfigurationHelper(inputIncludeCodeSnippets: true).Object,
+            Mock.Of<ILogger>(),
+            http.Object,
+            snippets.Object);
+
+        IReadOnlyList<SonarIssue> result = client.EnrichIssues(source);
+
+        Assert.True(ReferenceEquals(enriched, result));
+        snippets.VerifyAll();
+        http.VerifyNoOtherCalls();
+    }
+
+    [Test]
+    public static async Task RuleDetailsAreFetchedAndMapped()
+    {
+        Mock<ISonarQubeHttpClient> http = new(MockBehavior.Strict);
+        http.SetupGet(value => value.BaseAddress).Returns(new Uri("https://sonar.example"));
+        http.Setup(value => value.GetAsync(
+                It.Is<string>(uri => uri.StartsWith("/api/issues/search?", StringComparison.Ordinal)),
+                CancellationToken.None))
+            .ReturnsAsync(Json("""{"total":1,"issues":[{"key":"I1","rule":"rule:S1","component":"proj:A.cs","message":"fix"}]}"""));
+        http.Setup(value => value.GetAsync("/api/rules/show?key=rule%3AS1", CancellationToken.None))
+            .ReturnsAsync(Json("""{"rule":{"key":"rule:S1","name":"Avoid this","htmlDesc":"description","severity":"MAJOR","tags":["tag"]}}"""));
+        Mock<ICodeSnippetReader> snippets = new(MockBehavior.Strict);
+        SonarQubeClient client = new(
+            TestData.MockConfigurationHelper(inputIncludeRuleDetails: true).Object,
+            Mock.Of<ILogger>(),
+            http.Object,
+            snippets.Object);
+
+        SonarIssue issue = (await client.GetIssuesAsync(CancellationToken.None)).Issues.Single();
+
+        Assert.Equal("Avoid this", issue.Rule!.Name);
+        Assert.Equal("description", issue.Rule.HtmlDescription);
+        http.VerifyAll();
+        snippets.VerifyNoOtherCalls();
+    }
+
+    [Test]
+    public static void DisposeOnlyDisposesOwnedHttpClient()
+    {
+        Mock<ISonarQubeHttpClient> ownedHttp = new(MockBehavior.Strict);
+        ownedHttp.Setup(value => value.Dispose());
+        using (SonarQubeClient client = new(
+            TestData.MockConfigurationHelper().Object,
+            Mock.Of<ILogger>(),
+            ownedHttp.Object,
+            Mock.Of<ICodeSnippetReader>(),
+            disposeClient: true))
+        {
+        }
+
+        ownedHttp.VerifyAll();
+
+        Mock<ISonarQubeHttpClient> borrowedHttp = new(MockBehavior.Strict);
+        using (SonarQubeClient client = new(
+            TestData.MockConfigurationHelper().Object,
+            Mock.Of<ILogger>(),
+            borrowedHttp.Object,
+            Mock.Of<ICodeSnippetReader>(),
+            disposeClient: false))
+        {
+        }
+
+        borrowedHttp.VerifyNoOtherCalls();
+    }
+
     private static SonarQubeClient NewClient(
         FakeHandler handler,
         int maxIssues = 10,
