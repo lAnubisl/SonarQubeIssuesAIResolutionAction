@@ -77,7 +77,7 @@ public sealed class StepSummaryWriter(IConfigurationHelper configurationHelper) 
             "",
             "## Result",
             "",
-            $"* Files changed: `{actionSummary.ChangedFiles.Count}`",
+            $"* Files changed: `{actionSummary.GetChangedFiles().Count}`",
             $"* Pull requests created: `{actionSummary.GetPullRequestUrls().Count}`"
         ]);
 
