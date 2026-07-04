@@ -3,6 +3,7 @@ using System.Text;
 using Moq;
 using NUnit.Framework;
 using SonarCopilotFix.Infrastructure;
+using SonarCopilotFix.PromptGeneration;
 using SonarCopilotFix.SonarQube;
 using SonarCopilotFix.SonarQube.Models;
 
@@ -211,7 +212,8 @@ internal sealed class SonarQubeClientTests
         return new SonarQubeClient(
             configurationHelper.Object,
             logger ?? TestData.MockLogger().Object,
-            new HttpClient(handler),
+            handler,
+            new CodeSnippetReader(configurationHelper.Object),
             disposeClient: true);
     }
 

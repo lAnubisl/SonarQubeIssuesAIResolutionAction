@@ -1,5 +1,6 @@
 using Moq;
 using NUnit.Framework;
+using SonarCopilotFix.Git;
 using SonarCopilotFix.GitHub;
 using SonarCopilotFix.Infrastructure;
 using SonarCopilotFix.Infrastructure.Models;
@@ -18,13 +19,16 @@ internal sealed class SonarCopilotFixAppTests
         var logger = TestData.MockLogger();
         var configurationHelper = CreateConfigurationHelper(temp.FullName);
         var commandRunner = new WorkflowCommandRunner();
+        var prBodyBuilder = new PrBodyBuilder(configurationHelper.Object);
         var app = new SonarCopilotFixApp(
             configurationHelper.Object,
             logger.Object,
             TestData.MockSonarQubeClient([TestData.SampleIssue()]),
             new PromptBuilder(configurationHelper.Object),
-            commandRunner,
-            new PrBodyBuilder(configurationHelper.Object));
+            new StepSummaryWriter(configurationHelper.Object),
+            new GitService(commandRunner, configurationHelper.Object),
+            new GitHubCliService(commandRunner, configurationHelper.Object, logger.Object, prBodyBuilder),
+            new CopilotCliRunner(commandRunner, configurationHelper.Object, logger.Object));
         await app.RunAsync();
 
         logger.Verify(
@@ -60,13 +64,16 @@ internal sealed class SonarCopilotFixAppTests
             Message = "Fix a different rule",
             IssueUrl = new Uri("https://sonar.example/project/issues?id=proj&issues=ISSUE-3&open=ISSUE-3")
         };
+        var prBodyBuilder = new PrBodyBuilder(configurationHelper.Object);
         var app = new SonarCopilotFixApp(
             configurationHelper.Object,
             logger.Object,
             TestData.MockSonarQubeClient([TestData.SampleIssue(), secondIssue, thirdIssue]),
             new PromptBuilder(configurationHelper.Object),
-            commandRunner,
-            new PrBodyBuilder(configurationHelper.Object));
+            new StepSummaryWriter(configurationHelper.Object),
+            new GitService(commandRunner, configurationHelper.Object),
+            new GitHubCliService(commandRunner, configurationHelper.Object, logger.Object, prBodyBuilder),
+            new CopilotCliRunner(commandRunner, configurationHelper.Object, logger.Object));
 
         var exitCode = await app.RunAsync();
 

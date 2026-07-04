@@ -5,7 +5,7 @@ using SonarCopilotFix.SonarQube.Models;
 
 namespace SonarCopilotFix.PromptGeneration;
 
-public sealed class PromptBuilder(IConfigurationHelper configurationHelper)
+public sealed class PromptBuilder(IConfigurationHelper configurationHelper) : IPromptBuilder
 {
     private const string NotSpecified = "not specified";
 

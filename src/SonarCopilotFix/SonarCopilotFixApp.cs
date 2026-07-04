@@ -12,28 +12,30 @@ public sealed class SonarCopilotFixApp
     private readonly IConfigurationHelper _configurationHelper;
     private readonly ILogger _logger;
     private readonly ISonarQubeClient _sonarQube;
-    private readonly PromptBuilder _promptBuilder;
-    private readonly StepSummaryWriter _stepSummaryWriter;
-    private readonly GitService _git;
-    private readonly GitHubCliService _github;
-    private readonly CopilotCliRunner _copilot;
+    private readonly IPromptBuilder _promptBuilder;
+    private readonly IStepSummaryWriter _stepSummaryWriter;
+    private readonly IGitService _git;
+    private readonly IGitHubCliService _github;
+    private readonly ICopilotCliRunner _copilot;
 
     public SonarCopilotFixApp(
         IConfigurationHelper configurationHelper,
         ILogger logger,
         ISonarQubeClient sonarQube,
-        PromptBuilder promptBuilder,
-        ICommandRunner commandRunner,
-        PrBodyBuilder prBodyBuilder)
+        IPromptBuilder promptBuilder,
+        IStepSummaryWriter stepSummaryWriter,
+        IGitService git,
+        IGitHubCliService github,
+        ICopilotCliRunner copilot)
     {
         _configurationHelper = configurationHelper;
         _logger = logger;
         _sonarQube = sonarQube;
         _promptBuilder = promptBuilder;
-        _stepSummaryWriter = new StepSummaryWriter(configurationHelper);
-        _git = new GitService(commandRunner, configurationHelper);
-        _github = new GitHubCliService(commandRunner, configurationHelper, logger, prBodyBuilder);
-        _copilot = new CopilotCliRunner(commandRunner, configurationHelper, logger);
+        _stepSummaryWriter = stepSummaryWriter;
+        _git = git;
+        _github = github;
+        _copilot = copilot;
     }
 
     public async Task<int> RunAsync(CancellationToken cancellationToken = default)

@@ -12,14 +12,24 @@ try
     var configurationHelper = new ConfigurationHelper();
     ConfigurationValidator.Validate(configurationHelper);
     SecretMasker.MaskKnownSecrets(configurationHelper, logger);
+    var commandRunner = new CommandRunner(logger, configurationHelper);
+    var prBodyBuilder = new PrBodyBuilder(configurationHelper);
+    using var sonarQubeClient = new SonarQubeClient(
+        configurationHelper,
+        logger,
+        new SonarQubeHttpClient(configurationHelper),
+        new CodeSnippetReader(configurationHelper),
+        disposeClient: true);
 
     var app = new SonarCopilotFixApp(
         configurationHelper,
         logger,
-        new SonarQubeClient(configurationHelper, logger),
+        sonarQubeClient,
         new PromptBuilder(configurationHelper),
-        new CommandRunner(logger, configurationHelper),
-        new PrBodyBuilder(configurationHelper));
+        new StepSummaryWriter(configurationHelper),
+        new GitService(commandRunner, configurationHelper),
+        new GitHubCliService(commandRunner, configurationHelper, logger, prBodyBuilder),
+        new CopilotCliRunner(commandRunner, configurationHelper, logger));
 
     return await app.RunAsync();
 }

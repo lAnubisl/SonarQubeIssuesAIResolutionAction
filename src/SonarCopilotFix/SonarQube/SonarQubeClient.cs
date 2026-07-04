@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Text.Json;
 using SonarCopilotFix.Infrastructure;
 using SonarCopilotFix.PromptGeneration;
@@ -11,31 +10,23 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
 {
     private readonly IConfigurationHelper _configurationHelper;
     private readonly ILogger _logger;
-    private readonly HttpClient _httpClient;
-    private readonly CodeSnippetReader _snippetReader;
+    private readonly ISonarQubeHttpClient _httpClient;
+    private readonly ICodeSnippetReader _snippetReader;
     private readonly bool _disposeClient;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-
-    public SonarQubeClient(IConfigurationHelper configurationHelper, ILogger logger)
-        : this(configurationHelper, logger, new HttpClient(), disposeClient: true)
-    {
-    }
 
     public SonarQubeClient(
         IConfigurationHelper configurationHelper,
         ILogger logger,
-        HttpClient httpClient,
-        bool disposeClient = false,
-        CodeSnippetReader? snippetReader = null)
+        ISonarQubeHttpClient httpClient,
+        ICodeSnippetReader snippetReader,
+        bool disposeClient = false)
     {
         _configurationHelper = configurationHelper;
         _logger = logger;
         _httpClient = httpClient;
-        _snippetReader = snippetReader ?? new CodeSnippetReader(configurationHelper);
+        _snippetReader = snippetReader;
         _disposeClient = disposeClient;
-        _httpClient.BaseAddress = configurationHelper.GetSonarHostUri();
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", configurationHelper.GetSonarToken());
-        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     }
 
     public async Task<SonarIssueSearchResult> GetIssuesAsync(CancellationToken cancellationToken)
@@ -49,7 +40,7 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
         while (selected.Count < _configurationHelper.InputMaxIssues)
         {
             var uri = BuildIssueSearchUri(page, pageSize);
-            var requestUrl = new Uri(_httpClient.BaseAddress!, uri);
+            var requestUrl = new Uri(_httpClient.BaseAddress, uri);
             _logger.Info($"SonarQube issue search request URL: {requestUrl.AbsoluteUri}");
 
             using var response = await _httpClient.GetAsync(uri, cancellationToken);
@@ -184,7 +175,7 @@ public sealed class SonarQubeClient : ISonarQubeClient, IDisposable
     private async Task<SonarRule?> TryGetRuleAsync(string ruleKey, CancellationToken cancellationToken)
     {
         string uri = $"/api/rules/show?key={Uri.EscapeDataString(ruleKey)}";
-        var requestUrl = new Uri(_httpClient.BaseAddress!, uri);
+        var requestUrl = new Uri(_httpClient.BaseAddress, uri);
         _logger.Info($"SonarQube rule show request URL: {requestUrl.AbsoluteUri}");
         using var response = await _httpClient.GetAsync(uri, cancellationToken);
         if (!response.IsSuccessStatusCode)

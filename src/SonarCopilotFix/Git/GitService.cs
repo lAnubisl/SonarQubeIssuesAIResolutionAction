@@ -5,6 +5,7 @@ using SonarCopilotFix.Infrastructure.Models;
 namespace SonarCopilotFix.Git;
 
 public sealed partial class GitService(ICommandRunner commandRunner, IConfigurationHelper configurationHelper)
+    : IGitService
 {
     public async Task<string> ResolveBaseBranchAsync(CancellationToken cancellationToken) =>
         string.IsNullOrWhiteSpace(configurationHelper.InputBaseBranch)

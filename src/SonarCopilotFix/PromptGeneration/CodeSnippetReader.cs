@@ -3,7 +3,7 @@ using SonarCopilotFix.SonarQube.Models;
 
 namespace SonarCopilotFix.PromptGeneration;
 
-public sealed class CodeSnippetReader(IConfigurationHelper configurationHelper)
+public sealed class CodeSnippetReader(IConfigurationHelper configurationHelper) : ICodeSnippetReader
 {
     public IReadOnlyList<SonarIssue> AddSnippets(IReadOnlyList<SonarIssue> issues)
     {

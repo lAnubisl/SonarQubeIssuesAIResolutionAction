@@ -2,7 +2,7 @@ using SonarCopilotFix.Infrastructure;
 
 namespace SonarCopilotFix.GitHub;
 
-public sealed class StepSummaryWriter(IConfigurationHelper configurationHelper)
+public sealed class StepSummaryWriter(IConfigurationHelper configurationHelper) : IStepSummaryWriter
 {
     public void Write(ActionSummary actionSummary)
     {

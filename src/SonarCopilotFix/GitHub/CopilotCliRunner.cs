@@ -7,7 +7,7 @@ namespace SonarCopilotFix.GitHub;
 public sealed class CopilotCliRunner(
     ICommandRunner commandRunner,
     IConfigurationHelper configurationHelper,
-    ILogger logger)
+    ILogger logger) : ICopilotCliRunner
 {
     private static readonly string[] DefaultWriteTools = ["write"];
     private const string DenyGitCommitTool = "shell(git commit)";

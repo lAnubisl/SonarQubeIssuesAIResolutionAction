@@ -3,7 +3,7 @@ using SonarCopilotFix.Infrastructure;
 
 namespace SonarCopilotFix.GitHub;
 
-public sealed class PrBodyBuilder(IConfigurationHelper configurationHelper)
+public sealed class PrBodyBuilder(IConfigurationHelper configurationHelper) : IPrBodyBuilder
 {
     public string Build(PullRequestSummary summary)
     {

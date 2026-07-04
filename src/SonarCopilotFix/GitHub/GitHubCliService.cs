@@ -6,7 +6,7 @@ public sealed class GitHubCliService(
     ICommandRunner commandRunner,
     IConfigurationHelper configurationHelper,
     ILogger logger,
-    PrBodyBuilder prBodyBuilder)
+    IPrBodyBuilder prBodyBuilder) : IGitHubCliService
 {
     public async Task SetupGitAuthenticationAsync(CancellationToken cancellationToken)
     {
