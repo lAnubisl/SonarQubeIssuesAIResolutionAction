@@ -75,6 +75,13 @@ internal sealed class SonarCopilotFixAppTests
         Assert.Contains("/csharpsquid-S1/", commandRunner.CreatedBranches[0]);
         Assert.Contains("/csharpsquid-S2/", commandRunner.CreatedBranches[1]);
         Assert.Equal(2, commandRunner.CopilotSessionIds.Count);
+        Assert.Equal(2, commandRunner.CopilotPrompts.Count);
+        Assert.Contains("ISSUE-1", commandRunner.CopilotPrompts[0]);
+        Assert.Contains("ISSUE-2", commandRunner.CopilotPrompts[0]);
+        Assert.Contains("ISSUE-3", commandRunner.CopilotPrompts[1]);
+        Assert.False(Directory.EnumerateFiles(
+            Path.Combine(temp.FullName, ".sonar-copilot"),
+            "*-prompt.md").Any());
         Assert.False(string.Equals(
             commandRunner.CopilotSessionIds[0],
             commandRunner.CopilotSessionIds[1],
@@ -115,6 +122,7 @@ internal sealed class SonarCopilotFixAppTests
 
         public List<string> CreatedBranches { get; } = [];
         public List<string> CopilotSessionIds { get; } = [];
+        public List<string> CopilotPrompts { get; } = [];
         public int CommitCount { get; private set; }
         public int PushCount { get; private set; }
         public int PullRequestCount { get; private set; }
@@ -134,6 +142,8 @@ internal sealed class SonarCopilotFixAppTests
             {
                 var sessionIndex = Array.IndexOf(args, "--session-id");
                 CopilotSessionIds.Add(args[sessionIndex + 1]);
+                var promptIndex = Array.IndexOf(args, "--prompt");
+                CopilotPrompts.Add(args[promptIndex + 1]);
                 return Task.FromResult(new CommandResult(0, "fixed\n", "session complete\n"));
             }
 

@@ -12,11 +12,8 @@ public sealed class CopilotCliRunner(
     private static readonly string[] DefaultWriteTools = ["write"];
     private const string DenyGitCommitTool = "shell(git commit)";
 
-    public async Task<string> RunAsync(string promptPath, CancellationToken cancellationToken)
+    public async Task<string> RunAsync(string prompt, CancellationToken cancellationToken)
     {
-        var prompt = await File.ReadAllTextAsync(promptPath, cancellationToken);
-        LogPrompt(prompt);
-
         var sessionId = Guid.NewGuid().ToString();
         var gitHookDirectory = await CreateGitCommitGuardAsync(cancellationToken);
         var environment = BuildEnvironment(configurationHelper, gitHookDirectory);
@@ -107,17 +104,6 @@ public sealed class CopilotCliRunner(
         }
 
         return hookDirectory;
-    }
-
-    private void LogPrompt(string prompt)
-    {
-        logger.Info("GitHub Copilot CLI prompt follows.");
-        foreach (var line in prompt.ReplaceLineEndings("\n").Split('\n'))
-        {
-            logger.Info($"[copilot prompt] {line}");
-        }
-
-        logger.Info("End GitHub Copilot CLI prompt.");
     }
 
     public static IReadOnlyList<string> BuildArguments(

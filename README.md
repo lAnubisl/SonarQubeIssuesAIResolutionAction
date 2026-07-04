@@ -120,7 +120,7 @@ The action requires `SONAR_TOKEN`, `COPILOT_CLI_TOKEN`, and `GH_CLI_TOKEN`. It:
 6. Groups selected issues by their SonarQube rule key.
 7. For each rule group, creates and checks out a branch named `<branch_prefix>/<sonar_project_key>/<rule_key>/<timestamp>`.
 8. Generates a prompt containing every selected issue for that rule and starts a fresh Copilot CLI session with a unique session ID.
-9. Detects both uncommitted files and commits created after the per-group snapshot, excluding generated prompt files from the changed-file list.
+9. Detects both uncommitted files and commits created after the per-group snapshot.
 10. Commits any remaining worktree changes, pushes the rule-group branch, and creates a draft PR with `gh pr create`.
 11. Switches back to the base branch before starting the next rule group.
 
@@ -140,7 +140,7 @@ The command receives `COPILOT_GITHUB_TOKEN`, populated from the `COPILOT_CLI_TOK
 
 `copilot_allowed_tools` accepts comma-separated Copilot CLI permission patterns. Prefer narrow entries such as `shell(dotnet test)` or `shell(dotnet:*)`. The existing `copilot_allow_all_tools` input remains available as an explicit unrestricted override. The action always denies Copilot's `shell(git commit)` tool, even with `copilot_allow_all_tools`, and supplies a process-scoped Git `pre-commit` hook as a second guard. The generated prompt also tells Copilot to leave changes uncommitted.
 
-Before Copilot starts, the action writes the complete generated prompt to the job log with a `[copilot prompt]` prefix. While Copilot runs, each stdout and stderr line is forwarded immediately with `[copilot stdout]` or `[copilot stderr]`, so progress and generated output are visible without waiting for the process to finish.
+The generated prompt is passed directly to Copilot CLI in memory. While Copilot runs, each stdout and stderr line is forwarded immediately with `[copilot stdout]` or `[copilot stderr]`, so progress and generated output are visible without waiting for the process to finish.
 
 After Copilot finishes, the action uses the stderr captured from that same process as the Copilot session summary.
 

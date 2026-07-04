@@ -124,9 +124,9 @@ public sealed class SonarCopilotFixApp
 
         try
         {
-            var promptPath = await WritePromptAsync(issueGroup, branchName, baseBranch, cancellationToken);
+            var prompt = _promptBuilder.Build(issueGroup.Issues, branchName, baseBranch);
             var headBeforeCopilot = await _git.GetHeadCommitAsync(cancellationToken);
-            var sessionSummary = await RunCopilotAsync(promptPath, cancellationToken);
+            var sessionSummary = await RunCopilotAsync(prompt, cancellationToken);
             var changes = await DetectCopilotChangesAsync(headBeforeCopilot, cancellationToken);
 
             if (!changes.HasRepositoryChanges)
@@ -136,7 +136,6 @@ public sealed class SonarCopilotFixApp
                     issueGroup.RuleKey,
                     issueGroup.Issues.Select(issue => issue.Key).ToArray(),
                     branchName,
-                    promptPath,
                     [],
                     null,
                     sessionSummary,
@@ -148,7 +147,6 @@ public sealed class SonarCopilotFixApp
             var pullRequestUrl = await PublishPullRequestAsync(
                 issueGroup,
                 branchName,
-                promptPath,
                 changes.ChangedFiles,
                 sessionSummary,
                 baseBranch,
@@ -157,7 +155,6 @@ public sealed class SonarCopilotFixApp
                 issueGroup.RuleKey,
                 issueGroup.Issues.Select(issue => issue.Key).ToArray(),
                 branchName,
-                promptPath,
                 changes.ChangedFiles,
                 pullRequestUrl,
                 sessionSummary,
@@ -170,30 +167,12 @@ public sealed class SonarCopilotFixApp
         }
     }
 
-    private async Task<string> WritePromptAsync(
-        IssueGroup issueGroup,
-        string currentBranch,
-        string baseBranch,
-        CancellationToken cancellationToken)
-    {
-        var promptPath = Path.Combine(
-            _configurationHelper.GitHubWorkspace,
-            ".sonar-copilot",
-            $"rule-{SafeFileSegment(issueGroup.RuleKey)}-prompt.md");
-        Directory.CreateDirectory(Path.GetDirectoryName(promptPath)!);
-        await File.WriteAllTextAsync(
-            promptPath,
-            _promptBuilder.Build(issueGroup.Issues, currentBranch, baseBranch),
-            cancellationToken);
-        return promptPath;
-    }
-
     private async Task<string> RunCopilotAsync(
-        string promptPath,
+        string prompt,
         CancellationToken cancellationToken)
     {
         _logger.Info("Running GitHub Copilot CLI.");
-        return await _copilot.RunAsync(promptPath, cancellationToken);
+        return await _copilot.RunAsync(prompt, cancellationToken);
     }
 
     private async Task<CopilotChanges> DetectCopilotChangesAsync(
@@ -237,7 +216,6 @@ public sealed class SonarCopilotFixApp
     private async Task<string> PublishPullRequestAsync(
         IssueGroup issueGroup,
         string branchName,
-        string promptPath,
         IReadOnlyList<string> changedFiles,
         string sessionSummary,
         string baseBranch,
@@ -249,7 +227,6 @@ public sealed class SonarCopilotFixApp
         {
             BaseBranch = baseBranch,
             GeneratedBranch = branchName,
-            PromptFile = promptPath,
             ChangedFiles = changedFiles,
             CopilotSessionSummary = sessionSummary
         };

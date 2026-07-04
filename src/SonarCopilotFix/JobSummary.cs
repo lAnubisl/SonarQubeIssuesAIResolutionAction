@@ -19,16 +19,12 @@ public sealed partial class JobSummary(IConfigurationHelper configurationHelper)
     public int IssuesSelected { get; set; }
     public int RuleGroupsSelected { get; private set; }
     public string TotalEffortSaved { get; private set; } = "not available";
-    public string? PromptFile { get; set; }
     public string? BaseBranch { get; set; }
     public string? GeneratedBranch { get; set; }
     public IReadOnlyList<string> ChangedFiles { get; set; } = [];
     public string? PullRequestUrl { get; set; }
     public string? CopilotSessionSummary { get; set; }
     public List<GroupRunResult> GroupResults { get; } = [];
-    public IReadOnlyList<string> GetPromptFiles() =>
-        GroupResults.Select(result => result.PromptFile).ToArray();
-
     public IReadOnlyList<string> GetPullRequestUrls() =>
         GroupResults
             .Where(result => !string.IsNullOrWhiteSpace(result.PullRequestUrl))
@@ -56,7 +52,6 @@ public sealed partial class JobSummary(IConfigurationHelper configurationHelper)
     public void AddGroupResult(GroupRunResult result)
     {
         GroupResults.Add(result);
-        PromptFile = result.PromptFile;
         GeneratedBranch = result.BranchName;
         PullRequestUrl = result.PullRequestUrl;
         CopilotSessionSummary = result.CopilotSessionSummary;
@@ -137,8 +132,7 @@ public sealed partial class JobSummary(IConfigurationHelper configurationHelper)
             "## Result",
             "",
             $"* Files changed: `{ChangedFiles.Count}`",
-            $"* Pull requests created: `{GetPullRequestUrls().Count}`",
-            $"* Prompt files generated: `{GetPromptFiles().Count}`"
+            $"* Pull requests created: `{GetPullRequestUrls().Count}`"
         ]);
 
         File.AppendAllText(path, string.Join(Environment.NewLine, lines) + Environment.NewLine);
