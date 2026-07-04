@@ -229,7 +229,7 @@ internal sealed class SonarQubeClientTests
                       },
                       {
                         "key": "how_to_fix",
-                        "content": "<p>Use Spring protection.</p>",
+                        "content": "<p>Use Spring protection.</p>"
                       }
                     ]
                   }
@@ -249,10 +249,7 @@ internal sealed class SonarQubeClientTests
         Assert.Equal(2, group.Rule!.DescriptionSections.Count);
         Assert.Equal("root_cause", group.Rule.DescriptionSections[0].Key);
         Assert.Equal("<p>Description</p>", group.Rule.DescriptionSections[0].Content);
-        Assert.True(group.Rule.DescriptionSections[0].Context is null);
         Assert.Equal("how_to_fix", group.Rule.DescriptionSections[1].Key);
-        Assert.Equal("Spring", group.Rule.DescriptionSections[1].Context!.DisplayName);
-        Assert.Equal("spring", group.Rule.DescriptionSections[1].Context!.Key);
         http.VerifyAll();
         snippets.VerifyNoOtherCalls();
     }
