@@ -172,7 +172,7 @@ public sealed class SonarQubeClient(
                 payload.Rule.Name);
     }
 
-    private static IReadOnlyList<SonarRuleDescriptionSection> MapRuleDescription(RuleDto rule)
+    private static SonarRuleDescriptionSection[] MapRuleDescription(RuleDto rule)
     {
         SonarRuleDescriptionSection[] sections = rule.DescriptionSections?
             .Select(section => new SonarRuleDescriptionSection(section.Key, section.Content))
