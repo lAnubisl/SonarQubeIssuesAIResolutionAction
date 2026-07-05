@@ -70,6 +70,7 @@ jobs:
         with:
           sonar_host_url: https://sonarcloud.io
           sonar_project_key: lAnubisl_SonarQubeIssuesAIResolutionAction
+          sonar_organization: lanubisl
           sonar_branch: main
           statuses: OPEN
           type: ${{ inputs.type != 'ALL' && inputs.type || '' }}
