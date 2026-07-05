@@ -28,17 +28,18 @@ internal sealed class PrBodyBuilderTests
 
         string body = new PrBodyBuilder(configurationHelper.Object).Build(summary);
 
-        Assert.Contains("## Original Problem", body);
-        Assert.Contains("### Issue title(s) reported by SonarQube", body);
-        Assert.Contains("- Fix this", body);
-        Assert.Contains("## SonarQube Rule", body);
-        Assert.Contains("- Title: Avoid difficult code", body);
+        Assert.Contains("## Problem Description", body);
+        Assert.Contains("**Avoid difficult code**", body);
         Assert.Contains("### Root cause", body);
         Assert.Contains("This code is difficult to maintain", body);
         Assert.Contains("ISSUE-1", body);
         Assert.Contains("| Issue | Title | Location |", body);
         Assert.Contains("| [ISSUE-1]", body);
         Assert.Contains("| Fix this | `src/A.cs:4` |", body);
+        Assert.Equal(2, body.Split("Fix this", StringSplitOptions.None).Length);
+        Assert.False(body.Contains("## Original Problem", StringComparison.Ordinal));
+        Assert.False(body.Contains("### Issue title(s) reported by SonarQube", StringComparison.Ordinal));
+        Assert.False(body.Contains("## SonarQube Rule", StringComparison.Ordinal));
         Assert.False(body.Contains("csharpsquid:S1` `src/A.cs", StringComparison.Ordinal));
         Assert.False(body.Contains("## Changed Files", StringComparison.Ordinal));
         Assert.False(body.Contains("## Review Notes", StringComparison.Ordinal));

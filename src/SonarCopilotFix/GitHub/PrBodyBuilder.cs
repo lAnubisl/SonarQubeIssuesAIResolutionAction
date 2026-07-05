@@ -23,8 +23,7 @@ public sealed class PrBodyBuilder(IConfigurationHelper configurationHelper) : IP
         builder.AppendLine($"| Issues attempted | `{summary.IssueGroup.Issues.Count}` |");
         builder.AppendLine($"| Total effort saved | `{summary.TotalEffortSaved}` |");
         builder.AppendLine();
-        AppendOriginalProblem(builder, summary.IssueGroup);
-        AppendRuleDetails(builder, summary.IssueGroup);
+        AppendProblemDescription(builder, summary.IssueGroup);
 
         builder.AppendLine("## Copilot Session Summary");
         builder.AppendLine();
@@ -47,35 +46,18 @@ public sealed class PrBodyBuilder(IConfigurationHelper configurationHelper) : IP
         return builder.ToString();
     }
 
-    private static void AppendOriginalProblem(StringBuilder builder, IssueGroup issueGroup)
+    private static void AppendProblemDescription(StringBuilder builder, IssueGroup issueGroup)
     {
-        builder.AppendLine("## Original Problem");
+        builder.AppendLine("## Problem Description");
         builder.AppendLine();
         builder.AppendLine($"SonarQube reported {issueGroup.Issues.Count} occurrence(s) of rule `{issueGroup.RuleKey}`.");
         builder.AppendLine();
-        builder.AppendLine("### Issue title(s) reported by SonarQube");
-        builder.AppendLine();
-        foreach (string message in issueGroup.Issues
-                     .Select(issue => issue.Message)
-                     .Distinct(StringComparer.Ordinal))
-        {
-            builder.AppendLine($"- {message}");
-        }
-
-        builder.AppendLine();
-    }
-
-    private static void AppendRuleDetails(StringBuilder builder, IssueGroup issueGroup)
-    {
-        builder.AppendLine("## SonarQube Rule");
-        builder.AppendLine();
-        builder.AppendLine($"- Key: `{issueGroup.RuleKey}`");
         if (!string.IsNullOrWhiteSpace(issueGroup.Rule?.Name))
         {
-            builder.AppendLine($"- Title: {issueGroup.Rule.Name}");
+            builder.AppendLine($"**{issueGroup.Rule.Name}**");
+            builder.AppendLine();
         }
 
-        builder.AppendLine();
         if (issueGroup.Rule is null)
         {
             builder.AppendLine("Rule information was not requested or could not be retrieved from SonarQube.");
