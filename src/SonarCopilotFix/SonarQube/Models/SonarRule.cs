@@ -1,7 +1,7 @@
 namespace SonarCopilotFix.SonarQube.Models;
 
 public sealed record SonarRule(
-    IReadOnlyList<SonarRuleDescriptionSection> DescriptionSections,
+    SonarRuleDescriptionSection[] DescriptionSections,
     string? Name = null);
 
 public sealed record SonarRuleDescriptionSection(
