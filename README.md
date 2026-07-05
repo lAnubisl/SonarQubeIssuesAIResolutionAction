@@ -146,7 +146,7 @@ After Copilot finishes, the action uses the stderr captured from that same proce
 
 ## Pull Request Body
 
-Each draft PR includes all selected SonarQube issues for its rule, the project, base branch, generated branch, changed files, and isolated Copilot session summary captured from stderr. The GitHub Actions job summary lists every rule-group outcome and created pull request.
+Each draft PR explains the original problem using the issue titles reported by SonarQube and the rule title and description returned by SonarQube. It also includes a concise issue/location table, project and branch context, effort saved, and the isolated Copilot session summary captured from stderr. Changed files are left to GitHub's native PR view. The GitHub Actions job summary lists every rule-group outcome and created pull request.
 
 ## SonarQube Compatibility
 

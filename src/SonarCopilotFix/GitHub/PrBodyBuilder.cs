@@ -6,6 +6,8 @@ namespace SonarCopilotFix.GitHub;
 
 public sealed class PrBodyBuilder(IConfigurationHelper configurationHelper) : IPrBodyBuilder
 {
+    private const string NotSpecified = "not specified";
+
     public string Build(PullRequestSummary summary)
     {
         StringBuilder builder = new();
@@ -21,6 +23,9 @@ public sealed class PrBodyBuilder(IConfigurationHelper configurationHelper) : IP
         builder.AppendLine($"| Issues attempted | `{summary.IssueGroup.Issues.Count}` |");
         builder.AppendLine($"| Total effort saved | `{summary.TotalEffortSaved}` |");
         builder.AppendLine();
+        AppendOriginalProblem(builder, summary.IssueGroup);
+        AppendRuleDetails(builder, summary.IssueGroup);
+
         builder.AppendLine("## Copilot Session Summary");
         builder.AppendLine();
         builder.AppendLine("```text");
@@ -30,31 +35,83 @@ public sealed class PrBodyBuilder(IConfigurationHelper configurationHelper) : IP
         builder.AppendLine("```");
         builder.AppendLine();
         builder.AppendLine("## Issue List");
+        builder.AppendLine();
+        builder.AppendLine("| Issue | Title | Location |");
+        builder.AppendLine("| --- | --- | --- |");
         foreach (SonarIssue issue in summary.IssueGroup.Issues)
         {
-            builder.AppendLine($"- [{issue.Key}]({issue.IssueUrl}) `{issue.RuleKey}` `{issue.FilePath}` line `{issue.Line?.ToString() ?? "not specified"}`");
+            string location = $"{issue.FilePath}:{issue.Line?.ToString() ?? NotSpecified}";
+            builder.AppendLine($"| [{EscapeTableCell(issue.Key)}]({issue.IssueUrl}) | {EscapeTableCell(issue.Message)} | `{EscapeTableCell(location)}` |");
         }
 
-        builder.AppendLine();
-        builder.AppendLine("## Changed Files");
-        if (summary.ChangedFiles.Count == 0)
-        {
-            builder.AppendLine("- No changed files were detected.");
-        }
-        else
-        {
-            foreach (string file in summary.ChangedFiles)
-            {
-                builder.AppendLine($"- `{file}`");
-            }
-        }
-
-        builder.AppendLine();
-        builder.AppendLine("## Review Notes");
-        builder.AppendLine("- These changes were generated using GitHub Copilot CLI from selected SonarQube issue context.");
-        builder.AppendLine("- Human review is required before merge.");
-        builder.AppendLine("- Validation is delegated to the repository's pull request checks.");
-        builder.AppendLine("- Verify that no unrelated behavior, formatting, generated files, or security-sensitive values were changed.");
         return builder.ToString();
     }
+
+    private static void AppendOriginalProblem(StringBuilder builder, IssueGroup issueGroup)
+    {
+        builder.AppendLine("## Original Problem");
+        builder.AppendLine();
+        builder.AppendLine($"SonarQube reported {issueGroup.Issues.Count} occurrence(s) of rule `{issueGroup.RuleKey}`.");
+        builder.AppendLine();
+        builder.AppendLine("### Issue title(s) reported by SonarQube");
+        builder.AppendLine();
+        foreach (string message in issueGroup.Issues
+                     .Select(issue => issue.Message)
+                     .Distinct(StringComparer.Ordinal))
+        {
+            builder.AppendLine($"- {message}");
+        }
+
+        builder.AppendLine();
+    }
+
+    private static void AppendRuleDetails(StringBuilder builder, IssueGroup issueGroup)
+    {
+        builder.AppendLine("## SonarQube Rule");
+        builder.AppendLine();
+        builder.AppendLine($"- Key: `{issueGroup.RuleKey}`");
+        if (!string.IsNullOrWhiteSpace(issueGroup.Rule?.Name))
+        {
+            builder.AppendLine($"- Title: {issueGroup.Rule.Name}");
+        }
+
+        builder.AppendLine();
+        if (issueGroup.Rule is null)
+        {
+            builder.AppendLine("Rule information was not requested or could not be retrieved from SonarQube.");
+            builder.AppendLine();
+            return;
+        }
+
+        if (issueGroup.Rule.DescriptionSections.Count == 0)
+        {
+            builder.AppendLine("SonarQube did not return a description for this rule.");
+            builder.AppendLine();
+            return;
+        }
+
+        foreach (SonarRuleDescriptionSection section in issueGroup.Rule.DescriptionSections)
+        {
+            builder.AppendLine($"### {FormatSectionTitle(section.Key)}");
+            builder.AppendLine();
+            builder.AppendLine(string.IsNullOrWhiteSpace(section.Content) ? NotSpecified : section.Content);
+            builder.AppendLine();
+        }
+    }
+
+    private static string FormatSectionTitle(string? key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return "Rule description";
+        }
+
+        string title = key.Replace('_', ' ').Replace('-', ' ');
+        return char.ToUpperInvariant(title[0]) + title[1..];
+    }
+
+    private static string EscapeTableCell(string value) =>
+        value.Replace("|", "\\|", StringComparison.Ordinal)
+            .Replace("\r", " ", StringComparison.Ordinal)
+            .Replace("\n", " ", StringComparison.Ordinal);
 }

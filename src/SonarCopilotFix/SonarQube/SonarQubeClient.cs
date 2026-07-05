@@ -168,12 +168,27 @@ public sealed class SonarQubeClient(
         return payload.Rule is null
             ? null
             : new SonarRule(
-                payload.Rule.DescriptionSections?
-                    .Select(section => new SonarRuleDescriptionSection(
-                        section.Key,
-                        section.Content))
-                    .ToArray()
-                ?? []);
+                MapRuleDescription(payload.Rule),
+                payload.Rule.Name);
+    }
+
+    private static IReadOnlyList<SonarRuleDescriptionSection> MapRuleDescription(RuleDto rule)
+    {
+        SonarRuleDescriptionSection[] sections = rule.DescriptionSections?
+            .Select(section => new SonarRuleDescriptionSection(section.Key, section.Content))
+            .ToArray()
+            ?? [];
+        if (sections.Length > 0)
+        {
+            return sections;
+        }
+
+        string? legacyDescription = !string.IsNullOrWhiteSpace(rule.MdDesc)
+            ? rule.MdDesc
+            : rule.HtmlDesc;
+        return string.IsNullOrWhiteSpace(legacyDescription)
+            ? []
+            : [new SonarRuleDescriptionSection("description", legacyDescription)];
     }
 
     private Uri BuildIssueUrl(string? issueKey)

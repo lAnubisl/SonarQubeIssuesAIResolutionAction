@@ -15,7 +15,12 @@ internal sealed class PrBodyBuilderTests
     {
         Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper();
         PullRequestSummary summary = new(
-            new IssueGroup("csharpsquid:S1", [TestData.SampleIssue()]),
+            new IssueGroup(
+                "csharpsquid:S1",
+                [TestData.SampleIssue()],
+                new SonarRule(
+                    [new SonarRuleDescriptionSection("root_cause", "<p>This code is difficult to maintain.</p>")],
+                    "Avoid difficult code")),
             "main",
             "copilot/sonar/proj/20260101000000",
             ["src/A.cs"],
@@ -23,10 +28,20 @@ internal sealed class PrBodyBuilderTests
 
         string body = new PrBodyBuilder(configurationHelper.Object).Build(summary);
 
-        Assert.Contains("Human review is required", body);
+        Assert.Contains("## Original Problem", body);
+        Assert.Contains("### Issue title(s) reported by SonarQube", body);
+        Assert.Contains("- Fix this", body);
+        Assert.Contains("## SonarQube Rule", body);
+        Assert.Contains("- Title: Avoid difficult code", body);
+        Assert.Contains("### Root cause", body);
+        Assert.Contains("This code is difficult to maintain", body);
         Assert.Contains("ISSUE-1", body);
-        Assert.Contains("src/A.cs", body);
-        Assert.Contains("Validation is delegated to the repository's pull request checks", body);
+        Assert.Contains("| Issue | Title | Location |", body);
+        Assert.Contains("| [ISSUE-1]", body);
+        Assert.Contains("| Fix this | `src/A.cs:4` |", body);
+        Assert.False(body.Contains("csharpsquid:S1` `src/A.cs", StringComparison.Ordinal));
+        Assert.False(body.Contains("## Changed Files", StringComparison.Ordinal));
+        Assert.False(body.Contains("## Review Notes", StringComparison.Ordinal));
         Assert.Contains("Copilot Session Summary", body);
         Assert.Contains("29.3k", body);
         Assert.Contains("42s", body);
@@ -49,7 +64,8 @@ internal sealed class PrBodyBuilderTests
         Assert.Contains("Base branch | `not detected`", body);
         Assert.Contains("Generated branch | `not created`", body);
         Assert.Contains("Copilot CLI did not write session information", body);
-        Assert.Contains("line `not specified`", body);
-        Assert.Contains("- No changed files were detected.", body);
+        Assert.Contains("`src/A.cs:not specified`", body);
+        Assert.Contains("Rule information was not requested or could not be retrieved", body);
+        Assert.False(body.Contains("No changed files were detected", StringComparison.Ordinal));
     }
 }
