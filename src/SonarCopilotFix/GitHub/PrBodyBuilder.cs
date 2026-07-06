@@ -65,7 +65,7 @@ public sealed class PrBodyBuilder(IConfigurationHelper configurationHelper) : IP
             return;
         }
 
-        if (issueGroup.Rule.DescriptionSections.Count == 0)
+        if (issueGroup.Rule.DescriptionSections.Length == 0)
         {
             builder.AppendLine("SonarQube did not return a description for this rule.");
             builder.AppendLine();

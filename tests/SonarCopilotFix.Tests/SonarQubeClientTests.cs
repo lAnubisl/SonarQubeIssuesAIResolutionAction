@@ -277,7 +277,7 @@ internal sealed class SonarQubeClientTests
             (await client.GroupIssuesByRuleAsync([issue], CancellationToken.None)).Single();
 
         Assert.Equal("Avoid this", group.Rule!.Name);
-        Assert.Equal(2, group.Rule!.DescriptionSections.Count);
+        Assert.Equal(2, group.Rule!.DescriptionSections.Length);
         Assert.Equal("root_cause", group.Rule.DescriptionSections[0].Key);
         Assert.Equal("<p>Description</p>", group.Rule.DescriptionSections[0].Content);
         Assert.Equal("how_to_fix", group.Rule.DescriptionSections[1].Key);
@@ -315,7 +315,7 @@ internal sealed class SonarQubeClientTests
             (await client.GroupIssuesByRuleAsync(result.Issues, CancellationToken.None)).Single();
 
         Assert.Equal(2, result.Issues.Count);
-        Assert.Equal(0, group.Rule!.DescriptionSections.Count);
+        Assert.Equal(0, group.Rule!.DescriptionSections.Length);
         http.Verify(
             value => value.GetAsync("api/rules/show?key=rule%3AS1", CancellationToken.None),
             Times.Once);
