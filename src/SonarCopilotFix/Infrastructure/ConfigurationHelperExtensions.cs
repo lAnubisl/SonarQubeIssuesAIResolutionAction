@@ -2,12 +2,18 @@ namespace SonarCopilotFix.Infrastructure;
 
 public static class ConfigurationHelperExtensions
 {
-    public static Uri GetSonarHostUri(this IConfigurationHelper configurationHelper) =>
-        Uri.TryCreate(configurationHelper.InputSonarHostUrl?.TrimEnd('/'), UriKind.Absolute, out Uri? hostUri)
-            ? hostUri
-            : throw new ControlledFailureException(
+    public static Uri GetSonarHostUri(this IConfigurationHelper configurationHelper)
+    {
+        string? host = configurationHelper.InputSonarHostUrl?.TrimEnd('/');
+        if (!Uri.TryCreate(host is null ? null : host + "/", UriKind.Absolute, out Uri? hostUri))
+        {
+            throw new ControlledFailureException(
                 "Input sonar_host_url must be an absolute URL.",
                 ExitCodes.ConfigurationError);
+        }
+
+        return hostUri;
+    }
 
     public static string GetSonarProjectKey(this IConfigurationHelper configurationHelper) =>
         configurationHelper.InputSonarProjectKey

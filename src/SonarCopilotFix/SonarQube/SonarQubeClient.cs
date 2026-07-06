@@ -133,7 +133,7 @@ public sealed class SonarQubeClient(
         AddQueryParameter(query, "cleanCodeAttributeCategories", configurationHelper.InputCleanCodeAttributeCategories);
         AddQueryParameter(query, "rules", configurationHelper.InputRules);
 
-        return "/api/issues/search?" + string.Join("&", query
+        return "api/issues/search?" + string.Join("&", query
             .Where(pair => !string.IsNullOrWhiteSpace(pair.Value))
             .Select(pair => $"{Uri.EscapeDataString(pair.Key)}={Uri.EscapeDataString(pair.Value!)}"));
     }
@@ -149,7 +149,7 @@ public sealed class SonarQubeClient(
 
     private async Task<SonarRule?> TryGetRuleAsync(string ruleKey, CancellationToken cancellationToken)
     {
-        string uri = $"/api/rules/show?key={Uri.EscapeDataString(ruleKey)}";
+        string uri = $"api/rules/show?key={Uri.EscapeDataString(ruleKey)}";
         if (!string.IsNullOrWhiteSpace(configurationHelper.InputSonarOrganization))
         {
             uri += $"&organization={Uri.EscapeDataString(configurationHelper.InputSonarOrganization)}";
@@ -193,9 +193,8 @@ public sealed class SonarQubeClient(
 
     private Uri BuildIssueUrl(string? issueKey)
     {
-        UriBuilder builder = new(configurationHelper.GetSonarHostUri())
+        UriBuilder builder = new(new Uri(configurationHelper.GetSonarHostUri(), "project/issues"))
         {
-            Path = "project/issues",
             Query = $"id={Uri.EscapeDataString(configurationHelper.GetSonarProjectKey())}&issues={Uri.EscapeDataString(issueKey ?? "")}&open={Uri.EscapeDataString(issueKey ?? "")}"
         };
         return builder.Uri;

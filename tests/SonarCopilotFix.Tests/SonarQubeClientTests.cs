@@ -129,6 +129,36 @@ internal sealed class SonarQubeClientTests
     }
 
     [Test]
+    public static async Task SonarQubeContextPathIsPreserved()
+    {
+        const string responseBody =
+            """{"total":1,"issues":[{"key":"I1","rule":"rule:S1","component":"proj:A.cs","message":"fix"}]}""";
+        Mock<ISonarQubeHttpClient> http = new(MockBehavior.Strict);
+        http.SetupGet(value => value.BaseAddress).Returns(new Uri("https://sonar.example/sonar/"));
+        http.Setup(value => value.GetAsync(
+                It.Is<string>(uri => uri.StartsWith("api/issues/search?", StringComparison.Ordinal)),
+                CancellationToken.None))
+            .ReturnsAsync(Json(responseBody));
+        Mock<ILogger> logger = TestData.MockLogger();
+        SonarQubeClient client = new(
+            TestData.MockConfigurationHelper(inputSonarHostUrl: "https://sonar.example/sonar").Object,
+            logger.Object,
+            http.Object,
+            Mock.Of<ICodeSnippetReader>());
+
+        SonarIssue issue = (await client.GetIssuesAsync(CancellationToken.None)).Issues.Single();
+
+        Assert.Equal(
+            new Uri("https://sonar.example/sonar/project/issues?id=proj&issues=I1&open=I1"),
+            issue.IssueUrl);
+        logger.Verify(
+            value => value.Info(
+                "SonarQube issue search request URL: https://sonar.example/sonar/api/issues/search?componentKeys=proj&p=1&ps=10&statuses=OPEN"),
+            Times.Once);
+        http.VerifyAll();
+    }
+
+    [Test]
     public static async Task IssueResponseMapping()
     {
         const string responseBody = """
@@ -211,10 +241,10 @@ internal sealed class SonarQubeClientTests
         Mock<ISonarQubeHttpClient> http = new(MockBehavior.Strict);
         http.SetupGet(value => value.BaseAddress).Returns(new Uri("https://sonar.example"));
         http.Setup(value => value.GetAsync(
-                It.Is<string>(uri => uri.StartsWith("/api/issues/search?", StringComparison.Ordinal)),
+                It.Is<string>(uri => uri.StartsWith("api/issues/search?", StringComparison.Ordinal)),
                 CancellationToken.None))
             .ReturnsAsync(Json("""{"total":1,"issues":[{"key":"I1","rule":"rule:S1","component":"proj:A.cs","message":"fix"}]}"""));
-        http.Setup(value => value.GetAsync("/api/rules/show?key=rule%3AS1", CancellationToken.None))
+        http.Setup(value => value.GetAsync("api/rules/show?key=rule%3AS1", CancellationToken.None))
             .ReturnsAsync(Json("""
                 {
                   "rule": {
@@ -261,7 +291,7 @@ internal sealed class SonarQubeClientTests
         Mock<ISonarQubeHttpClient> http = new(MockBehavior.Strict);
         http.SetupGet(value => value.BaseAddress).Returns(new Uri("https://sonar.example"));
         http.Setup(value => value.GetAsync(
-                It.Is<string>(uri => uri.StartsWith("/api/issues/search?", StringComparison.Ordinal)),
+                It.Is<string>(uri => uri.StartsWith("api/issues/search?", StringComparison.Ordinal)),
                 CancellationToken.None))
             .ReturnsAsync(Json("""
                 {
@@ -272,7 +302,7 @@ internal sealed class SonarQubeClientTests
                   ]
                 }
                 """));
-        http.Setup(value => value.GetAsync("/api/rules/show?key=rule%3AS1", CancellationToken.None))
+        http.Setup(value => value.GetAsync("api/rules/show?key=rule%3AS1", CancellationToken.None))
             .ReturnsAsync(Json("""{"rule":{"descriptionSections":[]}}"""));
         SonarQubeClient client = new(
             TestData.MockConfigurationHelper(inputIncludeRuleDetails: true).Object,
@@ -287,7 +317,7 @@ internal sealed class SonarQubeClientTests
         Assert.Equal(2, result.Issues.Count);
         Assert.Equal(0, group.Rule!.DescriptionSections.Count);
         http.Verify(
-            value => value.GetAsync("/api/rules/show?key=rule%3AS1", CancellationToken.None),
+            value => value.GetAsync("api/rules/show?key=rule%3AS1", CancellationToken.None),
             Times.Once);
         http.VerifyAll();
     }
@@ -298,10 +328,10 @@ internal sealed class SonarQubeClientTests
         Mock<ISonarQubeHttpClient> http = new(MockBehavior.Strict);
         http.SetupGet(value => value.BaseAddress).Returns(new Uri("https://sonar.example"));
         http.Setup(value => value.GetAsync(
-                It.Is<string>(uri => uri.StartsWith("/api/issues/search?", StringComparison.Ordinal)),
+                It.Is<string>(uri => uri.StartsWith("api/issues/search?", StringComparison.Ordinal)),
                 CancellationToken.None))
             .ReturnsAsync(Json("""{"total":1,"issues":[{"key":"I1","rule":"rule:S1","component":"proj:A.cs","message":"fix"}]}"""));
-        http.Setup(value => value.GetAsync("/api/rules/show?key=rule%3AS1", CancellationToken.None))
+        http.Setup(value => value.GetAsync("api/rules/show?key=rule%3AS1", CancellationToken.None))
             .ReturnsAsync(Json("""{"rule":{"name":"Avoid this","htmlDesc":"<p>Legacy rule explanation.</p>"}}"""));
         SonarQubeClient client = new(
             TestData.MockConfigurationHelper(inputIncludeRuleDetails: true).Object,
@@ -324,11 +354,11 @@ internal sealed class SonarQubeClientTests
         Mock<ISonarQubeHttpClient> http = new(MockBehavior.Strict);
         http.SetupGet(value => value.BaseAddress).Returns(new Uri("https://sonarcloud.io"));
         http.Setup(value => value.GetAsync(
-                It.Is<string>(uri => uri.StartsWith("/api/issues/search?", StringComparison.Ordinal)),
+                It.Is<string>(uri => uri.StartsWith("api/issues/search?", StringComparison.Ordinal)),
                 CancellationToken.None))
             .ReturnsAsync(Json("""{"total":1,"issues":[{"key":"I1","rule":"external_roslyn:CA1861","component":"proj:A.cs","message":"fix"}]}"""));
         http.Setup(value => value.GetAsync(
-                "/api/rules/show?key=external_roslyn%3ACA1861&organization=my%20organization",
+                "api/rules/show?key=external_roslyn%3ACA1861&organization=my%20organization",
                 CancellationToken.None))
             .ReturnsAsync(Json("""{"rule":{"descriptionSections":[{"key":"root_cause","content":"Avoid constant arrays"}]}}"""));
         SonarQubeClient client = new(

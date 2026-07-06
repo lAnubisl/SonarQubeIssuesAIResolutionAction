@@ -8,16 +8,19 @@ namespace SonarCopilotFix.Tests;
 [TestFixture]
 internal sealed class SonarQubeHttpClientTests
 {
-    [Test]
-    public static void ConstructorUsesConfiguredBaseAddressAndToken()
+    [TestCase("https://sonar.example/custom", "https://sonar.example/custom/")]
+    [TestCase("https://sonar.example/custom/", "https://sonar.example/custom/")]
+    public static void ConstructorUsesNormalizedConfiguredBaseAddressAndToken(
+        string configuredUrl,
+        string expectedUrl)
     {
         Mock<IConfigurationHelper> configuration = TestData.MockConfigurationHelper(
-            inputSonarHostUrl: "https://sonar.example/custom/",
+            inputSonarHostUrl: configuredUrl,
             sonarToken: "secret");
 
         using SonarQubeHttpClient client = new(configuration.Object);
 
-        Assert.Equal(new Uri("https://sonar.example/custom"), client.BaseAddress);
+        Assert.Equal(new Uri(expectedUrl), client.BaseAddress);
         configuration.VerifyGet(value => value.InputSonarHostUrl, Times.Once);
         configuration.VerifyGet(value => value.SonarToken, Times.Once);
     }
