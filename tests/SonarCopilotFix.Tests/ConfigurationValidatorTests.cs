@@ -83,6 +83,15 @@ internal sealed class ConfigurationValidatorTests
     }
 
     [Test]
+    public static void IgnoresProviderApiKeyWhenProviderIsNotConfigured()
+    {
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
+            copilotProviderApiKey: "provider-secret");
+
+        ConfigurationValidator.Validate(configurationHelper.Object);
+    }
+
+    [Test]
     public static void RejectsUnsupportedCopilotProviderType()
     {
         Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(

@@ -53,7 +53,6 @@ public static class ConfigurationValidator
         bool usesCustomProvider =
             !string.IsNullOrWhiteSpace(providerType)
             || !string.IsNullOrWhiteSpace(providerBaseUrl)
-            || !string.IsNullOrWhiteSpace(providerApiKey)
             || configurationHelper.InputCopilotOffline;
 
         if (!usesCustomProvider)
