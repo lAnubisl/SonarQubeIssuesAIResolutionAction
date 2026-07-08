@@ -70,8 +70,9 @@ public sealed class CopilotCliRunner(
 
     private static Dictionary<string, string?> BuildEnvironment(
         IConfigurationHelper configurationHelper,
-        string gitHookDirectory) =>
-        new()
+        string gitHookDirectory)
+    {
+        Dictionary<string, string?> environment = new()
         {
             ["COPILOT_GITHUB_TOKEN"] = configurationHelper.CopilotCliToken,
             ["COPILOT_AUTO_UPDATE"] = "false",
@@ -79,6 +80,22 @@ public sealed class CopilotCliRunner(
             ["GIT_CONFIG_KEY_0"] = "core.hooksPath",
             ["GIT_CONFIG_VALUE_0"] = gitHookDirectory
         };
+
+        if (!string.IsNullOrWhiteSpace(configurationHelper.InputCopilotProviderBaseUrl))
+        {
+            environment["COPILOT_PROVIDER_BASE_URL"] = configurationHelper.InputCopilotProviderBaseUrl;
+            environment["COPILOT_MODEL"] = configurationHelper.InputCopilotModel;
+            environment["COPILOT_PROVIDER_TYPE"] = configurationHelper.InputCopilotProviderType;
+            environment["COPILOT_PROVIDER_API_KEY"] = configurationHelper.CopilotProviderApiKey;
+        }
+
+        if (configurationHelper.InputCopilotOffline)
+        {
+            environment["COPILOT_OFFLINE"] = "true";
+        }
+
+        return environment;
+    }
 
     private async Task<string> CreateGitCommitGuardAsync(CancellationToken cancellationToken)
     {

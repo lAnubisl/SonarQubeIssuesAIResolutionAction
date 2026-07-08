@@ -57,8 +57,18 @@ inputs:
     required: false
     default: "20"
   copilot_model:
-    description: Optional model name to pass to GitHub Copilot CLI.
+    description: Optional model name to pass to GitHub Copilot CLI. Required when using a custom Copilot model provider.
     required: false
+  copilot_provider_type:
+    description: "Optional Copilot CLI model provider type. Supported values: openai, azure, anthropic. Omit for GitHub-hosted Copilot models."
+    required: false
+  copilot_provider_base_url:
+    description: Optional base URL for a Copilot CLI custom model provider, such as an Azure Foundry OpenAI-compatible endpoint.
+    required: false
+  copilot_offline:
+    description: Run Copilot CLI in offline mode when using a configured local or private model provider.
+    required: false
+    default: "false"
   copilot_extra_instructions:
     description: Extra reviewer-approved instructions to include in the Copilot prompt.
     required: false
@@ -93,6 +103,7 @@ runs:
       env:
         SONAR_TOKEN: ""
         COPILOT_CLI_TOKEN: ""
+        COPILOT_PROVIDER_API_KEY: ""
         GH_CLI_TOKEN: ""
         GITHUB_TOKEN: ""
       with:
@@ -103,9 +114,10 @@ runs:
       env:
         SONAR_TOKEN: ""
         COPILOT_CLI_TOKEN: ""
+        COPILOT_PROVIDER_API_KEY: ""
         GH_CLI_TOKEN: ""
         GITHUB_TOKEN: ""
-        COPILOT_CLI_VERSION: v1.0.65
+        COPILOT_CLI_VERSION: v1.0.69
       run: |
         set -euo pipefail
         install_root="${RUNNER_TEMP}/sonar-copilot-fix/copilot/${COPILOT_CLI_VERSION}"
@@ -139,6 +151,9 @@ runs:
         INPUT_INCLUDE_CODE_SNIPPETS: ${{ inputs.include_code_snippets }}
         INPUT_CODE_SNIPPET_CONTEXT_LINES: ${{ inputs.code_snippet_context_lines }}
         INPUT_COPILOT_MODEL: ${{ inputs.copilot_model }}
+        INPUT_COPILOT_PROVIDER_TYPE: ${{ inputs.copilot_provider_type }}
+        INPUT_COPILOT_PROVIDER_BASE_URL: ${{ inputs.copilot_provider_base_url }}
+        INPUT_COPILOT_OFFLINE: ${{ inputs.copilot_offline }}
         INPUT_COPILOT_EXTRA_INSTRUCTIONS: ${{ inputs.copilot_extra_instructions }}
         INPUT_BRANCH_PREFIX: ${{ inputs.branch_prefix }}
         INPUT_BASE_BRANCH: ${{ inputs.base_branch }}

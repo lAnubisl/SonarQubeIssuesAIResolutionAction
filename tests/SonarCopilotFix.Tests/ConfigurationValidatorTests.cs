@@ -48,4 +48,78 @@ internal sealed class ConfigurationValidatorTests
 
         Assert.Contains("CODE_SMELL, BUG, VULNERABILITY", ex.Message);
     }
+
+    [Test]
+    public static void AcceptsRemoteCopilotProviderWithRequiredSettings()
+    {
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
+            inputCopilotModel: "gpt-5.2",
+            inputCopilotProviderType: "openai",
+            inputCopilotProviderBaseUrl: "https://foundry.example/openai/v1",
+            copilotProviderApiKey: "provider-secret");
+
+        ConfigurationValidator.Validate(configurationHelper.Object);
+    }
+
+    [Test]
+    public static void AcceptsLoopbackCopilotProviderWithoutApiKey()
+    {
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
+            inputCopilotModel: "llama3.2",
+            inputCopilotProviderBaseUrl: "http://localhost:11434");
+
+        ConfigurationValidator.Validate(configurationHelper.Object);
+    }
+
+    [Test]
+    public static void RejectsUnsupportedCopilotProviderType()
+    {
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
+            inputCopilotModel: "gpt-5.2",
+            inputCopilotProviderType: "foundry",
+            inputCopilotProviderBaseUrl: "https://foundry.example/openai/v1",
+            copilotProviderApiKey: "provider-secret");
+
+        ControlledFailureException ex = Assert.Throws<ControlledFailureException>(() => ConfigurationValidator.Validate(configurationHelper.Object));
+
+        Assert.Contains("openai, azure, anthropic", ex.Message);
+    }
+
+    [Test]
+    public static void RejectsCopilotProviderWithoutBaseUrl()
+    {
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
+            inputCopilotModel: "gpt-5.2",
+            inputCopilotProviderType: "openai",
+            copilotProviderApiKey: "provider-secret");
+
+        ControlledFailureException ex = Assert.Throws<ControlledFailureException>(() => ConfigurationValidator.Validate(configurationHelper.Object));
+
+        Assert.Contains("copilot_provider_base_url", ex.Message);
+    }
+
+    [Test]
+    public static void RejectsCopilotProviderWithoutModel()
+    {
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
+            inputCopilotProviderType: "openai",
+            inputCopilotProviderBaseUrl: "https://foundry.example/openai/v1",
+            copilotProviderApiKey: "provider-secret");
+
+        ControlledFailureException ex = Assert.Throws<ControlledFailureException>(() => ConfigurationValidator.Validate(configurationHelper.Object));
+
+        Assert.Contains("copilot_model", ex.Message);
+    }
+
+    [Test]
+    public static void RejectsRemoteCopilotProviderWithoutApiKey()
+    {
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
+            inputCopilotModel: "gpt-5.2",
+            inputCopilotProviderBaseUrl: "https://foundry.example/openai/v1");
+
+        ControlledFailureException ex = Assert.Throws<ControlledFailureException>(() => ConfigurationValidator.Validate(configurationHelper.Object));
+
+        Assert.Contains("COPILOT_PROVIDER_API_KEY", ex.Message);
+    }
 }

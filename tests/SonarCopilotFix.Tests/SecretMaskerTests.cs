@@ -14,6 +14,7 @@ internal sealed class SecretMaskerTests
         Mock<IConfigurationHelper> configuration = TestData.MockConfigurationHelper(
             sonarToken: "sonar-secret",
             copilotCliToken: null,
+            copilotProviderApiKey: "provider-secret",
             ghCliToken: "github-secret");
         Mock<ILogger> logger = new(MockBehavior.Strict);
         logger.Setup(value => value.Info("Configured log masking for known token secrets."));
@@ -31,6 +32,7 @@ internal sealed class SecretMaskerTests
 
         string text = output.ToString();
         Assert.Contains("::add-mask::sonar-secret", text);
+        Assert.Contains("::add-mask::provider-secret", text);
         Assert.Contains("::add-mask::github-secret", text);
         Assert.False(text.Contains("::add-mask::" + Environment.NewLine, StringComparison.Ordinal));
         logger.VerifyAll();

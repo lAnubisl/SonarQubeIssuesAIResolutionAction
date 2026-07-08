@@ -14,12 +14,13 @@ GitHub-hosted Ubuntu runners are supported. Self-hosted Ubuntu runners are best-
 
 ## Token Isolation
 
-Use three separate secrets:
+Use separate secrets:
 
 | Secret | Used for | Never used for |
 | --- | --- | --- |
 | `SONAR_TOKEN` | SonarQube Web API bearer authentication | Copilot CLI, GitHub CLI, git push |
 | `COPILOT_CLI_TOKEN` | Copilot CLI child process only | SonarQube, GitHub API, git push |
+| `COPILOT_PROVIDER_API_KEY` | Optional custom Copilot model provider authentication | SonarQube, GitHub API, git push |
 | `GH_CLI_TOKEN` | GitHub CLI and repository git operations | SonarQube, Copilot CLI |
 
 All known token values are masked with `::add-mask::`. Child processes receive minimal environment variables; secrets are passed only to the command that needs them.
@@ -44,7 +45,10 @@ All known token values are masked with `::add-mask::`. Child processes receive m
 | `include_rule_details` | `true` | Calls `/api/rules/show` per issue |
 | `include_code_snippets` | `true` | Reads snippets from checked-out files |
 | `code_snippet_context_lines` | `20` | Lines before and after issue line |
-| `copilot_model` | empty | Passed to Copilot CLI with `--model` |
+| `copilot_model` | empty | Passed to Copilot CLI with `--model`; required when using a custom provider |
+| `copilot_provider_type` | empty | Optional Copilot provider type: `openai`, `azure`, or `anthropic` |
+| `copilot_provider_base_url` | empty | Optional custom provider base URL, such as an Azure Foundry OpenAI-compatible endpoint |
+| `copilot_offline` | `false` | Sets Copilot CLI offline mode for local or private provider scenarios |
 | `copilot_extra_instructions` | empty | Added to the prompt |
 | `branch_prefix` | `copilot/sonar-fixes` | Generated branch prefix |
 | `base_branch` | detected | Uses `origin/HEAD` or `main` fallback |
@@ -137,6 +141,32 @@ copilot --prompt <prompt> --no-ask-user [--model <model>] (--allow-tool=write[,<
 ```
 
 The command receives `COPILOT_GITHUB_TOKEN`, populated from the `COPILOT_CLI_TOKEN` secret, and disables CLI self-updates. It receives the runner `PATH`, `DOTNET_ROOT`, and `JAVA_HOME` so explicitly installed project tools can run. It never receives `SONAR_TOKEN` or `GH_CLI_TOKEN`. The token must be a supported Copilot CLI token, such as a fine-grained personal access token with the Copilot Requests account permission; classic personal access tokens are not supported.
+
+To use a custom Copilot CLI model provider, set `copilot_provider_base_url`, `copilot_model`, and the `COPILOT_PROVIDER_API_KEY` secret. The action passes these only to the Copilot CLI child process as `COPILOT_PROVIDER_BASE_URL`, `COPILOT_MODEL`, and `COPILOT_PROVIDER_API_KEY`. If `copilot_provider_type` is omitted, Copilot CLI defaults to `openai`; set it explicitly to `azure` for Azure OpenAI deployment-style endpoints.
+
+For Azure Foundry model deployments that expose the OpenAI-compatible v1 API, use:
+
+```yaml
+with:
+  copilot_provider_type: openai
+  copilot_provider_base_url: https://<resource-name>.services.ai.azure.com/openai/v1
+  copilot_model: <deployment-name>
+env:
+  COPILOT_PROVIDER_API_KEY: ${{ secrets.COPILOT_PROVIDER_API_KEY }}
+```
+
+For Azure OpenAI deployment-style endpoints, use:
+
+```yaml
+with:
+  copilot_provider_type: azure
+  copilot_provider_base_url: https://<resource-name>.openai.azure.com/openai/deployments/<deployment-name>
+  copilot_model: <deployment-name>
+env:
+  COPILOT_PROVIDER_API_KEY: ${{ secrets.COPILOT_PROVIDER_API_KEY }}
+```
+
+The selected provider model must support streaming and tool/function calling, because Copilot CLI uses those capabilities for its coding agent loop. Local loopback providers such as Ollama can omit `COPILOT_PROVIDER_API_KEY`.
 
 `copilot_allowed_tools` accepts comma-separated Copilot CLI permission patterns. Prefer narrow entries such as `shell(dotnet test)` or `shell(dotnet:*)`. The existing `copilot_allow_all_tools` input remains available as an explicit unrestricted override. The action always denies Copilot's `shell(git commit)` tool, even with `copilot_allow_all_tools`, and supplies a process-scoped Git `pre-commit` hook as a second guard. The generated prompt also tells Copilot to leave changes uncommitted.
 
