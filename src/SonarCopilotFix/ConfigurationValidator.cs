@@ -91,11 +91,15 @@ public static class ConfigurationValidator
                 ExitCodes.ConfigurationError);
         }
 
-        if (!providerUri.IsLoopback && string.IsNullOrWhiteSpace(providerApiKey))
+        if (ProviderRequiresApiKey(providerType) && string.IsNullOrWhiteSpace(providerApiKey))
         {
             throw new ControlledFailureException(
-                "COPILOT_PROVIDER_API_KEY is required when using a remote custom Copilot model provider.",
+                $"COPILOT_PROVIDER_API_KEY is required when copilot_provider_type is '{providerType}'.",
                 ExitCodes.ConfigurationError);
         }
     }
+
+    private static bool ProviderRequiresApiKey(string? providerType) =>
+        string.Equals(providerType, "azure", StringComparison.Ordinal)
+        || string.Equals(providerType, "anthropic", StringComparison.Ordinal);
 }

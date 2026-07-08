@@ -142,7 +142,7 @@ copilot --prompt <prompt> --no-ask-user [--model <model>] (--allow-tool=write[,<
 
 The command receives `COPILOT_GITHUB_TOKEN`, populated from the `COPILOT_CLI_TOKEN` secret, and disables CLI self-updates. It receives the runner `PATH`, `DOTNET_ROOT`, and `JAVA_HOME` so explicitly installed project tools can run. It never receives `SONAR_TOKEN` or `GH_CLI_TOKEN`. The token must be a supported Copilot CLI token, such as a fine-grained personal access token with the Copilot Requests account permission; classic personal access tokens are not supported.
 
-To use a custom Copilot CLI model provider, set `copilot_provider_base_url`, `copilot_model`, and the `COPILOT_PROVIDER_API_KEY` secret. The action passes these only to the Copilot CLI child process as `COPILOT_PROVIDER_BASE_URL`, `COPILOT_MODEL`, and `COPILOT_PROVIDER_API_KEY`. If `copilot_provider_type` is omitted, Copilot CLI defaults to `openai`; set it explicitly to `azure` for Azure OpenAI deployment-style endpoints.
+To use a custom Copilot CLI model provider, set `copilot_provider_base_url` and `copilot_model`. If the provider requires authentication, also set the `COPILOT_PROVIDER_API_KEY` secret. The action passes these only to the Copilot CLI child process as `COPILOT_PROVIDER_BASE_URL`, `COPILOT_MODEL`, and, when present, `COPILOT_PROVIDER_API_KEY`. If `copilot_provider_type` is omitted, Copilot CLI defaults to `openai`; set it explicitly to `azure` for Azure OpenAI deployment-style endpoints.
 
 For Azure Foundry model deployments that expose the OpenAI-compatible v1 API, use:
 
@@ -166,7 +166,7 @@ env:
   COPILOT_PROVIDER_API_KEY: ${{ secrets.COPILOT_PROVIDER_API_KEY }}
 ```
 
-The selected provider model must support streaming and tool/function calling, because Copilot CLI uses those capabilities for its coding agent loop. Local loopback providers such as Ollama can omit `COPILOT_PROVIDER_API_KEY`.
+The selected provider model must support streaming and tool/function calling, because Copilot CLI uses those capabilities for its coding agent loop. Providers that do not require authentication, including private LAN/service-hosted OpenAI-compatible endpoints, can omit `COPILOT_PROVIDER_API_KEY`.
 
 `copilot_allowed_tools` accepts comma-separated Copilot CLI permission patterns. Prefer narrow entries such as `shell(dotnet test)` or `shell(dotnet:*)`. The existing `copilot_allow_all_tools` input remains available as an explicit unrestricted override. The action always denies Copilot's `shell(git commit)` tool, even with `copilot_allow_all_tools`, and supplies a process-scoped Git `pre-commit` hook as a second guard. The generated prompt also tells Copilot to leave changes uncommitted.
 

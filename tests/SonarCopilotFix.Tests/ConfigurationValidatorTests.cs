@@ -72,6 +72,17 @@ internal sealed class ConfigurationValidatorTests
     }
 
     [Test]
+    public static void AcceptsRemoteOpenAiCompatibleProviderWithoutApiKey()
+    {
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
+            inputCopilotModel: "llama3.2",
+            inputCopilotProviderType: "openai",
+            inputCopilotProviderBaseUrl: "http://10.0.0.5:8000/v1");
+
+        ConfigurationValidator.Validate(configurationHelper.Object);
+    }
+
+    [Test]
     public static void RejectsUnsupportedCopilotProviderType()
     {
         Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
@@ -112,10 +123,13 @@ internal sealed class ConfigurationValidatorTests
     }
 
     [Test]
-    public static void RejectsRemoteCopilotProviderWithoutApiKey()
+    [TestCase("azure")]
+    [TestCase("anthropic")]
+    public static void RejectsKeyRequiredCopilotProviderTypesWithoutApiKey(string providerType)
     {
         Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
             inputCopilotModel: "gpt-5.2",
+            inputCopilotProviderType: providerType,
             inputCopilotProviderBaseUrl: "https://foundry.example/openai/v1");
 
         ControlledFailureException ex = Assert.Throws<ControlledFailureException>(() => ConfigurationValidator.Validate(configurationHelper.Object));
