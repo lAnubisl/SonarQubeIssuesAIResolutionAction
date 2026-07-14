@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200" role="img" aria-labelledby="title desc">
+  <title id="title">SonarQube Copilot Fix Action workflow</title>
+  <desc id="desc">Top-to-bottom workflow showing SonarQube issue retrieval, an agentic AI fix loop, and draft pull request creation.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0b1220"/><stop offset=".52" stop-color="#111827"/><stop offset="1" stop-color="#0f172a"/></linearGradient>
+    <linearGradient id="sonar" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#22d3ee"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient>
+    <linearGradient id="agent" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a7f3d0"/><stop offset="1" stop-color="#22c55e"/></linearGradient>
+    <linearGradient id="github" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fbbf24"/><stop offset="1" stop-color="#f97316"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#020617" flood-opacity=".38"/></filter>
+    <marker id="cyanArrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M1 1 6 3.5 1 6Z" fill="#38bdf8"/></marker>
+    <marker id="greenArrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M1 1 6 3.5 1 6Z" fill="#34d399"/></marker>
+    <marker id="amberArrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M1 1 6 3.5 1 6Z" fill="#f59e0b"/></marker>
+    <style>
+      .grid{stroke:rgba(148,163,184,.07);stroke-width:1}.eyebrow{fill:#7dd3fc;font:700 15px Arial,sans-serif}.title{fill:#f8fafc;font:700 34px Arial,sans-serif}.subtitle{fill:#cbd5e1;font:400 17px Arial,sans-serif}.lane{fill:rgba(15,23,42,.74);stroke:rgba(148,163,184,.3);stroke-width:1.4}.section{fill:#f8fafc;font:700 22px Arial,sans-serif}.note{fill:#cbd5e1;font:400 15px Arial,sans-serif}.card{fill:rgba(30,41,59,.94);stroke-width:1.4}.card-title{fill:#f8fafc;font:700 17px Arial,sans-serif}.card-text{fill:#cbd5e1;font:400 14px Arial,sans-serif}.small{fill:#94a3b8;font:400 12px Arial,sans-serif}.pill{fill:rgba(15,23,42,.88);stroke:rgba(148,163,184,.32)}.pill-text{fill:#e2e8f0;font:700 12px Arial,sans-serif;text-anchor:middle;dominant-baseline:middle}.arrow{fill:none;stroke-width:2.6;stroke-linecap:round}.sonar-stroke{stroke:#38bdf8}.agent-stroke{stroke:#34d399}.github-stroke{stroke:#f59e0b}
+    </style>
+  </defs>
+  <rect width="900" height="1200" fill="url(#bg)"/>
+  <g opacity=".9"><path class="grid" d="M0 100H900M0 200H900M0 300H900M0 400H900M0 500H900M0 600H900M0 700H900M0 800H900M0 900H900M0 1000H900M0 1100H900"/><path class="grid" d="M100 0V1200M200 0V1200M300 0V1200M400 0V1200M500 0V1200M600 0V1200M700 0V1200M800 0V1200"/></g>
+  <circle cx="170" cy="310" r="210" fill="#0ea5e9" opacity=".06"/><circle cx="720" cy="700" r="250" fill="#22c55e" opacity=".055"/><circle cx="230" cy="1020" r="190" fill="#f59e0b" opacity=".05"/>
+
+  <text x="60" y="55" class="eyebrow">SUPERVISED REMEDIATION PIPELINE</text>
+  <text x="60" y="99" class="title">SonarQube issues to draft pull requests</text>
+  <text x="60" y="132" class="subtitle">A focused, isolated AI fix loop for every selected rule group.</text>
+
+  <g filter="url(#shadow)"><rect x="45" y="165" width="810" height="270" rx="18" class="lane"/><rect x="45" y="465" width="810" height="390" rx="18" class="lane"/><rect x="45" y="885" width="810" height="235" rx="18" class="lane"/></g>
+
+  <circle cx="76" cy="199" r="9" fill="url(#sonar)"/><text x="96" y="207" class="section">1. Connect to SonarQube</text>
+  <text x="70" y="235" class="note">Fetch selected issues, add rule context, and group them by rule key.</text>
+  <g filter="url(#shadow)">
+    <rect x="70" y="264" width="220" height="78" rx="12" class="card sonar-stroke"/><text x="91" y="294" class="card-title">Action inputs + secrets</text><text x="91" y="319" class="card-text">Project, filters, tokens</text>
+    <rect x="340" y="264" width="220" height="78" rx="12" class="card sonar-stroke"/><text x="361" y="294" class="card-title">SonarQube Web API</text><text x="361" y="319" class="card-text">Issues + optional rule details</text>
+    <rect x="610" y="264" width="220" height="78" rx="12" class="card sonar-stroke"/><text x="631" y="294" class="card-title">Issue groups</text><text x="631" y="319" class="card-text">One group per rule key</text>
+  </g>
+  <path d="M290 303H340" class="arrow sonar-stroke" marker-end="url(#cyanArrow)"/><path d="M560 303H610" class="arrow sonar-stroke" marker-end="url(#cyanArrow)"/>
+  <rect x="651" y="360" width="72" height="26" rx="13" class="pill"/><text x="687" y="373" class="pill-text">rule:A</text><rect x="733" y="360" width="72" height="26" rx="13" class="pill"/><text x="769" y="373" class="pill-text">rule:B</text>
+  <text x="70" y="405" class="small">Credentials remain masked; only selected issue data enters the remediation loop.</text>
+
+  <path d="M450 435V465" class="arrow sonar-stroke" marker-end="url(#cyanArrow)"/>
+  <circle cx="76" cy="499" r="9" fill="url(#agent)"/><text x="96" y="507" class="section">2. Run the agentic AI fix loop</text>
+  <text x="70" y="535" class="note">Each rule group receives its own branch, prompt, Copilot CLI session, and validation pass.</text>
+  <g filter="url(#shadow)">
+    <rect x="70" y="565" width="340" height="88" rx="12" class="card agent-stroke"/><text x="93" y="596" class="card-title">Create isolated fix branch</text><text x="93" y="623" class="card-text">Rule-specific branch with timestamp</text>
+    <rect x="490" y="565" width="340" height="88" rx="12" class="card agent-stroke"/><text x="513" y="596" class="card-title">Build focused prompt</text><text x="513" y="623" class="card-text">Rule details, files, safety constraints</text>
+    <rect x="490" y="700" width="340" height="88" rx="12" class="card agent-stroke"/><text x="513" y="731" class="card-title">Copilot CLI loop</text><text x="513" y="758" class="card-text">Inspect  •  edit  •  test</text>
+    <rect x="70" y="700" width="340" height="88" rx="12" class="card agent-stroke"/><text x="93" y="731" class="card-title">Detect repository changes</text><text x="93" y="758" class="card-text">Keep valid fixes; skip empty groups</text>
+  </g>
+  <path d="M410 609H490" class="arrow agent-stroke" marker-end="url(#greenArrow)"/><path d="M660 653V700" class="arrow agent-stroke" marker-end="url(#greenArrow)"/><path d="M490 744H410" class="arrow agent-stroke" marker-end="url(#greenArrow)"/>
+  <path d="M240 700C240 670 240 670 240 653" class="arrow agent-stroke" marker-end="url(#greenArrow)"/>
+  <text x="250" y="679" class="small">iterate when needed</text>
+  <rect x="300" y="810" width="300" height="27" rx="13" class="pill"/><text x="450" y="824" class="pill-text">validated repository changes</text>
+
+  <path d="M450 855V885" class="arrow agent-stroke" marker-end="url(#greenArrow)"/>
+  <circle cx="76" cy="919" r="9" fill="url(#github)"/><text x="96" y="927" class="section">3. Publish for human review</text>
+  <text x="70" y="955" class="note">Commit and push each successful rule branch, then open a reviewable draft pull request.</text>
+  <g filter="url(#shadow)">
+    <rect x="70" y="985" width="220" height="76" rx="12" class="card github-stroke"/><text x="91" y="1015" class="card-title">Commit + push</text><text x="91" y="1040" class="card-text">Targeted rule branch</text>
+    <rect x="340" y="985" width="220" height="76" rx="12" class="card github-stroke"/><text x="361" y="1015" class="card-title">Create draft PR</text><text x="361" y="1040" class="card-text">Issues, rule context, notes</text>
+    <rect x="610" y="985" width="220" height="76" rx="12" class="card github-stroke"/><text x="631" y="1015" class="card-title">Action summary</text><text x="631" y="1040" class="card-text">Outcomes and PR links</text>
+  </g>
+  <path d="M290 1023H340" class="arrow github-stroke" marker-end="url(#amberArrow)"/><path d="M560 1023H610" class="arrow github-stroke" marker-end="url(#amberArrow)"/>
+
+  <rect x="70" y="1145" width="760" height="34" rx="17" fill="rgba(15,23,42,.86)" stroke="rgba(148,163,184,.28)"/>
+  <circle cx="98" cy="1162" r="4" fill="#38bdf8"/><text x="109" y="1167" class="small">Sonar token: API only</text><circle cx="325" cy="1162" r="4" fill="#34d399"/><text x="336" y="1167" class="small">Copilot token: agent only</text><circle cx="575" cy="1162" r="4" fill="#f59e0b"/><text x="586" y="1167" class="small">GitHub token: push + PR only</text>
+</svg>

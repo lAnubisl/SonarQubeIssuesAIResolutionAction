@@ -1,8 +1,10 @@
+![Workflow: connect to SonarQube, run an agentic AI fix loop, and create draft pull requests](docs/assets/sonarqube-copilot-fix-workflow.svg)
+
 # SonarQube Copilot Fix Action
 
 Reusable Ubuntu composite GitHub Action that fetches selected SonarQube issues, groups them by rule, and handles each rule group in an isolated branch and GitHub Copilot CLI session, producing one draft pull request per successfully fixed rule group.
 
-Use this for supervised, workflow-dispatched remediation of known SonarQube issues. Do not use it on untrusted pull request code, forked pull requests, or repositories where AI-generated edits cannot receive human review.
+Use this for supervised remediation of known SonarQube issues.
 
 ## Design
 
@@ -60,61 +62,62 @@ All known token values are masked with `::add-mask::`. Child processes receive m
 ## Example Workflow
 
 ```yaml
-name: Fix SonarQube Issues With Copilot
+name: Fix SonarQube issues with Copilot
 
 on:
+  schedule:
+    - cron:  '0 0 * * *'
   workflow_dispatch:
-    inputs:
-      max_issues:
-        description: Maximum number of SonarQube issues to attempt
-        required: false
-        default: "10"
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  sonar-copilot-fix:
+  fix:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
-      # Install only the project toolchains Copilot needs. These are examples;
-      # omit any setup steps that are not relevant to your repository.
-      - uses: actions/setup-dotnet@v5
+      - name: Setup Python
+        uses: actions/setup-python@v6
         with:
-          dotnet-version: "8.0.x"
+          python-version: '3.13'
 
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "21"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
 
       - name: Fix SonarQube issues
-        uses: your-org/sonar-copilot-fix-action@v1
+        uses: lAnubisl/SonarQubeIssuesAIResolutionAction@v1.0.0
         with:
-          sonar_host_url: ${{ vars.SONAR_HOST_URL }}
+          sonar_host_url: ${{ vars.SONAR_PROJECT_URL }}
           sonar_project_key: ${{ vars.SONAR_PROJECT_KEY }}
-          sonar_branch: ${{ github.ref_name }}
-          max_issues: ${{ inputs.max_issues }}
-          type: BUG
-          copilot_allowed_tools: "shell(dotnet:*),shell(python:*),shell(java:*)"
+          sonar_branch: main
+          statuses: OPEN
+          max_issues: 20
+          copilot_allow_all_tools: true
+          copilot_extra_instructions: |
+            Make sure all unit tests are passing after the changes.
+            ```bash
+            # From the repository root:
+            cd python/src
+            python -m pytest tests/ -v
+            ```
+            If any tests are failing, fix them as well.
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           COPILOT_CLI_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}
-          GH_CLI_TOKEN: ${{ secrets.GH_CLI_TOKEN }}
+          GH_CLI_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ## Execution
-
-The action requires `SONAR_TOKEN`, `COPILOT_CLI_TOKEN`, and `GH_CLI_TOKEN`. It:
 
 1. Fetches and paginates open SonarQube issues from `/api/issues/search`.
 2. Optionally fetches rule details from `/api/rules/show`.
@@ -140,47 +143,7 @@ GitHub Copilot CLI access can differ by subscription and enterprise policy. The 
 copilot --prompt <prompt> --no-ask-user [--model <model>] (--allow-tool=write[,<permission-pattern>...] | --allow-all-tools) --deny-tool="shell(git commit)"
 ```
 
-The command receives `COPILOT_GITHUB_TOKEN`, populated from the `COPILOT_CLI_TOKEN` secret, and disables CLI self-updates. It receives the runner `PATH`, `DOTNET_ROOT`, and `JAVA_HOME` so explicitly installed project tools can run. It never receives `SONAR_TOKEN` or `GH_CLI_TOKEN`. The token must be a supported Copilot CLI token, such as a fine-grained personal access token with the Copilot Requests account permission; classic personal access tokens are not supported.
-
-To use a custom Copilot CLI model provider, set `copilot_provider_base_url` and `copilot_model`. If the provider requires authentication, also set the `COPILOT_PROVIDER_API_KEY` secret. The action passes these only to the Copilot CLI child process as `COPILOT_PROVIDER_BASE_URL`, `COPILOT_MODEL`, and, when present, `COPILOT_PROVIDER_API_KEY`. If `copilot_provider_type` is omitted, Copilot CLI defaults to `openai`; set it explicitly to `azure` for Azure OpenAI deployment-style endpoints.
-
-For Azure Foundry model deployments that expose the OpenAI-compatible v1 API, use:
-
-```yaml
-with:
-  copilot_provider_type: openai
-  copilot_provider_base_url: https://<resource-name>.services.ai.azure.com/openai/v1
-  copilot_model: <deployment-name>
-env:
-  COPILOT_PROVIDER_API_KEY: ${{ secrets.COPILOT_PROVIDER_API_KEY }}
-```
-
-For Azure OpenAI deployment-style endpoints, use:
-
-```yaml
-with:
-  copilot_provider_type: azure
-  copilot_provider_base_url: https://<resource-name>.openai.azure.com/openai/deployments/<deployment-name>
-  copilot_model: <deployment-name>
-env:
-  COPILOT_PROVIDER_API_KEY: ${{ secrets.COPILOT_PROVIDER_API_KEY }}
-```
-
-The selected provider model must support streaming and tool/function calling, because Copilot CLI uses those capabilities for its coding agent loop. Providers that do not require authentication, including private LAN/service-hosted OpenAI-compatible endpoints, can omit `COPILOT_PROVIDER_API_KEY`.
-
 `copilot_allowed_tools` accepts comma-separated Copilot CLI permission patterns. Prefer narrow entries such as `shell(dotnet test)` or `shell(dotnet:*)`. The existing `copilot_allow_all_tools` input remains available as an explicit unrestricted override. The action always denies Copilot's `shell(git commit)` tool, even with `copilot_allow_all_tools`, and supplies a process-scoped Git `pre-commit` hook as a second guard. The generated prompt also tells Copilot to leave changes uncommitted.
-
-The generated prompt is passed directly to Copilot CLI in memory. While Copilot runs, each stdout and stderr line is forwarded immediately with `[copilot stdout]` or `[copilot stderr]`, so progress and generated output are visible without waiting for the process to finish.
-
-After Copilot finishes, the action uses the stderr captured from that same process as the Copilot session summary.
-
-## Pull Request Body
-
-Each draft PR explains the original problem using the issue titles reported by SonarQube and the rule title and description returned by SonarQube. It also includes a concise issue/location table, project and branch context, effort saved, and the isolated Copilot session summary captured from stderr. Changed files are left to GitHub's native PR view. The GitHub Actions job summary lists every rule-group outcome and created pull request.
-
-## SonarQube Compatibility
-
-The implementation uses bearer authentication and `/api/issues/search`. The action's `components` input is sent as SonarQube's `componentKeys` query parameter and defaults to `sonar_project_key`; filter source files with component keys such as `my-project:src/Example.cs`. The singular `type` input is validated and sent as SonarQube's `types` query parameter. Other search-filter inputs use the SonarQube query parameter names `statuses`, `severities`, `impactSoftwareQualities`, `impactSeverities`, `cleanCodeAttributeCategories`, and `rules`. `statuses` defaults to `OPEN`, so status filtering happens in SonarQube rather than after retrieval. SonarQube Server and SonarQube Cloud can vary by version; unsupported filter combinations produce a clear API error. The client is intentionally small so endpoint parameters can be updated as SonarQube evolves.
 
 ## Security
 
@@ -190,28 +153,4 @@ Recommended workflow permissions:
 permissions:
   contents: write
   pull-requests: write
-```
-
-Run this action from `workflow_dispatch` or another trusted event. Do not expose secrets to forked pull requests. Draft PRs are the default because AI-generated changes require human review before merge.
-
-## Build And Test Locally
-
-```bash
-dotnet build
-dotnet test
-```
-
-For a local run:
-
-```bash
-INPUT_SONAR_HOST_URL="https://sonar.example.com" \
-INPUT_SONAR_PROJECT_KEY="my-project" \
-GITHUB_WORKSPACE="$PWD" \
-SONAR_TOKEN="$SONAR_TOKEN" \
-COPILOT_CLI_TOKEN="$COPILOT_CLI_TOKEN" \
-GH_CLI_TOKEN="$GH_CLI_TOKEN" \
-dotnet run \
-  --project src/SonarCopilotFix/SonarCopilotFix.csproj \
-  --configuration Release \
-  --no-launch-profile
 ```
