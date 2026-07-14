@@ -8,6 +8,7 @@ public static class SecretMasker
         {
             configurationHelper.SonarToken,
             configurationHelper.CopilotCliToken,
+            configurationHelper.CopilotProviderApiKey,
             configurationHelper.GhCliToken
         };
 

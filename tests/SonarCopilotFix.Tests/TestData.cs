@@ -29,6 +29,9 @@ internal static class TestData
         bool inputIncludeCodeSnippets = true,
         int inputCodeSnippetContextLines = 20,
         string? inputCopilotModel = null,
+        string? inputCopilotProviderType = null,
+        string? inputCopilotProviderBaseUrl = null,
+        bool inputCopilotOffline = false,
         string? inputCopilotExtraInstructions = null,
         IReadOnlyList<string>? inputCopilotAllowedTools = null,
         bool inputCopilotAllowAllTools = false,
@@ -38,6 +41,7 @@ internal static class TestData
         bool inputFailIfNoIssues = false,
         string? sonarToken = "sonar",
         string? copilotCliToken = "copilot",
+        string? copilotProviderApiKey = null,
         string? ghCliToken = "github",
         string? gitHubWorkspace = null,
         string gitHubRepository = "owner/repo",
@@ -64,6 +68,9 @@ internal static class TestData
         configurationHelper.SetupGet(value => value.InputIncludeCodeSnippets).Returns(inputIncludeCodeSnippets);
         configurationHelper.SetupGet(value => value.InputCodeSnippetContextLines).Returns(inputCodeSnippetContextLines);
         configurationHelper.SetupGet(value => value.InputCopilotModel).Returns(inputCopilotModel);
+        configurationHelper.SetupGet(value => value.InputCopilotProviderType).Returns(inputCopilotProviderType);
+        configurationHelper.SetupGet(value => value.InputCopilotProviderBaseUrl).Returns(inputCopilotProviderBaseUrl);
+        configurationHelper.SetupGet(value => value.InputCopilotOffline).Returns(inputCopilotOffline);
         configurationHelper.SetupGet(value => value.InputCopilotExtraInstructions).Returns(inputCopilotExtraInstructions);
         configurationHelper.SetupGet(value => value.InputBranchPrefix).Returns(inputBranchPrefix);
         configurationHelper.SetupGet(value => value.InputBaseBranch).Returns(inputBaseBranch);
@@ -73,6 +80,7 @@ internal static class TestData
         configurationHelper.SetupGet(value => value.InputCopilotAllowAllTools).Returns(inputCopilotAllowAllTools);
         configurationHelper.SetupGet(value => value.SonarToken).Returns(sonarToken);
         configurationHelper.SetupGet(value => value.CopilotCliToken).Returns(copilotCliToken);
+        configurationHelper.SetupGet(value => value.CopilotProviderApiKey).Returns(copilotProviderApiKey);
         configurationHelper.SetupGet(value => value.GhCliToken).Returns(ghCliToken);
         configurationHelper.SetupGet(value => value.GitHubWorkspace).Returns(gitHubWorkspace ?? Directory.GetCurrentDirectory());
         configurationHelper.SetupGet(value => value.GitHubRepository).Returns(gitHubRepository);

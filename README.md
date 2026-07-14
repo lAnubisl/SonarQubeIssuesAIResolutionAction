@@ -8,7 +8,24 @@ Use this for supervised remediation of known SonarQube issues.
 
 ## Design
 
-The reusable unit is a composite action that runs directly on an Ubuntu runner. The core automation is a .NET 10 C# console app compiled from source with `dotnet run` when the action executes.
+The reusable unit is a composite action that runs directly on an Ubuntu runner. The core automation is a .NET 10 C# console app compiled from source with `dotnet run` when the action executes. The action installs its own .NET 10 SDK and pinned standalone GitHub Copilot CLI, while project SDKs installed by preceding workflow steps remain available to Copilot through the runner `PATH`.
+
+This project avoids JavaScript and TypeScript for core logic. C# gives typed SonarQube models, explicit process environments, testable prompt generation, and predictable exit codes.
+
+GitHub-hosted Ubuntu runners are supported. Self-hosted Ubuntu runners are best-effort and must provide Bash, cURL, Git, and GitHub CLI.
+
+## Token Isolation
+
+Use separate secrets:
+
+| Secret | Used for | Never used for |
+| --- | --- | --- |
+| `SONAR_TOKEN` | SonarQube Web API bearer authentication | Copilot CLI, GitHub CLI, git push |
+| `COPILOT_CLI_TOKEN` | Copilot CLI child process only | SonarQube, GitHub API, git push |
+| `COPILOT_PROVIDER_API_KEY` | Optional custom Copilot model provider authentication | SonarQube, GitHub API, git push |
+| `GH_CLI_TOKEN` | GitHub CLI and repository git operations | SonarQube, Copilot CLI |
+
+All known token values are masked with `::add-mask::`. Child processes receive minimal environment variables; secrets are passed only to the command that needs them.
 
 ## Inputs
 
@@ -30,7 +47,10 @@ The reusable unit is a composite action that runs directly on an Ubuntu runner. 
 | `include_rule_details` | `true` | Calls `/api/rules/show` per issue |
 | `include_code_snippets` | `true` | Reads snippets from checked-out files |
 | `code_snippet_context_lines` | `20` | Lines before and after issue line |
-| `copilot_model` | empty | Passed to Copilot CLI with `--model` |
+| `copilot_model` | empty | Passed to Copilot CLI with `--model`; required when using a custom provider |
+| `copilot_provider_type` | empty | Optional Copilot provider type: `openai`, `azure`, or `anthropic` |
+| `copilot_provider_base_url` | empty | Optional custom provider base URL, such as an Azure Foundry OpenAI-compatible endpoint |
+| `copilot_offline` | `false` | Sets Copilot CLI offline mode for local or private provider scenarios |
 | `copilot_extra_instructions` | empty | Added to the prompt |
 | `branch_prefix` | `copilot/sonar-fixes` | Generated branch prefix |
 | `base_branch` | detected | Uses `origin/HEAD` or `main` fallback |

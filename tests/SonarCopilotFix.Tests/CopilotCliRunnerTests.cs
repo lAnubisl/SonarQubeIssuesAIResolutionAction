@@ -97,6 +97,44 @@ internal sealed class CopilotCliRunnerTests
     }
 
     [Test]
+    public static async Task CustomProviderRunPassesProviderEnvironmentToCopilot()
+    {
+        using TempDirectory temp = new();
+        Mock<ICommandRunner> commandRunner = new(MockBehavior.Strict);
+        Mock<ILogger> logger = new(MockBehavior.Strict);
+        Mock<IConfigurationHelper> configuration = TestData.MockConfigurationHelper(
+            inputCopilotModel: "foundry-deployment",
+            inputCopilotProviderType: "openai",
+            inputCopilotProviderBaseUrl: "https://foundry.example/openai/v1",
+            inputCopilotOffline: true,
+            copilotProviderApiKey: "provider-secret",
+            gitHubWorkspace: temp.Path);
+        commandRunner
+            .Setup(value => value.RunAsync(
+                "copilot",
+                It.IsAny<IEnumerable<string>>(),
+                temp.Path,
+                It.Is<IReadOnlyDictionary<string, string?>>(environment =>
+                    environment["COPILOT_PROVIDER_BASE_URL"] == "https://foundry.example/openai/v1"
+                    && environment["COPILOT_PROVIDER_TYPE"] == "openai"
+                    && environment["COPILOT_PROVIDER_API_KEY"] == "provider-secret"
+                    && environment["COPILOT_MODEL"] == "foundry-deployment"
+                    && environment["COPILOT_OFFLINE"] == "true"),
+                It.IsAny<Action<string>>(),
+                It.IsAny<Action<string>>(),
+                CancellationToken.None))
+            .ReturnsAsync(new CommandResult(0, "done", "session"));
+        logger.Setup(value => value.Info("GitHub Copilot CLI completed."));
+        CopilotCliRunner runner = new(commandRunner.Object, configuration.Object, logger.Object);
+
+        string result = await runner.RunAsync("fix it", CancellationToken.None);
+
+        Assert.Equal("session", result);
+        commandRunner.VerifyAll();
+        logger.VerifyAll();
+    }
+
+    [Test]
     public static async Task NonZeroExitIsMappedToControlledFailure()
     {
         using TempDirectory temp = new();

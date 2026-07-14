@@ -19,6 +19,9 @@ public sealed class ConfigurationHelper : IConfigurationHelper
     public bool InputIncludeCodeSnippets => Bool(Get("INPUT_INCLUDE_CODE_SNIPPETS"), true);
     public int InputCodeSnippetContextLines => PositiveInt(Get("INPUT_CODE_SNIPPET_CONTEXT_LINES"), 20);
     public string? InputCopilotModel => Trimmed(Get("INPUT_COPILOT_MODEL"));
+    public string? InputCopilotProviderType => LowerTrimmed(Get("INPUT_COPILOT_PROVIDER_TYPE"));
+    public string? InputCopilotProviderBaseUrl => Trimmed(Get("INPUT_COPILOT_PROVIDER_BASE_URL"));
+    public bool InputCopilotOffline => Bool(Get("INPUT_COPILOT_OFFLINE"), false);
     public string? InputCopilotExtraInstructions => Trimmed(Get("INPUT_COPILOT_EXTRA_INSTRUCTIONS"));
     public string InputBranchPrefix => Trimmed(Get("INPUT_BRANCH_PREFIX")) ?? "copilot/sonar-fixes";
     public string? InputBaseBranch => Trimmed(Get("INPUT_BASE_BRANCH"));
@@ -28,6 +31,7 @@ public sealed class ConfigurationHelper : IConfigurationHelper
     public bool InputCopilotAllowAllTools => Bool(Get("INPUT_COPILOT_ALLOW_ALL_TOOLS"), false);
     public string? SonarToken => Trimmed(Get("SONAR_TOKEN"));
     public string? CopilotCliToken => Trimmed(Get("COPILOT_CLI_TOKEN"));
+    public string? CopilotProviderApiKey => Trimmed(Get("COPILOT_PROVIDER_API_KEY"));
     public string? GhCliToken => Trimmed(Get("GH_CLI_TOKEN"));
     public string GitHubWorkspace => Trimmed(Get("GITHUB_WORKSPACE")) ?? Directory.GetCurrentDirectory();
     public string GitHubRepository => Trimmed(Get("GITHUB_REPOSITORY")) ?? "unknown/unknown";
@@ -55,6 +59,9 @@ public sealed class ConfigurationHelper : IConfigurationHelper
 
     private static string? Trimmed(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string? LowerTrimmed(string? value) =>
+        Trimmed(value)?.ToLowerInvariant();
 
     private static bool Bool(string? value, bool fallback)
     {

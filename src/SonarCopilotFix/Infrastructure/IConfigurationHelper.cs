@@ -19,6 +19,9 @@ public interface IConfigurationHelper
     bool InputIncludeCodeSnippets { get; }
     int InputCodeSnippetContextLines { get; }
     string? InputCopilotModel { get; }
+    string? InputCopilotProviderType { get; }
+    string? InputCopilotProviderBaseUrl { get; }
+    bool InputCopilotOffline { get; }
     string? InputCopilotExtraInstructions { get; }
     string InputBranchPrefix { get; }
     string? InputBaseBranch { get; }
@@ -28,6 +31,7 @@ public interface IConfigurationHelper
     bool InputCopilotAllowAllTools { get; }
     string? SonarToken { get; }
     string? CopilotCliToken { get; }
+    string? CopilotProviderApiKey { get; }
     string? GhCliToken { get; }
     string GitHubWorkspace { get; }
     string GitHubRepository { get; }
