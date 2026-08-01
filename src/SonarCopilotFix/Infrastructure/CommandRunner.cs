@@ -62,7 +62,7 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
             {
                 if (!string.IsNullOrWhiteSpace(value))
                 {
-                    result[key] = value!;
+                    result[key] = value;
                 }
             }
         }

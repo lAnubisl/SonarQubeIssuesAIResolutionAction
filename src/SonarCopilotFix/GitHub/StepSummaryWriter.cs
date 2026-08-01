@@ -66,7 +66,7 @@ public sealed class StepSummaryWriter(IConfigurationHelper configurationHelper) 
                 lines.Add($"### {session.IssueGroup.RuleKey}");
                 lines.Add("");
                 lines.Add("```text");
-                lines.Add(session.CopilotSessionSummary!);
+                lines.Add(session.CopilotSessionSummary);
                 lines.Add("```");
                 lines.Add("");
             }
