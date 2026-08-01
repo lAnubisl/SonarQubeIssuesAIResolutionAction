@@ -20,7 +20,7 @@ public sealed class ActionSummary
     public IReadOnlyList<string> GetPullRequestUrls() =>
         PullRequestSummaries
             .Where(result => !string.IsNullOrWhiteSpace(result.PullRequestUrl))
-            .Select(result => result.PullRequestUrl!)
+            .Select(result => result.PullRequestUrl)
             .ToArray();
 
     public void SetSelectedIssues(IReadOnlyList<SonarIssue> issues)
