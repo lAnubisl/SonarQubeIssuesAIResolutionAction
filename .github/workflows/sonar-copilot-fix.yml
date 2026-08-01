@@ -6,50 +6,6 @@ on:
       max_issues:
         description: Maximum issues to fix
         default: "10"
-      type:
-        description: Type
-        required: false
-        type: choice
-        default: ALL
-        options:
-          - ALL
-          - CODE_SMELL
-          - BUG
-          - VULNERABILITY
-      severities:
-        description: Type Severity
-        type: choice
-        required: false
-        default: ALL
-        options:
-          - ALL
-          - BLOCKER
-          - CRITICAL
-          - MAJOR
-          - MINOR
-          - INFO
-      impactSoftwareQualities:
-        description: Software Quality
-        type: choice
-        required: false
-        default: ALL
-        options:
-          - ALL
-          - RELIABILITY
-          - SECURITY
-          - MAINTAINABILITY
-      impactSeverities:
-        description: Severity
-        type: choice
-        required: false
-        default: ALL
-        options:
-          - ALL
-          - BLOCKER
-          - HIGH
-          - MEDIUM
-          - LOW
-          - INFO
 
 permissions:
   contents: write
@@ -73,11 +29,9 @@ jobs:
           sonar_organization: lanubisl
           sonar_branch: main
           statuses: OPEN
-          type: ${{ inputs.type != 'ALL' && inputs.type || '' }}
-          severities: ${{ inputs.severities != 'ALL' && inputs.severities || '' }}
-          impactSoftwareQualities: ${{ inputs.impactSoftwareQualities != 'ALL' && inputs.impactSoftwareQualities || '' }}
-          impactSeverities: ${{ inputs.impactSeverities != 'ALL' && inputs.impactSeverities || '' }}
           max_issues: ${{ inputs.max_issues }}
+          copilot_cli_version: latest
+          copilot_model: claude-sonnet-4.6
           copilot_allow_all_tools: true
           copilot_extra_instructions: |
             Make sure `dotnet build` command reports no errors or failures after the fixes (otherwise fix them).
@@ -85,4 +39,4 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
-          GH_CLI_TOKEN: ${{ secrets.GH_CLI_TOKEN }}
+          GH_CLI_TOKEN: ${{ github.token }}
