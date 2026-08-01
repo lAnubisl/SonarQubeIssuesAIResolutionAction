@@ -31,7 +31,6 @@ jobs:
           statuses: OPEN
           max_issues: ${{ inputs.max_issues }}
           copilot_cli_version: latest
-          copilot_model: Auto
           copilot_allow_all_tools: true
           copilot_extra_instructions: |
             Make sure `dotnet build` command reports no errors or failures after the fixes (otherwise fix them).
