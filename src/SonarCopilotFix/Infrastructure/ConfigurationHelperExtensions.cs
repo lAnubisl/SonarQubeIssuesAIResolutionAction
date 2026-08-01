@@ -4,7 +4,7 @@ public static class ConfigurationHelperExtensions
 {
     public static Uri GetSonarHostUri(this IConfigurationHelper configurationHelper)
     {
-        string? host = configurationHelper.InputSonarHostUrl?.TrimEnd('/');
+        string? host = configurationHelper.InputSonarHostUrl?.TrimEnd(Path.AltDirectorySeparatorChar);
         if (host is null)
         {
             throw new ControlledFailureException(
@@ -20,7 +20,7 @@ public static class ConfigurationHelperExtensions
                 ExitCodes.ConfigurationError);
         }
 
-        builder.Path = builder.Path.TrimEnd('/') + "/";
+        builder.Path = builder.Path.TrimEnd(Path.AltDirectorySeparatorChar) + Path.AltDirectorySeparatorChar;
         return builder.Uri;
     }
 
