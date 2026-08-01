@@ -8,7 +8,7 @@ Use this for supervised remediation of known SonarQube issues.
 
 ## Design
 
-The reusable unit is a composite action that runs directly on an Ubuntu runner. The core automation is a .NET 10 C# console app compiled from source with `dotnet run` when the action executes. The action installs its own .NET 10 SDK and pinned standalone GitHub Copilot CLI, while project SDKs installed by preceding workflow steps remain available to Copilot through the runner `PATH`.
+The reusable unit is a composite action that runs directly on an Ubuntu runner. The core automation is a .NET 10 C# console app compiled from source with `dotnet run` when the action executes. The action installs its own .NET 10 SDK and standalone GitHub Copilot CLI, while project SDKs installed by preceding workflow steps remain available to Copilot through the runner `PATH`.
 
 This project avoids JavaScript and TypeScript for core logic. C# gives typed SonarQube models, explicit process environments, testable prompt generation, and predictable exit codes.
 
@@ -54,6 +54,7 @@ Choose one Copilot authentication mode:
 | `include_rule_details` | `true` | Calls `/api/rules/show` per issue |
 | `include_code_snippets` | `true` | Reads snippets from checked-out files |
 | `code_snippet_context_lines` | `20` | Lines before and after issue line |
+| `copilot_cli_version` | `latest` | Copilot CLI release to install; set a specific version such as `v1.0.69` to pin it |
 | `copilot_model` | empty | Passed to Copilot CLI with `--model`; required when using a custom provider |
 | `copilot_provider_type` | empty | Custom provider type: `openai` (default), `azure`, or `anthropic` |
 | `copilot_provider_base_url` | empty | Enables custom-provider mode; must be an absolute URL |
@@ -172,6 +173,8 @@ GitHub Copilot CLI access can differ by subscription and enterprise policy. The 
 ```text
 copilot --prompt <prompt> --no-ask-user [--model <model>] (--allow-tool=write[,<permission-pattern>...] | --allow-all-tools) --deny-tool="shell(git commit)"
 ```
+
+By default, `copilot_cli_version: latest` resolves and installs the latest stable Copilot CLI release on every action run. Set `copilot_cli_version` to a release such as `v1.0.69` when a workflow needs a reproducible pinned version.
 
 `copilot_allowed_tools` accepts comma-separated Copilot CLI permission patterns. Prefer narrow entries such as `shell(dotnet test)` or `shell(dotnet:*)`. The existing `copilot_allow_all_tools` input remains available as an explicit unrestricted override. The action always denies Copilot's `shell(git commit)` tool, even with `copilot_allow_all_tools`, and supplies a process-scoped Git `pre-commit` hook as a second guard. The generated prompt also tells Copilot to leave changes uncommitted.
 

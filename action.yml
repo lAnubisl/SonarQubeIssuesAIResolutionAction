@@ -56,6 +56,10 @@ inputs:
     description: Number of local context lines around each issue.
     required: false
     default: "20"
+  copilot_cli_version:
+    description: GitHub Copilot CLI version to install. Use a release version such as v1.0.69, or latest.
+    required: false
+    default: latest
   copilot_model:
     description: Optional model name to pass to GitHub Copilot CLI. Required when copilot_provider_base_url configures a custom provider.
     required: false
@@ -117,14 +121,16 @@ runs:
         COPILOT_PROVIDER_API_KEY: ""
         GH_CLI_TOKEN: ""
         GITHUB_TOKEN: ""
-        COPILOT_CLI_VERSION: v1.0.69
+        COPILOT_CLI_VERSION: ${{ inputs.copilot_cli_version }}
       run: |
         set -euo pipefail
-        install_root="${RUNNER_TEMP}/sonar-copilot-fix/copilot/${COPILOT_CLI_VERSION}"
-        if [[ ! -x "${install_root}/bin/copilot" ]]; then
+        copilot_cli_version="${COPILOT_CLI_VERSION:-latest}"
+        install_key="${copilot_cli_version//[^[:alnum:]._-]/_}"
+        install_root="${RUNNER_TEMP}/sonar-copilot-fix/copilot/${install_key}"
+        if [[ "${copilot_cli_version}" == "latest" || ! -x "${install_root}/bin/copilot" ]]; then
           mkdir -p "${install_root}"
           curl -fsSL https://gh.io/copilot-install \
-            | VERSION="${COPILOT_CLI_VERSION}" PREFIX="${install_root}" bash
+            | VERSION="${copilot_cli_version}" PREFIX="${install_root}" bash
         fi
         "${install_root}/bin/copilot" version
         echo "${install_root}/bin" >> "${GITHUB_PATH}"
