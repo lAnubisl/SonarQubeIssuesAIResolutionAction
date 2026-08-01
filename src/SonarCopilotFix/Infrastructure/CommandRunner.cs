@@ -25,19 +25,6 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
         return await RunProcessAsync(psi, standardOutputReceived, standardErrorReceived, cancellationToken);
     }
 
-    public async Task<CommandResult> RunShellAsync(
-        string command,
-        string workingDirectory,
-        IReadOnlyDictionary<string, string?>? scopedEnvironment = null,
-        CancellationToken cancellationToken = default)
-    {
-        string shell = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "/bin/sh";
-        string[] shellArgs = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? new[] { "/d", "/s", "/c", command }
-            : new[] { "-c", command };
-        return await RunAsync(shell, shellArgs, workingDirectory, scopedEnvironment, cancellationToken: cancellationToken);
-    }
-
     private ProcessStartInfo CreateBaseProcess(string fileName, string workingDirectory, IReadOnlyDictionary<string, string?>? scopedEnvironment)
     {
         ProcessStartInfo psi = new(fileName)
@@ -92,8 +79,8 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
         using Process process = new() { StartInfo = psi, EnableRaisingEvents = true };
         StringBuilder stdout = new();
         StringBuilder stderr = new();
-        process.OutputDataReceived += (_, args) => HandleOutputData(args, stdout, standardOutputReceived);
-        process.ErrorDataReceived += (_, args) => HandleErrorData(args, stderr, standardErrorReceived);
+        process.OutputDataReceived += (_, args) => HandleData(args, stdout, standardOutputReceived);
+        process.ErrorDataReceived += (_, args) => HandleData(args, stderr, standardErrorReceived);
 
         LogStartingCommand(psi);
         if (!process.Start())
@@ -109,22 +96,18 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
         return new CommandResult(process.ExitCode, stdout.ToString(), stderr.ToString());
     }
 
-    private static void HandleOutputData(DataReceivedEventArgs args, StringBuilder stdout, Action<string>? standardOutputReceived)
+    private static void HandleData(
+        DataReceivedEventArgs args,
+        StringBuilder destination,
+        Action<string>? dataReceived)
     {
-        if (args.Data is not null)
+        if (args.Data is null)
         {
-            stdout.AppendLine(args.Data);
-            standardOutputReceived?.Invoke(args.Data);
+            return;
         }
-    }
 
-    private static void HandleErrorData(DataReceivedEventArgs args, StringBuilder stderr, Action<string>? standardErrorReceived)
-    {
-        if (args.Data is not null)
-        {
-            stderr.AppendLine(args.Data);
-            standardErrorReceived?.Invoke(args.Data);
-        }
+        destination.AppendLine(args.Data);
+        dataReceived?.Invoke(args.Data);
     }
 
     private void LogStartingCommand(ProcessStartInfo psi)
@@ -136,7 +119,6 @@ public sealed class CommandRunner(ILogger logger, IConfigurationHelper configura
     {
         logger.Info($"Command '{psi.FileName}' exited with code {exitCode}.");
     }
-
 
     private static string FormatCommand(ProcessStartInfo psi)
     {
