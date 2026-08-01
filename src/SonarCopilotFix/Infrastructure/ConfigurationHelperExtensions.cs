@@ -5,14 +5,23 @@ public static class ConfigurationHelperExtensions
     public static Uri GetSonarHostUri(this IConfigurationHelper configurationHelper)
     {
         string? host = configurationHelper.InputSonarHostUrl?.TrimEnd('/');
-        if (!Uri.TryCreate(host is null ? null : host + "/", UriKind.Absolute, out Uri? hostUri))
+        if (host is null)
         {
             throw new ControlledFailureException(
                 "Input sonar_host_url must be an absolute URL.",
                 ExitCodes.ConfigurationError);
         }
 
-        return hostUri;
+        UriBuilder builder = new(host);
+        if (!builder.Uri.IsAbsoluteUri)
+        {
+            throw new ControlledFailureException(
+                "Input sonar_host_url must be an absolute URL.",
+                ExitCodes.ConfigurationError);
+        }
+
+        builder.Path = builder.Path.TrimEnd('/') + "/";
+        return builder.Uri;
     }
 
     public static string GetSonarProjectKey(this IConfigurationHelper configurationHelper) =>
