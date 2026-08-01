@@ -30,7 +30,7 @@ public sealed class ConfigurationHelper : IConfigurationHelper
     public IReadOnlyList<string> InputCopilotAllowedTools => Csv(Get("INPUT_COPILOT_ALLOWED_TOOLS"));
     public bool InputCopilotAllowAllTools => Bool(Get("INPUT_COPILOT_ALLOW_ALL_TOOLS"), false);
     public string? SonarToken => Trimmed(Get("SONAR_TOKEN"));
-    public string? CopilotCliToken => Trimmed(Get("COPILOT_CLI_TOKEN"));
+    public string? CopilotGitHubToken => Trimmed(Get("COPILOT_GITHUB_TOKEN"));
     public string? CopilotProviderApiKey => Trimmed(Get("COPILOT_PROVIDER_API_KEY"));
     public string? GhCliToken => Trimmed(Get("GH_CLI_TOKEN"));
     public string GitHubWorkspace => Trimmed(Get("GITHUB_WORKSPACE")) ?? Directory.GetCurrentDirectory();

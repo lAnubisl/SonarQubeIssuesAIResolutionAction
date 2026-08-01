@@ -30,7 +30,7 @@ public interface IConfigurationHelper
     IReadOnlyList<string> InputCopilotAllowedTools { get; }
     bool InputCopilotAllowAllTools { get; }
     string? SonarToken { get; }
-    string? CopilotCliToken { get; }
+    string? CopilotGitHubToken { get; }
     string? CopilotProviderApiKey { get; }
     string? GhCliToken { get; }
     string GitHubWorkspace { get; }

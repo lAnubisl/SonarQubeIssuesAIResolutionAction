@@ -69,7 +69,7 @@ internal sealed class CopilotCliRunnerTests
         Mock<ICommandRunner> commandRunner = new(MockBehavior.Strict);
         Mock<ILogger> logger = new(MockBehavior.Strict);
         Mock<IConfigurationHelper> configuration = TestData.MockConfigurationHelper(
-            copilotCliToken: "token",
+            copilotGitHubToken: "token",
             gitHubWorkspace: temp.Path);
         commandRunner
             .Setup(value => value.RunAsync(
@@ -107,6 +107,7 @@ internal sealed class CopilotCliRunnerTests
             inputCopilotProviderType: "openai",
             inputCopilotProviderBaseUrl: "https://foundry.example/openai/v1",
             inputCopilotOffline: true,
+            copilotGitHubToken: null,
             copilotProviderApiKey: "provider-secret",
             gitHubWorkspace: temp.Path);
         commandRunner
@@ -115,7 +116,8 @@ internal sealed class CopilotCliRunnerTests
                 It.IsAny<IEnumerable<string>>(),
                 temp.Path,
                 It.Is<IReadOnlyDictionary<string, string?>>(environment =>
-                    environment["COPILOT_PROVIDER_BASE_URL"] == "https://foundry.example/openai/v1"
+                    !environment.ContainsKey("COPILOT_GITHUB_TOKEN")
+                    && environment["COPILOT_PROVIDER_BASE_URL"] == "https://foundry.example/openai/v1"
                     && environment["COPILOT_PROVIDER_TYPE"] == "openai"
                     && environment["COPILOT_PROVIDER_API_KEY"] == "provider-secret"
                     && environment["COPILOT_MODEL"] == "foundry-deployment"

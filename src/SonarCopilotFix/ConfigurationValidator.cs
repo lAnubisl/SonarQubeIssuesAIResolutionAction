@@ -31,12 +31,13 @@ public static class ConfigurationValidator
         }
 
         string? ghCliToken = configurationHelper.GhCliToken;
-        string? copilotToken = configurationHelper.CopilotCliToken;
-        ValidateCopilotProvider(configurationHelper);
+        bool usesCustomProvider = ValidateCopilotProvider(configurationHelper);
 
-        if (string.IsNullOrWhiteSpace(copilotToken))
+        if (!usesCustomProvider && string.IsNullOrWhiteSpace(configurationHelper.CopilotGitHubToken))
         {
-            throw new ControlledFailureException("COPILOT_CLI_TOKEN is required.", ExitCodes.ConfigurationError);
+            throw new ControlledFailureException(
+                "COPILOT_GITHUB_TOKEN is required when using GitHub-hosted Copilot models. Configure copilot_provider_base_url and copilot_model to use a custom provider instead.",
+                ExitCodes.ConfigurationError);
         }
 
         if (string.IsNullOrWhiteSpace(ghCliToken))
@@ -45,7 +46,7 @@ public static class ConfigurationValidator
         }
     }
 
-    private static void ValidateCopilotProvider(IConfigurationHelper configurationHelper)
+    private static bool ValidateCopilotProvider(IConfigurationHelper configurationHelper)
     {
         string? providerType = configurationHelper.InputCopilotProviderType;
         string? providerBaseUrl = configurationHelper.InputCopilotProviderBaseUrl;
@@ -57,7 +58,7 @@ public static class ConfigurationValidator
 
         if (!usesCustomProvider)
         {
-            return;
+            return false;
         }
 
         if (!string.IsNullOrWhiteSpace(providerType)
@@ -96,6 +97,8 @@ public static class ConfigurationValidator
                 $"COPILOT_PROVIDER_API_KEY is required when copilot_provider_type is '{providerType}'.",
                 ExitCodes.ConfigurationError);
         }
+
+        return true;
     }
 
     private static bool ProviderRequiresApiKey(string? providerType) =>

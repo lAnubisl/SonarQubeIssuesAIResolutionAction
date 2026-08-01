@@ -57,13 +57,13 @@ inputs:
     required: false
     default: "20"
   copilot_model:
-    description: Optional model name to pass to GitHub Copilot CLI. Required when using a custom Copilot model provider.
+    description: Optional model name to pass to GitHub Copilot CLI. Required when copilot_provider_base_url configures a custom provider.
     required: false
   copilot_provider_type:
     description: "Optional Copilot CLI model provider type. Supported values: openai, azure, anthropic. Omit for GitHub-hosted Copilot models."
     required: false
   copilot_provider_base_url:
-    description: Optional base URL for a Copilot CLI custom model provider, such as an Azure Foundry OpenAI-compatible endpoint.
+    description: Optional base URL for a Copilot CLI custom model provider, such as an Azure Foundry OpenAI-compatible endpoint. Configuring it makes COPILOT_GITHUB_TOKEN optional.
     required: false
   copilot_offline:
     description: Run Copilot CLI in offline mode when using a configured local or private model provider.
@@ -102,7 +102,7 @@ runs:
       uses: actions/setup-dotnet@v5
       env:
         SONAR_TOKEN: ""
-        COPILOT_CLI_TOKEN: ""
+        COPILOT_GITHUB_TOKEN: ""
         COPILOT_PROVIDER_API_KEY: ""
         GH_CLI_TOKEN: ""
         GITHUB_TOKEN: ""
@@ -113,7 +113,7 @@ runs:
       shell: bash
       env:
         SONAR_TOKEN: ""
-        COPILOT_CLI_TOKEN: ""
+        COPILOT_GITHUB_TOKEN: ""
         COPILOT_PROVIDER_API_KEY: ""
         GH_CLI_TOKEN: ""
         GITHUB_TOKEN: ""

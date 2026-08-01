@@ -45,8 +45,11 @@ public sealed class CopilotCliRunner(
 
         if (result.ExitCode != 0)
         {
+            string authenticationGuidance = string.IsNullOrWhiteSpace(configurationHelper.InputCopilotProviderBaseUrl)
+                ? "Check that COPILOT_GITHUB_TOKEN is a supported token with the Copilot Requests permission."
+                : "Check the custom provider URL, model, provider type, and COPILOT_PROVIDER_API_KEY when the provider requires authentication.";
             throw new ControlledFailureException(
-                $"GitHub Copilot CLI failed with exit code {result.ExitCode}. Check that COPILOT_CLI_TOKEN is a supported token with the Copilot Requests permission. {result.Summary}",
+                $"GitHub Copilot CLI failed with exit code {result.ExitCode}. {authenticationGuidance} {result.Summary}",
                 ExitCodes.CopilotFailure);
         }
 
@@ -74,12 +77,16 @@ public sealed class CopilotCliRunner(
     {
         Dictionary<string, string?> environment = new()
         {
-            ["COPILOT_GITHUB_TOKEN"] = configurationHelper.CopilotCliToken,
             ["COPILOT_AUTO_UPDATE"] = "false",
             ["GIT_CONFIG_COUNT"] = "1",
             ["GIT_CONFIG_KEY_0"] = "core.hooksPath",
             ["GIT_CONFIG_VALUE_0"] = gitHookDirectory
         };
+
+        if (!string.IsNullOrWhiteSpace(configurationHelper.CopilotGitHubToken))
+        {
+            environment["COPILOT_GITHUB_TOKEN"] = configurationHelper.CopilotGitHubToken;
+        }
 
         if (!string.IsNullOrWhiteSpace(configurationHelper.InputCopilotProviderBaseUrl))
         {

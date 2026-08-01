@@ -53,13 +53,8 @@ jobs:
           impactSeverities: HIGH
           cleanCodeAttributeCategories: INTENTIONAL
           rules: csharpsquid:S1234,csharpsquid:S5678
-          # Uncomment to use an Azure Foundry OpenAI-compatible model deployment.
-          # copilot_provider_type: openai
-          # copilot_provider_base_url: https://<resource-name>.services.ai.azure.com/openai/v1
-          # copilot_model: <deployment-name>
           copilot_allowed_tools: "shell(dotnet:*),shell(python:*),shell(java:*)"
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          COPILOT_CLI_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}
-          # COPILOT_PROVIDER_API_KEY: ${{ secrets.COPILOT_PROVIDER_API_KEY }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
           GH_CLI_TOKEN: ${{ secrets.GH_CLI_TOKEN }}

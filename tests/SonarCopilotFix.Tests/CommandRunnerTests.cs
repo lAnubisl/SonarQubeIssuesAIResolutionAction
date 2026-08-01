@@ -28,7 +28,7 @@ internal sealed class CommandRunnerTests
         Assert.Equal("/opt/dotnet", safe["DOTNET_ROOT"]);
         Assert.Equal("/opt/java", safe["JAVA_HOME"]);
         Assert.False(safe.ContainsKey("SONAR_TOKEN"));
-        Assert.False(safe.ContainsKey("COPILOT_CLI_TOKEN"));
+        Assert.False(safe.ContainsKey("COPILOT_GITHUB_TOKEN"));
     }
 
     [Test]

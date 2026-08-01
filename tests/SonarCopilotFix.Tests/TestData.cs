@@ -40,7 +40,7 @@ internal static class TestData
         bool inputPullRequestDraft = true,
         bool inputFailIfNoIssues = false,
         string? sonarToken = "sonar",
-        string? copilotCliToken = "copilot",
+        string? copilotGitHubToken = "copilot",
         string? copilotProviderApiKey = null,
         string? ghCliToken = "github",
         string? gitHubWorkspace = null,
@@ -79,7 +79,7 @@ internal static class TestData
         configurationHelper.SetupGet(value => value.InputCopilotAllowedTools).Returns(inputCopilotAllowedTools ?? []);
         configurationHelper.SetupGet(value => value.InputCopilotAllowAllTools).Returns(inputCopilotAllowAllTools);
         configurationHelper.SetupGet(value => value.SonarToken).Returns(sonarToken);
-        configurationHelper.SetupGet(value => value.CopilotCliToken).Returns(copilotCliToken);
+        configurationHelper.SetupGet(value => value.CopilotGitHubToken).Returns(copilotGitHubToken);
         configurationHelper.SetupGet(value => value.CopilotProviderApiKey).Returns(copilotProviderApiKey);
         configurationHelper.SetupGet(value => value.GhCliToken).Returns(ghCliToken);
         configurationHelper.SetupGet(value => value.GitHubWorkspace).Returns(gitHubWorkspace ?? Directory.GetCurrentDirectory());

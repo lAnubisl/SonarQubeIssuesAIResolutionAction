@@ -18,6 +18,7 @@ internal sealed class ConfigurationHelperTests
             ("INPUT_COPILOT_PROVIDER_TYPE", " Azure "),
             ("INPUT_COPILOT_PROVIDER_BASE_URL", " https://foundry.example/openai/v1 "),
             ("INPUT_COPILOT_OFFLINE", "true"),
+            ("COPILOT_GITHUB_TOKEN", " copilot-secret "),
             ("COPILOT_PROVIDER_API_KEY", " provider-secret "),
             ("INPUT_BRANCH_PREFIX", null));
         ConfigurationHelper configuration = new();
@@ -29,6 +30,7 @@ internal sealed class ConfigurationHelperTests
         Assert.Equal("azure", configuration.InputCopilotProviderType);
         Assert.Equal("https://foundry.example/openai/v1", configuration.InputCopilotProviderBaseUrl);
         Assert.True(configuration.InputCopilotOffline);
+        Assert.Equal("copilot-secret", configuration.CopilotGitHubToken);
         Assert.Equal("provider-secret", configuration.CopilotProviderApiKey);
         Assert.Equal("copilot/sonar-fixes", configuration.InputBranchPrefix);
     }

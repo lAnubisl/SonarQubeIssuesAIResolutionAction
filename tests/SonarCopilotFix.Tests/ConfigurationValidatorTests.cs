@@ -11,11 +11,12 @@ internal sealed class ConfigurationValidatorTests
     [Test]
     public static void RequiresCopilotToken()
     {
-        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(copilotCliToken: null);
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(copilotGitHubToken: null);
 
         ControlledFailureException ex = Assert.Throws<ControlledFailureException>(() => ConfigurationValidator.Validate(configurationHelper.Object));
 
-        Assert.Contains("COPILOT_CLI_TOKEN", ex.Message);
+        Assert.Contains("COPILOT_GITHUB_TOKEN", ex.Message);
+        Assert.Contains("GitHub-hosted", ex.Message);
     }
 
     [Test]
@@ -56,6 +57,7 @@ internal sealed class ConfigurationValidatorTests
             inputCopilotModel: "gpt-5.2",
             inputCopilotProviderType: "openai",
             inputCopilotProviderBaseUrl: "https://foundry.example/openai/v1",
+            copilotGitHubToken: null,
             copilotProviderApiKey: "provider-secret");
 
         ConfigurationValidator.Validate(configurationHelper.Object);
@@ -66,7 +68,8 @@ internal sealed class ConfigurationValidatorTests
     {
         Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
             inputCopilotModel: "llama3.2",
-            inputCopilotProviderBaseUrl: "http://localhost:11434");
+            inputCopilotProviderBaseUrl: "http://localhost:11434",
+            copilotGitHubToken: null);
 
         ConfigurationValidator.Validate(configurationHelper.Object);
     }
@@ -77,7 +80,8 @@ internal sealed class ConfigurationValidatorTests
         Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
             inputCopilotModel: "llama3.2",
             inputCopilotProviderType: "openai",
-            inputCopilotProviderBaseUrl: "http://10.0.0.5:8000/v1");
+            inputCopilotProviderBaseUrl: "http://10.0.0.5:8000/v1",
+            copilotGitHubToken: null);
 
         ConfigurationValidator.Validate(configurationHelper.Object);
     }
@@ -86,6 +90,32 @@ internal sealed class ConfigurationValidatorTests
     public static void IgnoresProviderApiKeyWhenProviderIsNotConfigured()
     {
         Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
+            copilotProviderApiKey: "provider-secret");
+
+        ConfigurationValidator.Validate(configurationHelper.Object);
+    }
+
+    [Test]
+    public static void ProviderApiKeyAloneDoesNotReplaceCopilotGitHubToken()
+    {
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
+            copilotGitHubToken: null,
+            copilotProviderApiKey: "provider-secret");
+
+        ControlledFailureException ex = Assert.Throws<ControlledFailureException>(() =>
+            ConfigurationValidator.Validate(configurationHelper.Object));
+
+        Assert.Contains("COPILOT_GITHUB_TOKEN", ex.Message);
+    }
+
+    [Test]
+    public static void AcceptsAzureProviderWithoutCopilotGitHubToken()
+    {
+        Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
+            inputCopilotModel: "foundry-deployment",
+            inputCopilotProviderType: "azure",
+            inputCopilotProviderBaseUrl: "https://foundry.example/openai/deployments/foundry-deployment",
+            copilotGitHubToken: null,
             copilotProviderApiKey: "provider-secret");
 
         ConfigurationValidator.Validate(configurationHelper.Object);

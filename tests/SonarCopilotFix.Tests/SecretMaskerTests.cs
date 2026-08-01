@@ -13,7 +13,7 @@ internal sealed class SecretMaskerTests
     {
         Mock<IConfigurationHelper> configuration = TestData.MockConfigurationHelper(
             sonarToken: "sonar-secret",
-            copilotCliToken: null,
+            copilotGitHubToken: null,
             copilotProviderApiKey: "provider-secret",
             ghCliToken: "github-secret");
         Mock<ILogger> logger = new(MockBehavior.Strict);

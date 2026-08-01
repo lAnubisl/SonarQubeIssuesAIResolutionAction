@@ -7,7 +7,7 @@ public static class SecretMasker
         string?[] secrets = new[]
         {
             configurationHelper.SonarToken,
-            configurationHelper.CopilotCliToken,
+            configurationHelper.CopilotGitHubToken,
             configurationHelper.CopilotProviderApiKey,
             configurationHelper.GhCliToken
         };

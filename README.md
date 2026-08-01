@@ -21,11 +21,18 @@ Use separate secrets:
 | Secret | Used for | Never used for |
 | --- | --- | --- |
 | `SONAR_TOKEN` | SonarQube Web API bearer authentication | Copilot CLI, GitHub CLI, git push |
-| `COPILOT_CLI_TOKEN` | Copilot CLI child process only | SonarQube, GitHub API, git push |
-| `COPILOT_PROVIDER_API_KEY` | Optional custom Copilot model provider authentication | SonarQube, GitHub API, git push |
+| `COPILOT_GITHUB_TOKEN` | GitHub-hosted Copilot models; not required with a custom provider | SonarQube, GitHub API, git push |
+| `COPILOT_PROVIDER_API_KEY` | Custom provider authentication; required for Azure and Anthropic | SonarQube, GitHub API, git push |
 | `GH_CLI_TOKEN` | GitHub CLI and repository git operations | SonarQube, Copilot CLI |
 
 All known token values are masked with `::add-mask::`. Child processes receive minimal environment variables; secrets are passed only to the command that needs them.
+
+Choose one Copilot authentication mode:
+
+1. For a GitHub-hosted model, set `COPILOT_GITHUB_TOKEN` and omit the custom-provider inputs.
+2. For BYOK, set `copilot_provider_base_url` and `copilot_model`, optionally select `copilot_provider_type`, and set `COPILOT_PROVIDER_API_KEY` when the provider requires authentication. `COPILOT_GITHUB_TOKEN` is not required in this mode.
+
+`SONAR_TOKEN` and `GH_CLI_TOKEN` are required in both modes because SonarQube access and pull-request creation are independent of model authentication.
 
 ## Inputs
 
@@ -48,8 +55,8 @@ All known token values are masked with `::add-mask::`. Child processes receive m
 | `include_code_snippets` | `true` | Reads snippets from checked-out files |
 | `code_snippet_context_lines` | `20` | Lines before and after issue line |
 | `copilot_model` | empty | Passed to Copilot CLI with `--model`; required when using a custom provider |
-| `copilot_provider_type` | empty | Optional Copilot provider type: `openai`, `azure`, or `anthropic` |
-| `copilot_provider_base_url` | empty | Optional custom provider base URL, such as an Azure Foundry OpenAI-compatible endpoint |
+| `copilot_provider_type` | empty | Custom provider type: `openai` (default), `azure`, or `anthropic` |
+| `copilot_provider_base_url` | empty | Enables custom-provider mode; must be an absolute URL |
 | `copilot_offline` | `false` | Sets Copilot CLI offline mode for local or private provider scenarios |
 | `copilot_extra_instructions` | empty | Added to the prompt |
 | `branch_prefix` | `copilot/sonar-fixes` | Generated branch prefix |
@@ -59,7 +66,9 @@ All known token values are masked with `::add-mask::`. Child processes receive m
 | `copilot_allowed_tools` | empty | Comma-separated Copilot permission patterns added alongside file writes, such as `shell(dotnet:*)` |
 | `copilot_allow_all_tools` | `false` | Allows all CLI tools without confirmation; otherwise only file writes are pre-approved |
 
-## Example Workflow
+## Example workflows
+
+### Case 1: GitHub-hosted Copilot model
 
 ```yaml
 name: Fix SonarQube issues with Copilot
@@ -113,9 +122,30 @@ jobs:
             If any tests are failing, fix them as well.
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          COPILOT_CLI_TOKEN: ${{ secrets.COPILOT_CLI_TOKEN }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
           GH_CLI_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+### Case 2: Azure Foundry custom provider
+
+This example uses an Azure Foundry OpenAI-compatible v1 endpoint. The deployment must support streaming and tool calling.
+
+```yaml
+      - name: Fix SonarQube issues with Azure Foundry
+        uses: lAnubisl/SonarQubeIssuesAIResolutionAction@v1.0.0
+        with:
+          sonar_host_url: ${{ vars.SONAR_PROJECT_URL }}
+          sonar_project_key: ${{ vars.SONAR_PROJECT_KEY }}
+          copilot_provider_type: openai
+          copilot_provider_base_url: https://<resource-name>.services.ai.azure.com/openai/v1
+          copilot_model: <deployment-name>
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          COPILOT_PROVIDER_API_KEY: ${{ secrets.COPILOT_PROVIDER_API_KEY }}
+          GH_CLI_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+The Azure Foundry case intentionally omits `COPILOT_GITHUB_TOKEN`. See GitHub's [Copilot CLI BYOK documentation](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/use-byok-models) for supported provider settings.
 
 ## Execution
 
