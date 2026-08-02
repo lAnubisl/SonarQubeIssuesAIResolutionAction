@@ -16,7 +16,7 @@ inputs:
     description: Optional SonarQube branch.
     required: false
   sonar_organization:
-    description: Optional SonarQube Cloud organization.
+    description: SonarQube Cloud organization key. Required to retrieve organization-scoped rule details; omit for SonarQube Server.
     required: false
   max_issues:
     description: Maximum number of issues to select.

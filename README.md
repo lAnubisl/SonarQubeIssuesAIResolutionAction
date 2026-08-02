@@ -34,6 +34,12 @@ Choose one Copilot authentication mode:
 
 `SONAR_TOKEN` and `GH_TOKEN` are required in both modes because SonarQube access and pull-request creation are independent of model authentication.
 
+See [Configure `COPILOT_GITHUB_TOKEN`](docs/copilot-github-token.md) for consumer setup instructions covering token creation, repository secrets, workflow configuration, and troubleshooting.
+
+See [Configure `GH_TOKEN`](docs/gh-token.md) for the recommended built-in job-token setup and fine-grained PAT or GitHub App alternatives.
+
+See [Configure `SONAR_TOKEN`](docs/sonar-token.md) for SonarQube Server and Cloud token creation, minimum permissions, repository-secret setup, rotation, and troubleshooting.
+
 ## Inputs
 
 | Input | Default | Notes |
@@ -42,7 +48,7 @@ Choose one Copilot authentication mode:
 | `sonar_project_key` | required | SonarQube project key |
 | `components` | empty | Comma-separated component keys; defaults to `sonar_project_key`. Use `projectKey:path/to/file` for source files |
 | `sonar_branch` | empty | Sonar branch parameter |
-| `sonar_organization` | empty | SonarQube Cloud organization |
+| `sonar_organization` | empty | SonarQube Cloud organization key; required to retrieve organization-scoped rule details |
 | `max_issues` | `10` | Maximum selected issues |
 | `statuses` | `OPEN` | Comma-separated statuses |
 | `type` | empty | Issue type: `CODE_SMELL`, `BUG`, or `VULNERABILITY` |
