@@ -1,8 +1,6 @@
 using Moq;
 using NUnit.Framework;
-using SonarCopilotFix.GitHub;
-using SonarCopilotFix.Infrastructure;
-using SonarCopilotFix.SonarQube.Models;
+using SonarCopilotFix.Models.SonarQube;
 
 namespace SonarCopilotFix.Tests;
 
@@ -16,7 +14,7 @@ internal sealed class StepSummaryWriterTests
         Mock<IConfigurationHelper> configuration = TestData.MockConfigurationHelper(gitHubStepSummary: null);
         StepSummaryWriter writer = new(configuration.Object);
 
-        writer.Write(new ActionSummary());
+        writer.Write(new ActionSummary(TestData.EffortCalculator()));
 
         configuration.VerifyGet(value => value.GitHubStepSummary, Times.Once);
     }
@@ -28,7 +26,9 @@ internal sealed class StepSummaryWriterTests
         string path = Path.Combine(temp.Path, "summary.md");
         Mock<IConfigurationHelper> configuration = TestData.MockConfigurationHelper(gitHubStepSummary: path);
 
-        new StepSummaryWriter(configuration.Object).Write(new ActionSummary { IssuesFound = 4 });
+        ActionSummary summary = new(TestData.EffortCalculator());
+        summary.RecordIssues(4, []);
+        new StepSummaryWriter(configuration.Object).Write(summary);
 
         string text = File.ReadAllText(path);
         Assert.Contains("| n/a | n/a | n/a | no rule groups processed |", text);
@@ -42,8 +42,9 @@ internal sealed class StepSummaryWriterTests
         using TempDirectory temp = new();
         string path = Path.Combine(temp.Path, "summary.md");
         Mock<IConfigurationHelper> configuration = TestData.MockConfigurationHelper(gitHubStepSummary: path);
-        ActionSummary summary = new();
+        ActionSummary summary = new(TestData.EffortCalculator());
         PullRequestSummary result = new(
+            TestData.EffortCalculator(),
             new IssueGroup("rule:S1", [TestData.SampleIssue()]),
             "main",
             "fix/rule",
@@ -63,10 +64,4 @@ internal sealed class StepSummaryWriterTests
         Assert.Contains("Pull requests created: `1`", text);
     }
 
-    private sealed class TempDirectory : IDisposable
-    {
-        public TempDirectory() => Path = Directory.CreateTempSubdirectory().FullName;
-        public string Path { get; }
-        public void Dispose() => Directory.Delete(Path, recursive: true);
-    }
 }

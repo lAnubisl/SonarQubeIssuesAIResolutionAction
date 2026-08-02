@@ -1,7 +1,5 @@
 using Moq;
-using SonarCopilotFix.Infrastructure;
-using SonarCopilotFix.SonarQube;
-using SonarCopilotFix.SonarQube.Models;
+using SonarCopilotFix.Models.SonarQube;
 
 namespace SonarCopilotFix.Tests;
 
@@ -10,6 +8,8 @@ internal static class TestData
     public static Mock<ILogger> MockLogger() => new();
 
     public static IConfigurationHelper Configuration() => MockConfigurationHelper().Object;
+
+    public static IEffortCalculator EffortCalculator() => new SonarIssueEffortCalculator();
 
     public static Mock<IConfigurationHelper> MockConfigurationHelper(
         string? inputSonarHostUrl = "https://sonar.example",
@@ -49,10 +49,10 @@ internal static class TestData
         string? gitHubStepSummary = null,
         IReadOnlyDictionary<string, string?>? safeEnvironmentVariables = null)
     {
-        ConfigurationHelper systemConfiguration = new();
         Mock<IConfigurationHelper> configurationHelper = new(MockBehavior.Strict);
-        configurationHelper.SetupGet(value => value.InputSonarHostUrl).Returns(inputSonarHostUrl);
-        configurationHelper.SetupGet(value => value.InputSonarProjectKey).Returns(inputSonarProjectKey);
+        configurationHelper.SetupGet(value => value.SonarHostUri).Returns(
+            new Uri(inputSonarHostUrl!.TrimEnd('/') + "/"));
+        configurationHelper.SetupGet(value => value.SonarProjectKey).Returns(inputSonarProjectKey!);
         configurationHelper.SetupGet(value => value.InputComponents).Returns(inputComponents ?? []);
         configurationHelper.SetupGet(value => value.InputSonarBranch).Returns(inputSonarBranch);
         configurationHelper.SetupGet(value => value.InputSonarOrganization).Returns(inputSonarOrganization);
@@ -78,17 +78,23 @@ internal static class TestData
         configurationHelper.SetupGet(value => value.InputFailIfNoIssues).Returns(inputFailIfNoIssues);
         configurationHelper.SetupGet(value => value.InputCopilotAllowedTools).Returns(inputCopilotAllowedTools ?? []);
         configurationHelper.SetupGet(value => value.InputCopilotAllowAllTools).Returns(inputCopilotAllowAllTools);
-        configurationHelper.SetupGet(value => value.SonarToken).Returns(sonarToken);
+        configurationHelper.SetupGet(value => value.SonarToken).Returns(sonarToken!);
         configurationHelper.SetupGet(value => value.CopilotGitHubToken).Returns(copilotGitHubToken);
         configurationHelper.SetupGet(value => value.CopilotProviderApiKey).Returns(copilotProviderApiKey);
-        configurationHelper.SetupGet(value => value.GitHubToken).Returns(gitHubToken);
+        configurationHelper.SetupGet(value => value.GitHubToken).Returns(gitHubToken!);
         configurationHelper.SetupGet(value => value.GitHubWorkspace).Returns(gitHubWorkspace ?? Directory.GetCurrentDirectory());
         configurationHelper.SetupGet(value => value.GitHubRepository).Returns(gitHubRepository);
         configurationHelper.SetupGet(value => value.GitHubOutput).Returns(gitHubOutput);
         configurationHelper.SetupGet(value => value.GitHubStepSummary).Returns(gitHubStepSummary);
         configurationHelper
             .SetupGet(value => value.SafeEnvironmentVariables)
-            .Returns(safeEnvironmentVariables ?? systemConfiguration.SafeEnvironmentVariables);
+            .Returns(safeEnvironmentVariables ?? new Dictionary<string, string?>
+            {
+                ["PATH"] = Environment.GetEnvironmentVariable("PATH"),
+                ["HOME"] = Environment.GetEnvironmentVariable("HOME"),
+                ["USERPROFILE"] = Environment.GetEnvironmentVariable("USERPROFILE"),
+                ["TEMP"] = Environment.GetEnvironmentVariable("TEMP")
+            });
         return configurationHelper;
     }
 

@@ -1,8 +1,6 @@
 using Moq;
 using NUnit.Framework;
-using SonarCopilotFix.GitHub;
-using SonarCopilotFix.Infrastructure;
-using SonarCopilotFix.SonarQube.Models;
+using SonarCopilotFix.Models.SonarQube;
 
 namespace SonarCopilotFix.Tests;
 
@@ -15,6 +13,7 @@ internal sealed class PrBodyBuilderTests
     {
         Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper();
         PullRequestSummary summary = new(
+            TestData.EffortCalculator(),
             new IssueGroup(
                 "csharpsquid:S1",
                 [TestData.SampleIssue()],
@@ -54,6 +53,7 @@ internal sealed class PrBodyBuilderTests
     {
         Mock<IConfigurationHelper> configuration = TestData.MockConfigurationHelper(inputBaseBranch: null);
         PullRequestSummary summary = new(
+            TestData.EffortCalculator(),
             new IssueGroup("rule:S1", [TestData.SampleIssue() with { Line = null }]),
             null!,
             null!,

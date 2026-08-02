@@ -2,10 +2,7 @@ using System.Net;
 using System.Text;
 using Moq;
 using NUnit.Framework;
-using SonarCopilotFix.Infrastructure;
-using SonarCopilotFix.PromptGeneration;
-using SonarCopilotFix.SonarQube;
-using SonarCopilotFix.SonarQube.Models;
+using SonarCopilotFix.Models.SonarQube;
 
 namespace SonarCopilotFix.Tests;
 

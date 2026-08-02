@@ -1,9 +1,6 @@
 using System.ComponentModel;
 using Moq;
 using NUnit.Framework;
-using SonarCopilotFix.GitHub;
-using SonarCopilotFix.Infrastructure;
-using SonarCopilotFix.Infrastructure.Models;
 
 namespace SonarCopilotFix.Tests;
 
@@ -191,10 +188,4 @@ internal sealed class CopilotCliRunnerTests
         Assert.Contains("could not be started", exception.Message);
     }
 
-    private sealed class TempDirectory : IDisposable
-    {
-        public TempDirectory() => Path = Directory.CreateTempSubdirectory().FullName;
-        public string Path { get; }
-        public void Dispose() => Directory.Delete(Path, recursive: true);
-    }
 }

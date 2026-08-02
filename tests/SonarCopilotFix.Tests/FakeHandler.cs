@@ -1,4 +1,3 @@
-using SonarCopilotFix.SonarQube;
 
 namespace SonarCopilotFix.Tests;
 

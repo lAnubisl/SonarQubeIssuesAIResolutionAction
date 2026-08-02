@@ -1,7 +1,5 @@
 using Moq;
 using NUnit.Framework;
-using SonarCopilotFix.Infrastructure;
-using SonarCopilotFix.SonarQube;
 
 namespace SonarCopilotFix.Tests;
 
@@ -21,7 +19,7 @@ internal sealed class SonarQubeHttpClientTests
         using SonarQubeHttpClient client = new(configuration.Object);
 
         Assert.Equal(new Uri(expectedUrl), client.BaseAddress);
-        configuration.VerifyGet(value => value.InputSonarHostUrl, Times.Once);
+        configuration.VerifyGet(value => value.SonarHostUri, Times.Once);
         configuration.VerifyGet(value => value.SonarToken, Times.Once);
     }
 }

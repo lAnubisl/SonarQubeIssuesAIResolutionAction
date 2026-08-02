@@ -1,11 +1,6 @@
 using Moq;
 using NUnit.Framework;
-using SonarCopilotFix.Git;
-using SonarCopilotFix.GitHub;
-using SonarCopilotFix.Infrastructure;
-using SonarCopilotFix.PromptGeneration;
-using SonarCopilotFix.SonarQube;
-using SonarCopilotFix.SonarQube.Models;
+using SonarCopilotFix.Models.SonarQube;
 
 namespace SonarCopilotFix.Tests;
 
@@ -21,7 +16,7 @@ internal sealed class SonarCopilotFixAppUnitTests
         Mock<IStepSummaryWriter> summaryWriter = new(MockBehavior.Strict);
         sonar.Setup(value => value.GetIssuesAsync(CancellationToken.None))
             .ReturnsAsync(new SonarIssueSearchResult(0, []));
-        summaryWriter.Setup(value => value.Write(It.Is<ActionSummary>(summary =>
+        summaryWriter.Setup(value => value.Write(It.Is<IRunSummary>(summary =>
             summary.IssuesFound == 0 && summary.IssuesSelected == 0)));
         SonarCopilotFixApp app = CreateApp(
             configuration.Object,
@@ -44,7 +39,7 @@ internal sealed class SonarCopilotFixAppUnitTests
         Mock<IStepSummaryWriter> summaryWriter = new(MockBehavior.Strict);
         sonar.Setup(value => value.GetIssuesAsync(CancellationToken.None))
             .ReturnsAsync(new SonarIssueSearchResult(0, []));
-        summaryWriter.Setup(value => value.Write(It.IsAny<ActionSummary>()));
+        summaryWriter.Setup(value => value.Write(It.IsAny<IRunSummary>()));
         SonarCopilotFixApp app = CreateApp(
             configuration.Object,
             Mock.Of<ILogger>(),
@@ -124,7 +119,7 @@ internal sealed class SonarCopilotFixAppUnitTests
         Mock<ICopilotCliRunner> copilot = new(MockBehavior.Strict);
         copilot.Setup(value => value.RunAsync("prompt", CancellationToken.None)).ReturnsAsync("session");
         Mock<IStepSummaryWriter> summaryWriter = new(MockBehavior.Strict);
-        summaryWriter.Setup(value => value.Write(It.Is<ActionSummary>(summary =>
+        summaryWriter.Setup(value => value.Write(It.Is<IRunSummary>(summary =>
             summary.PullRequestSummaries.Count == 1
             && summary.PullRequestSummaries[0].ChangedFiles.Count == 0)));
         SonarCopilotFixApp app = new(
@@ -135,7 +130,8 @@ internal sealed class SonarCopilotFixAppUnitTests
             summaryWriter.Object,
             git.Object,
             github.Object,
-            copilot.Object);
+            copilot.Object,
+            TestData.EffortCalculator());
 
         int exitCode = await app.RunAsync();
 
@@ -161,5 +157,6 @@ internal sealed class SonarCopilotFixAppUnitTests
             summaryWriter,
             git ?? Mock.Of<IGitService>(),
             github ?? Mock.Of<IGitHubCliService>(),
-            copilot ?? Mock.Of<ICopilotCliRunner>());
+            copilot ?? Mock.Of<ICopilotCliRunner>(),
+            TestData.EffortCalculator());
 }

@@ -1,27 +1,22 @@
-using SonarCopilotFix;
-using SonarCopilotFix.Git;
-using SonarCopilotFix.GitHub;
-using SonarCopilotFix.Infrastructure;
-using SonarCopilotFix.PromptGeneration;
-using SonarCopilotFix.SonarQube;
 
-TextLogger logger = new();
+ILogger logger = new TextLogger();
 
 try
 {
-    ConfigurationHelper configurationHelper = new();
-    ConfigurationValidator.Validate(configurationHelper);
-    SecretMasker.MaskKnownSecrets(configurationHelper, logger);
-    CommandRunner commandRunner = new(logger, configurationHelper);
-    PrBodyBuilder prBodyBuilder = new(configurationHelper);
-    using SonarQubeClient sonarQubeClient = new(
+    IConfigurationHelper configurationHelper = new ConfigurationHelper();
+    ISecretMasker secretMasker = new SecretMasker(configurationHelper, logger);
+    secretMasker.MaskKnownSecrets();
+    ICommandRunner commandRunner = new CommandRunner(logger, configurationHelper);
+    IPrBodyBuilder prBodyBuilder = new PrBodyBuilder(configurationHelper);
+    IEffortCalculator effortCalculator = new SonarIssueEffortCalculator();
+    using ISonarQubeClient sonarQubeClient = new SonarQubeClient(
         configurationHelper,
         logger,
         new SonarQubeHttpClient(configurationHelper),
         new CodeSnippetReader(configurationHelper),
         disposeClient: true);
 
-    SonarCopilotFixApp app = new(
+    IApplication app = new SonarCopilotFixApp(
         configurationHelper,
         logger,
         sonarQubeClient,
@@ -29,7 +24,8 @@ try
         new StepSummaryWriter(configurationHelper),
         new GitService(commandRunner, configurationHelper),
         new GitHubCliService(commandRunner, configurationHelper, logger, prBodyBuilder),
-        new CopilotCliRunner(commandRunner, configurationHelper, logger));
+        new CopilotCliRunner(commandRunner, configurationHelper, logger),
+        effortCalculator);
 
     return await app.RunAsync();
 }

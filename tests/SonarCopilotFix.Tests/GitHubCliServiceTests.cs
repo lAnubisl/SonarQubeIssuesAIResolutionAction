@@ -1,9 +1,6 @@
 using Moq;
 using NUnit.Framework;
-using SonarCopilotFix.Infrastructure;
-using SonarCopilotFix.Infrastructure.Models;
-using SonarCopilotFix.GitHub;
-using SonarCopilotFix.SonarQube.Models;
+using SonarCopilotFix.Models.SonarQube;
 
 namespace SonarCopilotFix.Tests;
 
@@ -43,6 +40,7 @@ internal sealed class GitHubCliServiceTests
             gitHubWorkspace: workspace);
         Mock<IPrBodyBuilder> prBodyBuilder = new(MockBehavior.Strict);
         PullRequestSummary pullRequestSummary = new(
+            TestData.EffortCalculator(),
             new IssueGroup("csharpsquid:S1", [TestData.SampleIssue()]),
             "main",
             "fix/issues",
@@ -130,6 +128,7 @@ internal sealed class GitHubCliServiceTests
             gitHubWorkspace: workspace,
             inputPullRequestDraft: false);
         PullRequestSummary summary = new(
+            TestData.EffortCalculator(),
             new IssueGroup("rule:S1", [TestData.SampleIssue()]),
             "main",
             "fix/rule",

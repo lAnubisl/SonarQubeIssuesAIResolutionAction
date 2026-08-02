@@ -1,6 +1,5 @@
 using Moq;
 using NUnit.Framework;
-using SonarCopilotFix.Infrastructure;
 
 namespace SonarCopilotFix.Tests;
 
@@ -23,7 +22,7 @@ internal sealed class SecretMaskerTests
         try
         {
             Console.SetOut(output);
-            SecretMasker.MaskKnownSecrets(configuration.Object, logger.Object);
+            new SecretMasker(configuration.Object, logger.Object).MaskKnownSecrets();
         }
         finally
         {
