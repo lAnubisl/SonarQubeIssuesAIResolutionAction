@@ -38,4 +38,4 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
-          GH_CLI_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}

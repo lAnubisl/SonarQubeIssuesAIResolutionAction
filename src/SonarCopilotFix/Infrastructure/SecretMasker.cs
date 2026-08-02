@@ -9,7 +9,7 @@ public static class SecretMasker
             configurationHelper.SonarToken,
             configurationHelper.CopilotGitHubToken,
             configurationHelper.CopilotProviderApiKey,
-            configurationHelper.GhCliToken
+            configurationHelper.GitHubToken
         };
 
         foreach (string? value in System.Linq.Enumerable.Where(secrets, v => !string.IsNullOrWhiteSpace(v)))

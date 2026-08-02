@@ -20,6 +20,7 @@ internal sealed class ConfigurationHelperTests
             ("INPUT_COPILOT_OFFLINE", "true"),
             ("COPILOT_GITHUB_TOKEN", " copilot-secret "),
             ("COPILOT_PROVIDER_API_KEY", " provider-secret "),
+            ("GH_TOKEN", " github-secret "),
             ("INPUT_BRANCH_PREFIX", null));
         ConfigurationHelper configuration = new();
 
@@ -32,6 +33,7 @@ internal sealed class ConfigurationHelperTests
         Assert.True(configuration.InputCopilotOffline);
         Assert.Equal("copilot-secret", configuration.CopilotGitHubToken);
         Assert.Equal("provider-secret", configuration.CopilotProviderApiKey);
+        Assert.Equal("github-secret", configuration.GitHubToken);
         Assert.Equal("copilot/sonar-fixes", configuration.InputBranchPrefix);
     }
 

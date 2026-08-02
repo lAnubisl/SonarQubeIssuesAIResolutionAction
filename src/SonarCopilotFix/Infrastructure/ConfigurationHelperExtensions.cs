@@ -37,8 +37,8 @@ public static class ConfigurationHelperExtensions
             ExitCodes.ConfigurationError);
 
     public static string GetGitHubToken(this IConfigurationHelper configurationHelper) =>
-        configurationHelper.GhCliToken
+        configurationHelper.GitHubToken
         ?? throw new ControlledFailureException(
-            "GH_CLI_TOKEN is required.",
+            "GH_TOKEN is required.",
             ExitCodes.ConfigurationError);
 }

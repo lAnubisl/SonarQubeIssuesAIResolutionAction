@@ -20,14 +20,14 @@ internal sealed class ConfigurationValidatorTests
     }
 
     [Test]
-    public static void RequiresGitHubCliToken()
+    public static void RequiresGitHubToken()
     {
         Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
-            ghCliToken: null);
+            gitHubToken: null);
 
         ControlledFailureException ex = Assert.Throws<ControlledFailureException>(() => ConfigurationValidator.Validate(configurationHelper.Object));
 
-        Assert.Contains("GH_CLI_TOKEN", ex.Message);
+        Assert.Contains("GH_TOKEN", ex.Message);
     }
 
     [TestCase("CODE_SMELL")]

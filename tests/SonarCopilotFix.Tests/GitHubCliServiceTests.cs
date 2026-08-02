@@ -22,7 +22,7 @@ internal sealed class GitHubCliServiceTests
     {
         string workspace = Path.Combine(Path.GetTempPath(), "github-workspace");
         Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
-            ghCliToken: "github-secret",
+            gitHubToken: "github-secret",
             gitHubWorkspace: workspace);
 
         IReadOnlyDictionary<string, string?> environment = GitHubCliService.BuildEnvironment(configurationHelper.Object);
@@ -39,7 +39,7 @@ internal sealed class GitHubCliServiceTests
         string workspace = Path.Combine(Path.GetTempPath(), "github-workspace");
         Mock<ICommandRunner> commandRunner = new(MockBehavior.Strict);
         Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
-            ghCliToken: "github-secret",
+            gitHubToken: "github-secret",
             gitHubWorkspace: workspace);
         Mock<IPrBodyBuilder> prBodyBuilder = new(MockBehavior.Strict);
         PullRequestSummary pullRequestSummary = new(

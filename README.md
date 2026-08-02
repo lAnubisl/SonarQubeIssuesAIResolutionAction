@@ -16,14 +16,14 @@ GitHub-hosted Ubuntu runners are supported. Self-hosted Ubuntu runners are best-
 
 ## Token Isolation
 
-Use separate secrets:
+Use separate credentials:
 
 | Secret | Used for | Never used for |
 | --- | --- | --- |
 | `SONAR_TOKEN` | SonarQube Web API bearer authentication | Copilot CLI, GitHub CLI, git push |
 | `COPILOT_GITHUB_TOKEN` | GitHub-hosted Copilot models; not required with a custom provider | SonarQube, GitHub API, git push |
 | `COPILOT_PROVIDER_API_KEY` | Custom provider authentication; required for Azure and Anthropic | SonarQube, GitHub API, git push |
-| `GH_CLI_TOKEN` | GitHub CLI and repository git operations | SonarQube, Copilot CLI |
+| `GH_TOKEN` | GitHub CLI and repository git operations | SonarQube, Copilot CLI |
 
 All known token values are masked with `::add-mask::`. Child processes receive minimal environment variables; secrets are passed only to the command that needs them.
 
@@ -32,7 +32,7 @@ Choose one Copilot authentication mode:
 1. For a GitHub-hosted model, set `COPILOT_GITHUB_TOKEN` and omit the custom-provider inputs.
 2. For BYOK, set `copilot_provider_base_url` and `copilot_model`, optionally select `copilot_provider_type`, and set `COPILOT_PROVIDER_API_KEY` when the provider requires authentication. `COPILOT_GITHUB_TOKEN` is not required in this mode.
 
-`SONAR_TOKEN` and `GH_CLI_TOKEN` are required in both modes because SonarQube access and pull-request creation are independent of model authentication.
+`SONAR_TOKEN` and `GH_TOKEN` are required in both modes because SonarQube access and pull-request creation are independent of model authentication.
 
 ## Inputs
 
@@ -124,7 +124,7 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
-          GH_CLI_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
 ```
 
 ### Case 2: Azure Foundry custom provider
@@ -143,7 +143,7 @@ This example uses an Azure Foundry OpenAI-compatible v1 endpoint. The deployment
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           COPILOT_PROVIDER_API_KEY: ${{ secrets.COPILOT_PROVIDER_API_KEY }}
-          GH_CLI_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
 ```
 
 The Azure Foundry case intentionally omits `COPILOT_GITHUB_TOKEN`. See GitHub's [Copilot CLI BYOK documentation](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/use-byok-models) for supported provider settings.
@@ -164,7 +164,7 @@ The Azure Foundry case intentionally omits `COPILOT_GITHUB_TOKEN`. See GitHub's 
 
 If neither files nor `HEAD` changed for a rule group, the action skips its empty commit and PR, switches back to the base branch, and continues with the next group. Build, test, lint, and other validation remain the responsibility of the consuming repository's pull request workflows. When Copilot should run a project tool while preparing the fix, install that tool before this action and grant only its required command pattern with `copilot_allowed_tools`.
 
-Configure those workflows for `pull_request` events such as `opened` and `synchronize`, and enforce their checks with branch protection or rulesets. Use a personal access token or GitHub App installation token for `GH_CLI_TOKEN`.
+Configure those workflows for `pull_request` events such as `opened` and `synchronize`, and enforce their checks with branch protection or rulesets. When the built-in job token is insufficient, use a personal access token or GitHub App installation token for `GH_TOKEN`.
 
 ## Copilot CLI Notes
 

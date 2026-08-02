@@ -32,7 +32,7 @@ public sealed class ConfigurationHelper : IConfigurationHelper
     public string? SonarToken => Trimmed(Get("SONAR_TOKEN"));
     public string? CopilotGitHubToken => Trimmed(Get("COPILOT_GITHUB_TOKEN"));
     public string? CopilotProviderApiKey => Trimmed(Get("COPILOT_PROVIDER_API_KEY"));
-    public string? GhCliToken => Trimmed(Get("GH_CLI_TOKEN"));
+    public string? GitHubToken => Trimmed(Get("GH_TOKEN"));
     public string GitHubWorkspace => Trimmed(Get("GITHUB_WORKSPACE")) ?? Directory.GetCurrentDirectory();
     public string GitHubRepository => Trimmed(Get("GITHUB_REPOSITORY")) ?? "unknown/unknown";
     public string? GitHubOutput => Trimmed(Get("GITHUB_OUTPUT"));

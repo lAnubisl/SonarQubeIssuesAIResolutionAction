@@ -235,7 +235,7 @@ internal sealed class GitServiceTests
                 environments.Add(environment);
             })
             .ReturnsAsync(new CommandResult(0, "", ""));
-        GitService git = new(commandRunner.Object, TestData.MockConfigurationHelper(ghCliToken: "gh-token").Object);
+        GitService git = new(commandRunner.Object, TestData.MockConfigurationHelper(gitHubToken: "gh-token").Object);
 
         await git.CreateBranchAsync("fix/test", CancellationToken.None);
         await git.ConfigureBotUserAsync(CancellationToken.None);

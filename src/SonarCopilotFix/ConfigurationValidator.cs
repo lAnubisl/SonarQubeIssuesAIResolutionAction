@@ -30,7 +30,7 @@ public static class ConfigurationValidator
                 ExitCodes.ConfigurationError);
         }
 
-        string? ghCliToken = configurationHelper.GhCliToken;
+        string? gitHubToken = configurationHelper.GitHubToken;
         bool usesCustomProvider = ValidateCopilotProvider(configurationHelper);
 
         if (!usesCustomProvider && string.IsNullOrWhiteSpace(configurationHelper.CopilotGitHubToken))
@@ -40,9 +40,9 @@ public static class ConfigurationValidator
                 ExitCodes.ConfigurationError);
         }
 
-        if (string.IsNullOrWhiteSpace(ghCliToken))
+        if (string.IsNullOrWhiteSpace(gitHubToken))
         {
-            throw new ControlledFailureException("GH_CLI_TOKEN is required.", ExitCodes.ConfigurationError);
+            throw new ControlledFailureException("GH_TOKEN is required.", ExitCodes.ConfigurationError);
         }
     }
 

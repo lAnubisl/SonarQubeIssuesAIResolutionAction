@@ -108,7 +108,7 @@ runs:
         SONAR_TOKEN: ""
         COPILOT_GITHUB_TOKEN: ""
         COPILOT_PROVIDER_API_KEY: ""
-        GH_CLI_TOKEN: ""
+        GH_TOKEN: ""
         GITHUB_TOKEN: ""
       with:
         dotnet-version: 10.0.x
@@ -119,7 +119,7 @@ runs:
         SONAR_TOKEN: ""
         COPILOT_GITHUB_TOKEN: ""
         COPILOT_PROVIDER_API_KEY: ""
-        GH_CLI_TOKEN: ""
+        GH_TOKEN: ""
         GITHUB_TOKEN: ""
         COPILOT_CLI_VERSION: ${{ inputs.copilot_cli_version }}
       run: |
@@ -139,6 +139,11 @@ runs:
       id: run
       shell: bash
       env:
+        SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+        COPILOT_GITHUB_TOKEN: ${{ env.COPILOT_GITHUB_TOKEN }}
+        COPILOT_PROVIDER_API_KEY: ${{ env.COPILOT_PROVIDER_API_KEY }}
+        GH_TOKEN: ${{ env.GH_TOKEN }}
+        GITHUB_TOKEN: ""
         ACTION_PATH: ${{ github.action_path }}
         INPUT_SONAR_HOST_URL: ${{ inputs.sonar_host_url }}
         INPUT_SONAR_PROJECT_KEY: ${{ inputs.sonar_project_key }}

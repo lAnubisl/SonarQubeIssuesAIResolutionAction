@@ -56,7 +56,7 @@ public sealed class SonarCopilotFixApp
         _logger.Info($"Grouped {enrichedIssues.Count} selected issue(s) into {issueGroups.Count} rule group(s).");
 
         await PrepareRepositoryAsync(baseBranch, cancellationToken);
-        _logger.Info("Using GH_CLI_TOKEN for GitHub repository operations.");
+        _logger.Info("Using GH_TOKEN for GitHub repository operations.");
         await _github.SetupGitAuthenticationAsync(cancellationToken);
 
         foreach (IssueGroup issueGroup in issueGroups)

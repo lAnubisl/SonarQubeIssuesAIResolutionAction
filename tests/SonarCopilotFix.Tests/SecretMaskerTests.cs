@@ -15,7 +15,7 @@ internal sealed class SecretMaskerTests
             sonarToken: "sonar-secret",
             copilotGitHubToken: null,
             copilotProviderApiKey: "provider-secret",
-            ghCliToken: "github-secret");
+            gitHubToken: "github-secret");
         Mock<ILogger> logger = new(MockBehavior.Strict);
         logger.Setup(value => value.Info("Configured log masking for known token secrets."));
         TextWriter original = Console.Out;

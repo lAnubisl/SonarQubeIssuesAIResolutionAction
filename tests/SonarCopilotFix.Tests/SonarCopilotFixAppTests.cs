@@ -47,7 +47,7 @@ internal sealed class SonarCopilotFixAppTests
         Mock<ILogger> logger = TestData.MockLogger();
         Mock<IConfigurationHelper> configurationHelper = TestData.MockConfigurationHelper(
             copilotGitHubToken: "copilot",
-            ghCliToken: "github",
+            gitHubToken: "github",
             gitHubWorkspace: temp.FullName,
             gitHubOutput: Path.Combine(temp.FullName, "output.txt"),
             gitHubStepSummary: Path.Combine(temp.FullName, "summary.md"));

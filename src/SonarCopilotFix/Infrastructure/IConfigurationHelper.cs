@@ -32,7 +32,7 @@ public interface IConfigurationHelper
     string? SonarToken { get; }
     string? CopilotGitHubToken { get; }
     string? CopilotProviderApiKey { get; }
-    string? GhCliToken { get; }
+    string? GitHubToken { get; }
     string GitHubWorkspace { get; }
     string GitHubRepository { get; }
     string? GitHubOutput { get; }
