@@ -1,4 +1,4 @@
-name: Fix SonarQube issues with Copilot
+name: Fix SonarQube issues
 
 on:
   workflow_dispatch:
@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -24,15 +24,12 @@ jobs:
       - name: Fix SonarQube issues
         uses: lAnubisl/SonarQubeIssuesAIResolutionAction@v1.0.0
         with:
-          sonar_host_url: https://sonarcloud.io
-          sonar_project_key: <your_project_key>
+          sonar_host_url: ${{ vars.SONAR_PROJECT_URL }}
+          sonar_project_key: ${{ vars.SONAR_PROJECT_KEY }}
           sonar_branch: main
-          sonar_organization: <your_organization>
           max_issues: ${{ inputs.max_issues }}
-          copilot_allow_all_tools: true
-          copilot_extra_instructions: |
-            Make sure `dotnet build` command reports no errors or failures after the fixes (otherwise fix them).
-            Make sure `dotnet test` command reports no errors or failures after the fixes (otherwise fix them).
+          copilot_allowed_tools: "shell(dotnet:*)"
+          copilot_extra_instructions: Run dotnet test and fix any failures caused by your changes.
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}

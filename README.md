@@ -16,45 +16,10 @@ Use this action for supervised remediation of known SonarQube issues.
 
 The repository or organization must also allow GitHub Actions to create pull requests when `GH_TOKEN` uses the built-in job token.
 
-## Quick start
+## Workflow examples
 
-```yaml
-name: Fix SonarQube issues
-
-on:
-  workflow_dispatch:
-
-permissions:
-  contents: write
-  pull-requests: write
-
-jobs:
-  fix:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      # Install your project's build and test tools here.
-
-      - name: Fix SonarQube issues
-        uses: lAnubisl/SonarQubeIssuesAIResolutionAction@v1.0.0
-        with:
-          sonar_host_url: ${{ vars.SONAR_PROJECT_URL }}
-          sonar_project_key: ${{ vars.SONAR_PROJECT_KEY }}
-          sonar_branch: main
-          max_issues: 20
-          copilot_allowed_tools: shell(dotnet:*)
-          copilot_extra_instructions: Run dotnet test and fix any failures caused by your changes.
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
-          GH_TOKEN: ${{ github.token }}
-```
-
-See the complete [GitHub-hosted Copilot example](docs/examples/fix-sonarqube-issues.yml).
+- [GitHub-hosted Copilot model](docs/examples/fix-sonarqube-issues.yml)
+- [Azure Foundry custom model provider](docs/examples/fix-sonarqube-issues-azure-foundry.yml)
 
 ## Credentials
 
@@ -74,26 +39,7 @@ Pass credentials through the action step's `env` block, never as action inputs o
 
 All supplied credential values are masked in the action log.
 
-## Custom model provider
-
-The following example uses an Azure Foundry OpenAI-compatible v1 endpoint. The deployment must support streaming and tool calling.
-
-```yaml
-- name: Fix SonarQube issues with Azure Foundry
-  uses: lAnubisl/SonarQubeIssuesAIResolutionAction@v1.0.0
-  with:
-    sonar_host_url: ${{ vars.SONAR_PROJECT_URL }}
-    sonar_project_key: ${{ vars.SONAR_PROJECT_KEY }}
-    copilot_provider_type: openai
-    copilot_provider_base_url: https://<resource-name>.services.ai.azure.com/openai/v1
-    copilot_model: <deployment-name>
-  env:
-    SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-    COPILOT_PROVIDER_API_KEY: ${{ secrets.COPILOT_PROVIDER_API_KEY }}
-    GH_TOKEN: ${{ github.token }}
-```
-
-See the complete [Azure Foundry example](docs/examples/fix-sonarqube-issues-azure-foundry.yml) and GitHub's [Copilot CLI BYOK documentation](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/use-byok-models).
+For other custom providers, see GitHub's [Copilot CLI BYOK documentation](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/use-byok-models).
 
 ## Inputs
 

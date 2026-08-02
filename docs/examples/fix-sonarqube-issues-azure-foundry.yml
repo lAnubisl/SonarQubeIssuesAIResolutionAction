@@ -18,13 +18,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Fix SonarQube issues with Azure Foundry
-        uses: your-org/sonar-copilot-fix-action@v1
+        uses: lAnubisl/SonarQubeIssuesAIResolutionAction@v1.0.0
         with:
           sonar_host_url: ${{ vars.SONAR_HOST_URL }}
           sonar_project_key: ${{ vars.SONAR_PROJECT_KEY }}
