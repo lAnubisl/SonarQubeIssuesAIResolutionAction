@@ -20,7 +20,7 @@ public static class ConfigurationHelperExtensions
                 ExitCodes.ConfigurationError);
         }
 
-        builder.Path = builder.Path.TrimEnd('/') + "/";
+        builder.Path = builder.Path.TrimEnd(System.IO.Path.AltDirectorySeparatorChar, System.IO.Path.DirectorySeparatorChar) + System.IO.Path.AltDirectorySeparatorChar;
         return builder.Uri;
     }
 
