@@ -2,87 +2,26 @@
 
 # SonarQube Copilot Fix Action
 
-Reusable Ubuntu composite GitHub Action that fetches selected SonarQube issues, groups them by rule, and handles each rule group in an isolated branch and GitHub Copilot CLI session, producing one draft pull request per successfully fixed rule group.
+A GitHub Action that fetches selected SonarQube issues, groups them by rule, and asks GitHub Copilot CLI to fix each group in an isolated branch. Each successful group produces its own pull request.
 
-Use this for supervised remediation of known SonarQube issues.
+Use this action for supervised remediation of known SonarQube issues.
 
-## Design
+## Requirements
 
-The reusable unit is a composite action that runs directly on an Ubuntu runner. The core automation is a .NET 10 C# console app compiled from source with `dotnet run` when the action executes. The action installs its own .NET 10 SDK and standalone GitHub Copilot CLI, while project SDKs installed by preceding workflow steps remain available to Copilot through the runner `PATH`.
+- An Ubuntu GitHub Actions runner. GitHub-hosted runners are supported; self-hosted runners must provide Bash, cURL, Git, and GitHub CLI.
+- A checkout with full Git history and persisted credentials disabled.
+- `contents: write` and `pull-requests: write` workflow permissions.
+- A clean working tree when the action starts.
+- Project build and test tools installed before this action if Copilot needs to use them.
 
-This project avoids JavaScript and TypeScript for core logic. C# gives typed SonarQube models, explicit process environments, testable prompt generation, and predictable exit codes.
+The repository or organization must also allow GitHub Actions to create pull requests when `GH_TOKEN` uses the built-in job token.
 
-GitHub-hosted Ubuntu runners are supported. Self-hosted Ubuntu runners are best-effort and must provide Bash, cURL, Git, and GitHub CLI.
-
-## Token Isolation
-
-Use separate credentials:
-
-| Secret | Used for | Never used for |
-| --- | --- | --- |
-| `SONAR_TOKEN` | SonarQube Web API bearer authentication | Copilot CLI, GitHub CLI, git push |
-| `COPILOT_GITHUB_TOKEN` | GitHub-hosted Copilot models; not required with a custom provider | SonarQube, GitHub API, git push |
-| `COPILOT_PROVIDER_API_KEY` | Custom provider authentication; required for Azure and Anthropic | SonarQube, GitHub API, git push |
-| `GH_TOKEN` | GitHub CLI and repository git operations | SonarQube, Copilot CLI |
-
-All known token values are masked with `::add-mask::`. Child processes receive minimal environment variables; secrets are passed only to the command that needs them.
-
-Choose one Copilot authentication mode:
-
-1. For a GitHub-hosted model, set `COPILOT_GITHUB_TOKEN` and omit the custom-provider inputs.
-2. For BYOK, set `copilot_provider_base_url` and `copilot_model`, optionally select `copilot_provider_type`, and set `COPILOT_PROVIDER_API_KEY` when the provider requires authentication. `COPILOT_GITHUB_TOKEN` is not required in this mode.
-
-`SONAR_TOKEN` and `GH_TOKEN` are required in both modes because SonarQube access and pull-request creation are independent of model authentication.
-
-See [Configure `COPILOT_GITHUB_TOKEN`](docs/copilot-github-token.md) for consumer setup instructions covering token creation, repository secrets, workflow configuration, and troubleshooting.
-
-See [Configure `GH_TOKEN`](docs/gh-token.md) for the recommended built-in job-token setup and fine-grained PAT or GitHub App alternatives.
-
-See [Configure `SONAR_TOKEN`](docs/sonar-token.md) for SonarQube Server and Cloud token creation, minimum permissions, repository-secret setup, rotation, and troubleshooting.
-
-## Inputs
-
-| Input | Default | Notes |
-| --- | --- | --- |
-| `sonar_host_url` | required | SonarQube Server or Cloud URL |
-| `sonar_project_key` | required | SonarQube project key |
-| `components` | empty | Comma-separated component keys; defaults to `sonar_project_key`. Use `projectKey:path/to/file` for source files |
-| `sonar_branch` | empty | Sonar branch parameter |
-| `sonar_organization` | empty | SonarQube Cloud organization key; required to retrieve organization-scoped rule details |
-| `max_issues` | `10` | Maximum selected issues |
-| `statuses` | `OPEN` | Comma-separated statuses |
-| `type` | empty | Issue type: `CODE_SMELL`, `BUG`, or `VULNERABILITY` |
-| `severities` | empty | Comma-separated severities |
-| `impactSoftwareQualities` | empty | Comma-separated software qualities, such as `RELIABILITY`, `SECURITY`, or `MAINTAINABILITY` |
-| `impactSeverities` | empty | Comma-separated impact severities |
-| `cleanCodeAttributeCategories` | empty | Modern clean-code category filter where supported |
-| `rules` | empty | Comma-separated rule keys, such as `csharpsquid:S1234` |
-| `include_rule_details` | `true` | Calls `/api/rules/show` per issue |
-| `include_code_snippets` | `true` | Reads snippets from checked-out files |
-| `code_snippet_context_lines` | `20` | Lines before and after issue line |
-| `copilot_cli_version` | `latest` | Copilot CLI release to install; set a specific version such as `v1.0.69` to pin it |
-| `copilot_model` | empty | Passed to Copilot CLI with `--model`; required when using a custom provider |
-| `copilot_provider_type` | empty | Custom provider type: `openai` (default), `azure`, or `anthropic` |
-| `copilot_provider_base_url` | empty | Enables custom-provider mode; must be an absolute URL |
-| `copilot_offline` | `false` | Sets Copilot CLI offline mode for local or private provider scenarios |
-| `copilot_extra_instructions` | empty | Added to the prompt |
-| `branch_prefix` | `copilot/sonar-fixes` | Generated branch prefix |
-| `base_branch` | detected | Uses `origin/HEAD` or `main` fallback |
-| `pull_request_draft` | `true` | Draft PRs by default |
-| `fail_if_no_issues` | `false` | Strict empty-result behavior |
-| `copilot_allowed_tools` | empty | Comma-separated Copilot permission patterns added alongside file writes, such as `shell(dotnet:*)` |
-| `copilot_allow_all_tools` | `false` | Allows all CLI tools without confirmation; otherwise only file writes are pre-approved |
-
-## Example workflows
-
-### Case 1: GitHub-hosted Copilot model
+## Quick start
 
 ```yaml
-name: Fix SonarQube issues with Copilot
+name: Fix SonarQube issues
 
 on:
-  schedule:
-    - cron:  '0 0 * * *'
   workflow_dispatch:
 
 permissions:
@@ -92,23 +31,13 @@ permissions:
 jobs:
   fix:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Setup Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.13'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest
+      # Install your project's build and test tools here.
 
       - name: Fix SonarQube issues
         uses: lAnubisl/SonarQubeIssuesAIResolutionAction@v1.0.0
@@ -116,80 +45,100 @@ jobs:
           sonar_host_url: ${{ vars.SONAR_PROJECT_URL }}
           sonar_project_key: ${{ vars.SONAR_PROJECT_KEY }}
           sonar_branch: main
-          statuses: OPEN
           max_issues: 20
-          copilot_allow_all_tools: true
-          copilot_extra_instructions: |
-            Make sure all unit tests are passing after the changes.
-            ```bash
-            # From the repository root:
-            cd python/src
-            python -m pytest tests/ -v
-            ```
-            If any tests are failing, fix them as well.
+          copilot_allowed_tools: shell(dotnet:*)
+          copilot_extra_instructions: Run dotnet test and fix any failures caused by your changes.
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
           GH_TOKEN: ${{ github.token }}
 ```
 
-### Case 2: Azure Foundry custom provider
+See the complete [GitHub-hosted Copilot example](docs/examples/fix-sonarqube-issues.yml).
 
-This example uses an Azure Foundry OpenAI-compatible v1 endpoint. The deployment must support streaming and tool calling.
+## Credentials
 
-```yaml
-      - name: Fix SonarQube issues with Azure Foundry
-        uses: lAnubisl/SonarQubeIssuesAIResolutionAction@v1.0.0
-        with:
-          sonar_host_url: ${{ vars.SONAR_PROJECT_URL }}
-          sonar_project_key: ${{ vars.SONAR_PROJECT_KEY }}
-          copilot_provider_type: openai
-          copilot_provider_base_url: https://<resource-name>.services.ai.azure.com/openai/v1
-          copilot_model: <deployment-name>
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          COPILOT_PROVIDER_API_KEY: ${{ secrets.COPILOT_PROVIDER_API_KEY }}
-          GH_TOKEN: ${{ github.token }}
-```
+Pass credentials through the action step's `env` block, never as action inputs or literal values in the workflow.
 
-The Azure Foundry case intentionally omits `COPILOT_GITHUB_TOKEN`. See GitHub's [Copilot CLI BYOK documentation](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/use-byok-models) for supported provider settings.
+| Environment variable | Purpose | When required | Setup guide |
+| --- | --- | --- | --- |
+| `SONAR_TOKEN` | Read SonarQube issues and rule details | Always | [Configure `SONAR_TOKEN`](docs/sonar-token.md) |
+| `GH_TOKEN` | Push branches and create pull requests | Always | [Configure `GH_TOKEN`](docs/gh-token.md) |
+| `COPILOT_GITHUB_TOKEN` | Authenticate GitHub-hosted Copilot models | When no custom provider is configured | [Configure `COPILOT_GITHUB_TOKEN`](docs/copilot-github-token.md) |
+| `COPILOT_PROVIDER_API_KEY` | Authenticate a custom model provider | Required for `azure` and `anthropic`; optional for `openai` | Follow your model provider's secret-management guidance |
 
-## Execution
+`SONAR_TOKEN` and `GH_TOKEN` are required in every mode. For model access, choose one of these modes:
 
-1. Fetches and paginates open SonarQube issues from `/api/issues/search`.
-2. Optionally fetches rule details from `/api/rules/show`.
-3. Reads local snippets around affected lines.
-4. Requires a clean worktree outside `.sonar-copilot`.
-5. Switches to the resolved base branch.
-6. Groups selected issues by their SonarQube rule key.
-7. For each rule group, creates and checks out a branch named `<branch_prefix>/<sonar_project_key>/<rule_key>/<timestamp>`.
-8. Generates a prompt containing every selected issue for that rule and starts a fresh Copilot CLI session with a unique session ID.
-9. Detects both uncommitted files and commits created after the per-group snapshot.
-10. Commits any remaining worktree changes, pushes the rule-group branch, and creates a draft PR with `gh pr create`.
-11. Switches back to the base branch before starting the next rule group.
+1. Set `COPILOT_GITHUB_TOKEN` to use a GitHub-hosted Copilot model.
+2. Set `copilot_provider_base_url` and `copilot_model` to use a custom provider. Set `COPILOT_PROVIDER_API_KEY` when the provider requires authentication; `COPILOT_GITHUB_TOKEN` is not needed.
 
-If neither files nor `HEAD` changed for a rule group, the action skips its empty commit and PR, switches back to the base branch, and continues with the next group. Build, test, lint, and other validation remain the responsibility of the consuming repository's pull request workflows. When Copilot should run a project tool while preparing the fix, install that tool before this action and grant only its required command pattern with `copilot_allowed_tools`.
+All supplied credential values are masked in the action log.
 
-Configure those workflows for `pull_request` events such as `opened` and `synchronize`, and enforce their checks with branch protection or rulesets. When the built-in job token is insufficient, use a personal access token or GitHub App installation token for `GH_TOKEN`.
+## Custom model provider
 
-## Copilot CLI Notes
-
-GitHub Copilot CLI access can differ by subscription and enterprise policy. The action intentionally does not accept arbitrary Copilot command input. It invokes the standalone CLI from the repository workspace with a fixed argument shape:
-
-```text
-copilot --prompt <prompt> --no-ask-user [--model <model>] (--allow-tool=write[,<permission-pattern>...] | --allow-all-tools) --deny-tool="shell(git commit)"
-```
-
-By default, `copilot_cli_version: latest` resolves and installs the latest stable Copilot CLI release on every action run. Set `copilot_cli_version` to a release such as `v1.0.69` when a workflow needs a reproducible pinned version.
-
-`copilot_allowed_tools` accepts comma-separated Copilot CLI permission patterns. Prefer narrow entries such as `shell(dotnet test)` or `shell(dotnet:*)`. The existing `copilot_allow_all_tools` input remains available as an explicit unrestricted override. The action always denies Copilot's `shell(git commit)` tool, even with `copilot_allow_all_tools`, and supplies a process-scoped Git `pre-commit` hook as a second guard. The generated prompt also tells Copilot to leave changes uncommitted.
-
-## Security
-
-Recommended workflow permissions:
+The following example uses an Azure Foundry OpenAI-compatible v1 endpoint. The deployment must support streaming and tool calling.
 
 ```yaml
-permissions:
-  contents: write
-  pull-requests: write
+- name: Fix SonarQube issues with Azure Foundry
+  uses: lAnubisl/SonarQubeIssuesAIResolutionAction@v1.0.0
+  with:
+    sonar_host_url: ${{ vars.SONAR_PROJECT_URL }}
+    sonar_project_key: ${{ vars.SONAR_PROJECT_KEY }}
+    copilot_provider_type: openai
+    copilot_provider_base_url: https://<resource-name>.services.ai.azure.com/openai/v1
+    copilot_model: <deployment-name>
+  env:
+    SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    COPILOT_PROVIDER_API_KEY: ${{ secrets.COPILOT_PROVIDER_API_KEY }}
+    GH_TOKEN: ${{ github.token }}
 ```
+
+See the complete [Azure Foundry example](docs/examples/fix-sonarqube-issues-azure-foundry.yml) and GitHub's [Copilot CLI BYOK documentation](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/use-byok-models).
+
+## Inputs
+
+| Input | Default | Description |
+| --- | --- | --- |
+| `sonar_host_url` | required | SonarQube Server or Cloud base URL |
+| `sonar_project_key` | required | SonarQube project key |
+| `components` | empty | Comma-separated component keys; defaults to `sonar_project_key`. Use `projectKey:path/to/file` for source files |
+| `sonar_branch` | empty | SonarQube branch to query |
+| `sonar_organization` | empty | SonarQube Cloud organization key; required for organization-scoped rule details |
+| `max_issues` | `10` | Maximum number of issues to select |
+| `statuses` | `OPEN` | Comma-separated issue statuses |
+| `type` | empty | `CODE_SMELL`, `BUG`, or `VULNERABILITY` |
+| `severities` | empty | Comma-separated SonarQube severities |
+| `impactSoftwareQualities` | empty | Comma-separated qualities such as `RELIABILITY`, `SECURITY`, or `MAINTAINABILITY` |
+| `impactSeverities` | empty | Comma-separated impact severities |
+| `cleanCodeAttributeCategories` | empty | Comma-separated clean-code categories where supported |
+| `rules` | empty | Comma-separated rule keys, such as `csharpsquid:S1234` |
+| `include_rule_details` | `true` | Include SonarQube rule details in the Copilot prompt |
+| `include_code_snippets` | `true` | Include snippets from checked-out source files in the prompt |
+| `code_snippet_context_lines` | `20` | Number of lines before and after each issue line |
+| `copilot_cli_version` | `latest` | Copilot CLI release to install; use a release such as `v1.0.69` to pin it |
+| `copilot_model` | empty | Model passed to Copilot CLI; required with a custom provider |
+| `copilot_provider_type` | empty | Custom provider type: `openai` (default), `azure`, or `anthropic` |
+| `copilot_provider_base_url` | empty | Absolute URL that enables custom-provider mode |
+| `copilot_offline` | `false` | Enable Copilot CLI offline mode for a local or private provider |
+| `copilot_extra_instructions` | empty | Additional reviewer-approved instructions included in the prompt |
+| `branch_prefix` | `copilot/sonar-fixes` | Prefix for generated branches |
+| `base_branch` | detected | Pull request base branch; uses `origin/HEAD` or falls back to `main` |
+| `pull_request_draft` | `true` | Create draft pull requests |
+| `fail_if_no_issues` | `false` | Fail when no matching issues are found |
+| `copilot_allowed_tools` | empty | Comma-separated Copilot permission patterns added alongside file writes, such as `shell(dotnet:*)` |
+| `copilot_allow_all_tools` | `false` | Allow every Copilot CLI tool without confirmation |
+
+Prefer narrowly scoped `copilot_allowed_tools` patterns. `copilot_allow_all_tools` grants unrestricted tool access, except that the action always blocks Copilot from running `git commit`.
+
+## What to expect
+
+- Matching issues are grouped by SonarQube rule key.
+- Each rule group runs in a new Copilot session on its own generated branch.
+- A pull request is created only when that session changes files or creates commits.
+- The action returns to the base branch before processing the next group.
+- Build, test, lint, and other validation are the responsibility of the consuming repository. Configure pull request workflows and branch protection or rulesets accordingly.
+- Pull requests created with the built-in `GITHUB_TOKEN` may not automatically start downstream workflows. The [`GH_TOKEN` guide](docs/gh-token.md) describes PAT and GitHub App alternatives.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
